@@ -30,7 +30,7 @@ El usuario pidió replicar, para este proyecto mobile, el mismo sistema de instr
 
 ## Verificación
 
-`./gradlew assembleDebug` — ver resultado real en la sesión de build (puede no haber SDK/emulador disponible en este entorno; si falló, queda registrado como deuda o nota aparte, no asumir éxito sin confirmar).
+`./gradlew assembleDebug` → **BUILD SUCCESSFUL** (34 tareas ejecutadas, 1m 6s). No se probó en emulador/dispositivo real (sin credenciales de Supabase todavía, ver [[Módulo Login]]) — solo se confirmó que compila y empaqueta.
 
 ## Lo que NO cambió
 

@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">ProyectoFinalRestaurante</string>
+
+    <string name="login_titulo">Iniciar sesión</string>
+    <string name="login_hint_correo">Correo electrónico</string>
+    <string name="login_hint_contrasenia">Contraseña</string>
+    <string name="login_boton">Ingresar</string>
+
+    <string name="main_bienvenida">¡Bienvenido!</string>
+    <string name="main_cerrar_sesion">Cerrar sesión</string>
+</resources>
