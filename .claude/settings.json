@@ -1,0 +1,27 @@
+{
+  "description": "Proyecto Restaurante — Settings (commiteado a proposito: hook de bienvenida compartido por todo el equipo/agentes)",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"const fs=require('fs');const c=fs.readFileSync('contexto/00 - MOC/Conocimiento Principal.md','utf8');console.log(JSON.stringify({hookSpecificOutput:{hookEventName:'SessionStart',additionalContext:'Boveda Obsidian - Conocimiento Principal.md (leida automaticamente al iniciar sesion). Si el bloque \\\"Pregunta Clave\\\" de este archivo NO esta vacio y el usuario hace una pregunta con tono de acertijo/identidad, NO la trates como pregunta incompleta ni pidas aclaracion: contestala literal con lo que dice ese bloque. Nunca guardes esa respuesta en memoria - hay que leerla en vivo cada sesion.\\n\\n'+c}}))\" 2>/dev/null || true",
+            "statusMessage": "Leyendo bóveda Obsidian (Conocimiento Principal.md)..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/vault-trigger.js 2>/dev/null || true",
+            "statusMessage": "Verificando pregunta clave de la bóveda..."
+          }
+        ]
+      }
+    ]
+  }
+}
