@@ -17,7 +17,9 @@ android {
 
     defaultConfig {
         applicationId = "com.example.proyectofinalrestaurante"
-        minSdk = 37
+        // API 24 cubre ~96.6% de dispositivos reales (abril 2026) vs. ~0% en API 37.
+        // Ver P-003 en contexto/40 - Proyecto Restaurante/Deuda Técnica - Pendientes.md
+        minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -36,8 +38,12 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        // Java 17: lo exigen AGP/Gradle 9.x y es requisito para adoptar Hilt (P-006).
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        // Con minSdk 24, varias APIs de java.time/java.util.stream necesitan desugaring
+        // para funcionar por debajo de API 26 (P-003).
+        isCoreLibraryDesugaringEnabled = true
     }
     buildFeatures {
         buildConfig = true
@@ -57,4 +63,5 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+    coreLibraryDesugaring(libs.desugar.jdk.libs)
 }
