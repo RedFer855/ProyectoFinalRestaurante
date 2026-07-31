@@ -21,16 +21,17 @@ public class SesionActualTest {
     @Test
     public void guardarYRecuperar() {
         SesionActual.limpiar();
-        Sesion sesion = new Sesion("u1", "admin@restaurante.com", "token", "admin");
+        Sesion sesion = new Sesion("u1", "admin@restaurante.com", "token", "Ana López", "admin");
         SesionActual.guardar(sesion);
         assertNotNull(SesionActual.obtener());
         assertEquals("admin", SesionActual.obtener().getRol());
         assertEquals("admin@restaurante.com", SesionActual.obtener().getCorreo());
+        assertEquals("Ana López", SesionActual.obtener().getNombre());
     }
 
     @Test
     public void limpiarDejaSinSesion() {
-        SesionActual.guardar(new Sesion("u1", "a@b.com", "t", "mesero"));
+        SesionActual.guardar(new Sesion("u1", "a@b.com", "t", "Luis Pérez", "mesero"));
         SesionActual.limpiar();
         assertNull(SesionActual.obtener());
     }

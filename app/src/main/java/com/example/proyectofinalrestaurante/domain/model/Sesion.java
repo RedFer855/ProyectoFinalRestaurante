@@ -6,12 +6,14 @@ public final class Sesion {
     private final String idUsuario;
     private final String correo;
     private final String accessToken;
+    private final String nombre;
     private final String rol;
 
-    public Sesion(String idUsuario, String correo, String accessToken, String rol) {
+    public Sesion(String idUsuario, String correo, String accessToken, String nombre, String rol) {
         this.idUsuario = idUsuario;
         this.correo = correo;
         this.accessToken = accessToken;
+        this.nombre = nombre;
         this.rol = rol;
     }
 
@@ -25,6 +27,10 @@ public final class Sesion {
 
     public String getAccessToken() {
         return accessToken;
+    }
+
+    public String getNombre() {
+        return nombre;
     }
 
     public String getRol() {

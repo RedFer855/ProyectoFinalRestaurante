@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cabecera del menú hamburguesa: iniciales, nombre y rol del usuario logueado. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorPrimaryContainer"
+    android:orientation="vertical"
+    android:padding="@dimen/espaciado_pantalla">
+
+    <TextView
+        android:id="@+id/txt_iniciales"
+        android:layout_width="@dimen/altura_minima_tactil"
+        android:layout_height="@dimen/altura_minima_tactil"
+        android:layout_marginBottom="@dimen/espaciado_minimo"
+        android:background="@drawable/bg_iniciales"
+        android:contentDescription="@string/nav_header_cd_iniciales"
+        android:gravity="center"
+        android:text="@string/nav_header_iniciales"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="?attr/colorOnPrimaryContainer" />
+
+    <TextView
+        android:id="@+id/txt_nombre_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="?attr/colorOnPrimaryContainer" />
+
+    <TextView
+        android:id="@+id/txt_rol_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnPrimaryContainer" />
+</LinearLayout>

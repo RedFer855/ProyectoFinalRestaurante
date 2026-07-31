@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_inicio"
+        android:icon="@drawable/ic_home"
+        android:title="@string/menu_inicio" />
+    <item
+        android:id="@+id/nav_pedidos"
+        android:icon="@drawable/ic_pedidos"
+        android:title="@string/menu_pedidos" />
+    <item
+        android:id="@+id/nav_mesas"
+        android:icon="@drawable/ic_mesas"
+        android:title="@string/menu_mesas" />
+    <item
+        android:id="@+id/nav_menu"
+        android:icon="@drawable/ic_menu"
+        android:title="@string/menu_menu" />
+    <item
+        android:id="@+id/nav_clientes"
+        android:icon="@drawable/ic_clientes"
+        android:title="@string/menu_clientes" />
+    <item
+        android:id="@+id/nav_empleados"
+        android:icon="@drawable/ic_empleados"
+        android:title="@string/menu_empleados" />
+    <item
+        android:id="@+id/nav_reportes"
+        android:icon="@drawable/ic_reportes"
+        android:title="@string/menu_reportes" />
+    <item
+        android:id="@+id/nav_cerrar_sesion"
+        android:icon="@drawable/ic_cerrar_sesion"
+        android:title="@string/menu_cerrar_sesion" />
+</menu>

@@ -83,7 +83,7 @@ public class SupabaseAuthRepository implements AuthRepository {
             return Result.fail("Tu cuenta está inactiva. Contactá al administrador.");
         }
 
-        return Result.ok(new Sesion(idUsuario, correo, accessToken, perfil.getRol()));
+        return Result.ok(new Sesion(idUsuario, correo, accessToken, perfil.getNombre(), perfil.getRol()));
     }
 
     @Override

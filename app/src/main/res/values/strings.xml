@@ -10,6 +10,23 @@
 
     <string name="main_bienvenida">¡Bienvenido!</string>
     <string name="main_cerrar_sesion">Cerrar sesión</string>
+    <string name="main_proximamente">Próximamente</string>
+    <string name="main_modulo_construccion">El módulo %1$s se está construyendo.</string>
+
+    <string name="menu_inicio">Inicio</string>
+    <string name="menu_pedidos">Pedidos</string>
+    <string name="menu_mesas">Mesas</string>
+    <string name="menu_menu">Menú</string>
+    <string name="menu_clientes">Clientes</string>
+    <string name="menu_empleados">Empleados</string>
+    <string name="menu_reportes">Reportes</string>
+    <string name="menu_cerrar_sesion">Cerrar sesión</string>
+    <string name="menu_abrir">Abrir menú de navegación</string>
+    <string name="menu_cerrar">Cerrar menú de navegación</string>
+
+    <string name="nav_header_iniciales">—</string>
+    <string name="nav_header_rol_desconocido">Sin rol</string>
+    <string name="nav_header_cd_iniciales">Iniciales del usuario</string>
 
     <string name="recuperacion_titulo">Recuperar contraseña</string>
     <string name="recuperacion_descripcion">Te enviaremos un código de 6 dígitos a tu correo para restablecer tu contraseña.</string>
