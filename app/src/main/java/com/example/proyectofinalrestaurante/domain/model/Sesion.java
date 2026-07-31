@@ -36,4 +36,15 @@ public final class Sesion {
     public String getRol() {
         return rol;
     }
+
+    /**
+     * Copia de la sesión con otro rol. La usa el selector de rol de debug para
+     * previsualizar la app como otro usuario sin volver a autenticarse.
+     *
+     * <p>Cambiar el rol acá <b>no otorga ningún acceso</b>: las policies RLS de Postgres
+     * leen el rol de la base con el JWT del usuario, no de lo que diga el cliente.</p>
+     */
+    public Sesion conRol(String nuevoRol) {
+        return new Sesion(idUsuario, correo, accessToken, nombre, nuevoRol);
+    }
 }

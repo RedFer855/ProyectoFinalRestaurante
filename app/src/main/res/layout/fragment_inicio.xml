@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Inicio: saludo + tarjetas de estado filtradas por rol. Las tarjetas se generan en
+  código desde Permisos (ver InicioFragment), no están declaradas acá una por una con
+  setVisibility — así agregar un rol no obliga a tocar este layout.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/espaciado_pantalla">
+
+        <TextView
+            android:id="@+id/txt_saludo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="Buenas tardes, Fernando" />
+
+        <TextView
+            android:id="@+id/txt_resumen_turno"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:text="@string/inicio_resumen_turno"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
+        <!--
+          GridLayout y no RecyclerView: la grilla vive dentro de un NestedScrollView y
+          anidar scroll dentro de scroll trae más problemas de los que resuelve para un
+          puñado de tarjetas de cantidad conocida.
+        -->
+        <GridLayout
+            android:id="@+id/grilla_tarjetas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:useDefaultMargins="false" />
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

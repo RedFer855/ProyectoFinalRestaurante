@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Tarjeta de estado del inicio. Muestra un DATO (un número), no es un atajo pelado
+  hacia un módulo: si solo dijera "Pedidos" sería navegación duplicada del menú lateral.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:clickable="true"
+    android:focusable="true"
+    android:minHeight="@dimen/altura_minima_tactil"
+    app:cardBackgroundColor="@color/brand_surface_card"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/brand_outline"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/espaciado_campo">
+
+        <ImageView
+            android:id="@+id/img_icono_tarjeta"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:contentDescription="@null"
+            app:tint="?attr/colorPrimary"
+            tools:src="@drawable/ic_pedidos" />
+
+        <TextView
+            android:id="@+id/txt_valor_tarjeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="4" />
+
+        <TextView
+            android:id="@+id/txt_etiqueta_tarjeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Pedidos pendientes" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

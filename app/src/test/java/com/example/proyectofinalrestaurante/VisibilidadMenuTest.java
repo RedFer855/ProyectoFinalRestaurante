@@ -3,49 +3,59 @@ package com.example.proyectofinalrestaurante;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.VisibilidadMenu;
 
 import org.junit.Test;
 
-/** Tests de la matriz de visibilidad del menú por rol (Plan Fase 1b, E6). */
+/**
+ * Tests de la visibilidad del menú por rol. Desde el Plan Fase 1c (E1),
+ * {@code VisibilidadMenu} delega en {@code Permisos} — estos tests verifican que esa
+ * delegación no cambió el comportamiento observable del menú lateral.
+ */
 public class VisibilidadMenuTest {
 
     @Test
     public void adminVeTodo() {
-        for (VisibilidadMenu.Item item : VisibilidadMenu.Item.values()) {
-            assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_ADMIN, item));
+        for (Modulo modulo : Modulo.values()) {
+            assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_ADMIN, modulo));
         }
     }
 
     @Test
     public void meseroNoVeEmpleadosNiReportes() {
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, VisibilidadMenu.Item.EMPLEADOS));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, VisibilidadMenu.Item.REPORTES));
-        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, VisibilidadMenu.Item.MESAS));
-        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, VisibilidadMenu.Item.CLIENTES));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, Modulo.EMPLEADOS));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, Modulo.REPORTES));
+        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, Modulo.MESAS));
+        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_MESERO, Modulo.CLIENTES));
     }
 
+    /**
+     * Cocina ve Inicio, Pedidos y <b>también Menú</b> — consulta el menú para saber qué
+     * lleva un platillo. Cambio respecto de la Fase 1b, donde Menú le estaba oculto:
+     * la matriz del Plan Fase 1c y el diseño aprobado coinciden en que sí debe verlo.
+     */
     @Test
-    public void cocinaSoloVeInicioYPedidos() {
-        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.INICIO));
-        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.PEDIDOS));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.MESAS));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.MENU));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.CLIENTES));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.EMPLEADOS));
-        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, VisibilidadMenu.Item.REPORTES));
+    public void cocinaVeInicioPedidosYMenu() {
+        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.INICIO));
+        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.PEDIDOS));
+        assertTrue(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.MENU));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.MESAS));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.CLIENTES));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.EMPLEADOS));
+        assertFalse(VisibilidadMenu.esVisible(VisibilidadMenu.ROL_COCINA, Modulo.REPORTES));
     }
 
     @Test
     public void rolDesconocidoSoloVeInicio() {
-        assertTrue(VisibilidadMenu.esVisible("otro", VisibilidadMenu.Item.INICIO));
-        assertFalse(VisibilidadMenu.esVisible("otro", VisibilidadMenu.Item.PEDIDOS));
+        assertTrue(VisibilidadMenu.esVisible("otro", Modulo.INICIO));
+        assertFalse(VisibilidadMenu.esVisible("otro", Modulo.PEDIDOS));
     }
 
     @Test
     public void rolNuloNoVeNada() {
-        for (VisibilidadMenu.Item item : VisibilidadMenu.Item.values()) {
-            assertFalse(VisibilidadMenu.esVisible(null, item));
+        for (Modulo modulo : Modulo.values()) {
+            assertFalse(VisibilidadMenu.esVisible(null, modulo));
         }
     }
 }

@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Paleta "Terracota Cálido" — valores tomados del diseño aprobado
+  (Claude Design, "Restaurant App v2.dc.html"). Ver contexto/40 - Proyecto
+  Restaurante/Guía de Diseño Visual.md
+-->
 <resources>
-    <!-- Paleta "Terracota Cálido" — ver contexto/40 - Proyecto Restaurante/Guía de Diseño Visual.md -->
-    <color name="brand_primary">#9C4221</color>
+    <color name="brand_primary">#a8452d</color>
     <color name="brand_on_primary">#FFFFFF</color>
-    <color name="brand_primary_container">#FFDBCF</color>
-    <color name="brand_on_primary_container">#3A0B00</color>
-    <color name="brand_secondary">#77574C</color>
+    <color name="brand_primary_container">#f6dcce</color>
+    <color name="brand_on_primary_container">#6b4a3a</color>
+    <color name="brand_secondary">#8a5a45</color>
     <color name="brand_on_secondary">#FFFFFF</color>
-    <color name="brand_surface">#FFFBFF</color>
-    <color name="brand_surface_variant">#F5DED6</color>
-    <color name="brand_on_surface">#201A18</color>
-    <color name="brand_on_surface_variant">#53433E</color>
-    <color name="brand_outline">#85736E</color>
-    <color name="brand_error">#BA1A1A</color>
+    <color name="brand_surface">#f7ece7</color>
+    <color name="brand_surface_variant">#fbf3ee</color>
+    <color name="brand_surface_card">#FFFFFF</color>
+    <color name="brand_on_surface">#241c19</color>
+    <color name="brand_on_surface_variant">#8a7a74</color>
+    <color name="brand_outline">#f0dccf</color>
+    <color name="brand_error">#9a4a42</color>
     <color name="brand_on_error">#FFFFFF</color>
+
+    <!--
+      Estados de pedido y mesa. Nunca se comunican solo con color: siempre van
+      acompañados del texto del estado (ver Accesibilidad Android).
+    -->
+    <color name="estado_pendiente">#b0762a</color>
+    <color name="estado_preparacion">#5a6b7d</color>
+    <color name="estado_listo">#4f8a5b</color>
+    <color name="estado_entregado">#8a7a74</color>
+    <color name="estado_cancelado">#9a4a42</color>
 
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>

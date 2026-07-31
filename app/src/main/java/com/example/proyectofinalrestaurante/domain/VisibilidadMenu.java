@@ -1,61 +1,37 @@
 package com.example.proyectofinalrestaurante.domain;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Locale;
 import java.util.Set;
 
 /**
- * Matriz de visibilidad del menú de navegación por rol (Plan Fase 1b, Entregable 6).
- * Java puro, sin dependencias de Android — el filtrado es verificable con JUnit.
+ * Visibilidad de los ítems del menú de navegación por rol.
  *
- * <p>⚠ El rol del cliente es solo para mostrar/ocultar ítems. No es seguridad:
- * un APK se puede modificar. La seguridad real son las policies RLS de Postgres,
- * que se evalúan en el servidor con el JWT del usuario (ver Esquema de Base de Datos).</p>
+ * <p>Desde el Plan Fase 1c (Entregable 1) esta clase <b>ya no tiene su propia tabla</b>:
+ * delega todo en {@link Permisos}. Un módulo es visible si el rol tiene {@link Accion#VER}
+ * sobre él. Así hay una sola fuente de verdad — dos tablas separadas terminarían
+ * desincronizándose.</p>
+ *
+ * <p>El enum {@code Item} se reemplazó por {@link Modulo}, compartido con {@link Permisos}.</p>
+ *
+ * <p>⚠ El rol del cliente es solo para mostrar/ocultar ítems. No es seguridad: un APK se
+ * puede modificar. La seguridad real son las policies RLS de Postgres, que se evalúan en el
+ * servidor con el JWT del usuario (ver Esquema de Base de Datos).</p>
  */
 public final class VisibilidadMenu {
 
-    public static final String ROL_ADMIN = "admin";
-    public static final String ROL_MESERO = "mesero";
-    public static final String ROL_COCINA = "cocina";
+    public static final String ROL_ADMIN = Permisos.ROL_ADMIN;
+    public static final String ROL_MESERO = Permisos.ROL_MESERO;
+    public static final String ROL_COCINA = Permisos.ROL_COCINA;
 
     private VisibilidadMenu() {
     }
 
-    /** Ítems del menú que existen en la app. */
-    public enum Item {
-        INICIO,
-        PEDIDOS,
-        MESAS,
-        MENU,
-        CLIENTES,
-        EMPLEADOS,
-        REPORTES
+    /** Módulos visibles para el rol dado — los ítems que aparecen en el menú lateral. */
+    public static Set<Modulo> itemsVisibles(String rol) {
+        return Permisos.modulosVisibles(rol);
     }
 
-    /**
-     * Ítems visibles para el rol dado. Un rol desconocido ve solo lo mínimo
-     * (Inicio), anteponiendo la seguridad a la comodidad.
-     */
-    public static Set<Item> itemsVisibles(String rol) {
-        if (rol == null) {
-            return Collections.emptySet();
-        }
-        switch (rol.toLowerCase(Locale.ROOT)) {
-            case ROL_ADMIN:
-                return Collections.unmodifiableSet(EnumSet.allOf(Item.class));
-            case ROL_MESERO:
-                return Collections.unmodifiableSet(EnumSet.of(
-                        Item.INICIO, Item.PEDIDOS, Item.MESAS, Item.MENU, Item.CLIENTES));
-            case ROL_COCINA:
-                return Collections.unmodifiableSet(EnumSet.of(Item.INICIO, Item.PEDIDOS));
-            default:
-                return Collections.singleton(Item.INICIO);
-        }
-    }
-
-    /** Conveniencia para {@code NavigationView}: un ítem es visible si está en la matriz. */
-    public static boolean esVisible(String rol, Item item) {
-        return itemsVisibles(rol).contains(item);
+    /** Conveniencia para {@code NavigationView}: un módulo es visible si el rol puede verlo. */
+    public static boolean esVisible(String rol, Modulo modulo) {
+        return Permisos.puede(rol, modulo, Accion.VER);
     }
 }

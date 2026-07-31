@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pantallas de 600dp o más (tablet, plegable abierto): más columnas. -->
+    <integer name="columnas_mesas">4</integer>
+    <integer name="columnas_tarjetas_inicio">3</integer>
+</resources>

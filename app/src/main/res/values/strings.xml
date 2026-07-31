@@ -10,8 +10,80 @@
 
     <string name="main_bienvenida">¡Bienvenido!</string>
     <string name="main_cerrar_sesion">Cerrar sesión</string>
-    <string name="main_proximamente">Próximamente</string>
-    <string name="main_modulo_construccion">El módulo %1$s se está construyendo.</string>
+
+    <string name="inicio_buenos_dias">Buenos días, %1$s</string>
+    <string name="inicio_buenas_tardes">Buenas tardes, %1$s</string>
+    <string name="inicio_buenas_noches">Buenas noches, %1$s</string>
+    <string name="inicio_resumen_turno">Resumen de tu turno</string>
+    <string name="inicio_pedidos_pendientes">Pedidos pendientes</string>
+    <string name="inicio_pedidos_preparacion">En preparación</string>
+    <string name="inicio_mesas_ocupadas">Mesas ocupadas</string>
+    <string name="inicio_mesas_valor">%1$d de %2$d</string>
+    <string name="inicio_clientes_registrados">Clientes registrados</string>
+    <string name="inicio_platillos_activos">Platillos activos</string>
+    <string name="inicio_ventas_hoy">Ventas de hoy</string>
+    <string name="inicio_empleados_activos">Empleados activos</string>
+
+    <string name="debug_cambiar_rol">Ver como otro rol</string>
+    <string name="debug_titulo_dialogo">Ver la app como…</string>
+    <string name="debug_rol_cambiado">Viendo la app como %1$s</string>
+    <string name="debug_aviso_rls">Solo cambia lo que se muestra. El servidor sigue aplicando RLS con tu rol real.</string>
+
+    <string name="estado_pedido_pendiente">Pendiente</string>
+    <string name="estado_pedido_preparacion">En preparación</string>
+    <string name="estado_pedido_listo">Listo</string>
+    <string name="estado_pedido_entregado">Entregado</string>
+    <string name="estado_pedido_cancelado">Cancelado</string>
+
+    <string name="estado_mesa_libre">Libre</string>
+    <string name="estado_mesa_ocupada">Ocupada</string>
+    <string name="estado_mesa_reservada">Reservada</string>
+
+    <string name="formato_lempiras">L %1$,.2f</string>
+    <string name="accion_editar">Editar</string>
+    <string name="accion_eliminar">Eliminar</string>
+    <string name="accion_cancelar_pedido">Cancelar pedido</string>
+    <string name="cd_mas_opciones">Más opciones</string>
+    <string name="filtro_todos">Todos</string>
+    <string name="maqueta_sin_funcion">Es una maqueta: esta acción todavía no hace nada.</string>
+
+    <string name="menu_buscar_platillo">Buscar platillo</string>
+    <string name="menu_agregar_platillo">Agregar platillo</string>
+    <string name="menu_vacio">No hay platillos que coincidan con la búsqueda.</string>
+
+    <string name="pedidos_nuevo">Nuevo pedido</string>
+    <string name="pedidos_numero">Pedido #%1$d</string>
+    <string name="pedidos_vacio">No hay pedidos en este estado.</string>
+    <string name="pedidos_cd_avanzar">Avanzar el estado del pedido</string>
+
+    <string name="mesas_agregar">Agregar mesa</string>
+    <string name="mesas_numero">Mesa %1$d</string>
+    <string name="mesas_capacidad">%1$d personas</string>
+    <string name="mesas_vacio">No hay mesas en este estado.</string>
+
+    <string name="clientes_buscar">Buscar por nombre o identidad</string>
+    <string name="clientes_agregar">Agregar cliente</string>
+    <string name="clientes_vacio">No hay clientes que coincidan con la búsqueda.</string>
+    <string name="clientes_sin_identidad">Sin identidad</string>
+
+    <string name="empleados_buscar">Buscar empleado</string>
+    <string name="empleados_agregar">Agregar empleado</string>
+    <string name="empleados_vacio">No hay empleados que coincidan con la búsqueda.</string>
+    <string name="empleados_activo">Activo</string>
+    <string name="empleados_inactivo">Inactivo</string>
+    <string name="accion_cambiar_rol">Cambiar rol</string>
+    <string name="accion_activar">Activar</string>
+    <string name="accion_desactivar">Desactivar</string>
+
+    <string name="reportes_rango_hoy">Hoy</string>
+    <string name="reportes_rango_semana">Esta semana</string>
+    <string name="reportes_rango_mes">Este mes</string>
+    <string name="reportes_ventas">Ventas del día</string>
+    <string name="reportes_pedidos">Pedidos del día</string>
+    <string name="reportes_ticket">Ticket promedio</string>
+    <string name="reportes_mas_pedidos">Platillos más pedidos</string>
+    <string name="reportes_desempeno">Desempeño por mesero</string>
+    <string name="reportes_pedidos_atendidos">%1$d pedidos</string>
 
     <string name="menu_inicio">Inicio</string>
     <string name="menu_pedidos">Pedidos</string>

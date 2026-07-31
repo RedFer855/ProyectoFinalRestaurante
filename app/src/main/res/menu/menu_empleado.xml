@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opciones (⋮) de un empleado. Todas son exclusivas de admin; el módulo entero
+  no existe para los demás roles.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/accion_editar_empleado"
+        android:title="@string/accion_editar" />
+    <item
+        android:id="@+id/accion_cambiar_rol"
+        android:title="@string/accion_cambiar_rol" />
+    <item
+        android:id="@+id/accion_activar_desactivar"
+        android:title="@string/accion_desactivar" />
+    <item
+        android:id="@+id/accion_eliminar_empleado"
+        android:title="@string/accion_eliminar" />
+</menu>

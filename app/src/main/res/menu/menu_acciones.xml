@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Menú de opciones (⋮) compartido por los ítems de lista. Cada módulo ajusta el título
+  de "eliminar" cuando corresponde (en Pedidos se llama "Cancelar") y oculta las opciones
+  que el rol no tiene, vía VistaPorPermiso.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/accion_editar"
+        android:title="@string/accion_editar" />
+    <item
+        android:id="@+id/accion_eliminar"
+        android:title="@string/accion_eliminar" />
+</menu>

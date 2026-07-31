@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Columnas de la grilla de mesas. Con targetSdk 37 la app se redimensiona en
+      tablets aunque no se quiera (ver Android 16 y 17 - Cambios de Comportamiento),
+      así que el número de columnas sale de acá y no del código.
+    -->
+    <integer name="columnas_mesas">2</integer>
+    <integer name="columnas_tarjetas_inicio">2</integer>
+</resources>

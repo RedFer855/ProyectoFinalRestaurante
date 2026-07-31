@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!--
+          Un solo campo busca por nombre e identidad. El cliente no tiene cuenta:
+          se lo identifica por su número de identidad al tomar el pedido (ADR-006).
+        -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_buscar_cliente"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:hint="@string/clientes_buscar">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/txt_buscar_cliente"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/lista_clientes"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:paddingHorizontal="@dimen/espaciado_pantalla"
+            android:paddingTop="@dimen/espaciado_campo"
+            android:paddingBottom="88dp"
+            tools:itemCount="4"
+            tools:listitem="@layout/item_cliente" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txt_clientes_vacio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:padding="@dimen/espaciado_seccion"
+        android:text="@string/clientes_vacio"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_agregar_cliente"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/espaciado_pantalla"
+        android:text="@string/clientes_agregar"
+        app:icon="@drawable/ic_agregar" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

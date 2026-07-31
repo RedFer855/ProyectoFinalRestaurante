@@ -18,45 +18,31 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
+        <!--
+          Altura wrap_content + minHeight, NO ?attr/actionBarSize fijo: MainActivity
+          le aplica el inset superior como padding (edge-to-edge), y sobre una altura
+          fija ese padding recorta el ícono de hamburguesa y el título fuera de la caja.
+          Con wrap_content la barra crece para alojar el inset.
+        -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="wrap_content"
+            android:minHeight="?attr/actionBarSize"
             android:background="?attr/colorPrimary"
             android:titleTextColor="?attr/colorOnPrimary"
             app:title="@string/app_name" />
 
-        <FrameLayout
+        <!--
+          Contenedor único de módulos: cada ítem del menú reemplaza el Fragment de acá
+          dentro, sin abrir Activities nuevas. Es lo que permite que las tres roles usen
+          las mismas pantallas (Plan Fase 1c, Entregable 2).
+        -->
+        <androidx.fragment.app.FragmentContainerView
             android:id="@+id/contenedor_contenido"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1">
-
-            <LinearLayout
-                android:id="@+id/placeholder_modulo"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:padding="@dimen/espaciado_pantalla">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/main_proximamente"
-                    android:textAppearance="?attr/textAppearanceTitleMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-
-                <TextView
-                    android:id="@+id/txt_placeholder_descripcion"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/espaciado_minimo"
-                    android:gravity="center"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
-                    android:textColor="?attr/colorOnSurfaceVariant" />
-            </LinearLayout>
-        </FrameLayout>
+            android:layout_weight="1" />
     </LinearLayout>
 
     <com.google.android.material.navigation.NavigationView
