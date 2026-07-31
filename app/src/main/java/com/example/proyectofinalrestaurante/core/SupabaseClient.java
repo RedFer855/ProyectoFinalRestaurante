@@ -2,6 +2,7 @@ package com.example.proyectofinalrestaurante.core;
 
 import com.example.proyectofinalrestaurante.BuildConfig;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseAuthApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
 
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +22,7 @@ import java.io.IOException;
 public final class SupabaseClient {
 
     private static volatile SupabaseAuthApi authApi;
+    private static volatile SupabasePerfilApi perfilApi;
 
     private SupabaseClient() {
     }
@@ -34,6 +36,17 @@ public final class SupabaseClient {
             }
         }
         return authApi;
+    }
+
+    public static SupabasePerfilApi getPerfilApi() {
+        if (perfilApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (perfilApi == null) {
+                    perfilApi = buildRetrofit().create(SupabasePerfilApi.class);
+                }
+            }
+        }
+        return perfilApi;
     }
 
     private static Retrofit buildRetrofit() {

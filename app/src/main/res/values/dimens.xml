@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Escala de espaciado del proyecto (múltiplos de 8dp). Ningún layout hardcodea dp. -->
+<resources>
+    <dimen name="espaciado_minimo">8dp</dimen>
+    <dimen name="espaciado_campo">16dp</dimen>
+    <dimen name="espaciado_pantalla">24dp</dimen>
+    <dimen name="espaciado_seccion">32dp</dimen>
+    <!-- Mínimo táctil recomendado por Material/Accesibilidad — ver contexto/50 - Referencia/Accesibilidad Android.md -->
+    <dimen name="altura_minima_tactil">48dp</dimen>
+</resources>

@@ -18,7 +18,8 @@ public class LoginViewModelFactory implements ViewModelProvider.Factory {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-        AuthRepository authRepository = new SupabaseAuthRepository(SupabaseClient.getAuthApi());
+        AuthRepository authRepository =
+                new SupabaseAuthRepository(SupabaseClient.getAuthApi(), SupabaseClient.getPerfilApi());
         return (T) new LoginViewModel(authRepository);
     }
 }

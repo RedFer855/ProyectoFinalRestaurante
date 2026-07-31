@@ -8,7 +8,11 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectofinalrestaurante.MainActivity;
@@ -26,7 +30,9 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
+        aplicarInsets();
 
         txtCorreo = findViewById(R.id.txt_correo);
         txtContrasenia = findViewById(R.id.txt_contrasenia);
@@ -41,6 +47,20 @@ public class LoginActivity extends AppCompatActivity {
                 txtContrasenia.getText().toString()));
 
         viewModel.getEstado().observe(this, this::render);
+    }
+
+    /**
+     * Con targetSdk 36+ el edge-to-edge es obligatorio: sin esto el título queda bajo la
+     * barra de estado y el botón bajo la barra de navegación o el teclado. Se incluye
+     * {@code ime()} porque la pantalla tiene campos de texto (deuda P-004).
+     */
+    private void aplicarInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.login_root), (vista, insets) -> {
+            Insets barras = insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            vista.setPadding(barras.left, barras.top, barras.right, barras.bottom);
+            return insets;
+        });
     }
 
     private void render(EstadoLogin estadoLogin) {
