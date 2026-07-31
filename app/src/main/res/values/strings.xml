@@ -6,7 +6,33 @@
     <string name="login_hint_contrasenia">Contraseña</string>
     <string name="login_boton">Ingresar</string>
     <string name="login_cd_progreso">Iniciando sesión</string>
+    <string name="login_olvidaste_contrasenia">¿Olvidaste tu contraseña?</string>
 
     <string name="main_bienvenida">¡Bienvenido!</string>
     <string name="main_cerrar_sesion">Cerrar sesión</string>
+
+    <string name="recuperacion_titulo">Recuperar contraseña</string>
+    <string name="recuperacion_descripcion">Te enviaremos un código de 6 dígitos a tu correo para restablecer tu contraseña.</string>
+    <string name="recuperacion_hint_correo">Correo electrónico</string>
+    <string name="recuperacion_enviar_codigo">Enviar código</string>
+    <string name="recuperacion_volver">Volver</string>
+    <string name="recuperacion_cd_progreso">Enviando código</string>
+
+    <string name="recuperacion_titulo_codigo">Código y nueva contraseña</string>
+    <string name="recuperacion_descripcion_codigo">Ingresá el código de 6 dígitos que te enviamos y definí tu nueva contraseña.</string>
+    <string name="recuperacion_hint_codigo">Código de 6 dígitos</string>
+    <string name="recuperacion_reenviar_codigo">Reenviar código</string>
+    <string name="recuperacion_reenviar_cuenta_regresiva">Reenviar código en %1$d s</string>
+    <string name="recuperacion_hint_nueva">Nueva contraseña</string>
+    <string name="recuperacion_hint_confirmar">Confirmar contraseña</string>
+    <string name="recuperacion_req_longitud">Mínimo 8 caracteres</string>
+    <string name="recuperacion_req_mayuscula">Una mayúscula</string>
+    <string name="recuperacion_req_minuscula">Una minúscula</string>
+    <string name="recuperacion_req_digito">Un número</string>
+    <string name="recuperacion_req_simbolo">Un símbolo</string>
+    <string name="recuperacion_boton_cambiar">Cambiar contraseña</string>
+    <string name="recuperacion_cd_progreso_cambiar">Actualizando contraseña</string>
+    <string name="recuperacion_exito">Contraseña actualizada. Iniciá sesión.</string>
+    <string name="recuperacion_error_codigo_invalido">Ingresá el código de 6 dígitos</string>
+    <string name="recuperacion_error_contrasenas_no_coinciden">Las contraseñas no coinciden</string>
 </resources>

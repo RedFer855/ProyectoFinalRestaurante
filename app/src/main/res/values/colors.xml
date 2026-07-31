@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Paleta "Terracota Cálido" — ver contexto/40 - Proyecto Restaurante/Guía de Diseño Visual.md -->
+    <color name="brand_primary">#9C4221</color>
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_primary_container">#FFDBCF</color>
+    <color name="brand_on_primary_container">#3A0B00</color>
+    <color name="brand_secondary">#77574C</color>
+    <color name="brand_on_secondary">#FFFFFF</color>
+    <color name="brand_surface">#FFFBFF</color>
+    <color name="brand_surface_variant">#F5DED6</color>
+    <color name="brand_on_surface">#201A18</color>
+    <color name="brand_on_surface_variant">#53433E</color>
+    <color name="brand_outline">#85736E</color>
+    <color name="brand_error">#BA1A1A</color>
+    <color name="brand_on_error">#FFFFFF</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

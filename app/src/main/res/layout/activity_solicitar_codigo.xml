@@ -1,71 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Login — solo correo y contraseña. Sin ilustraciones, degradados ni animaciones:
-  Material 3 plano, un campo debajo del otro. Ver contexto/40 - Proyecto Restaurante/Módulo Login.md
+  Paso 1 de recuperación de contraseña: pedir el correo y enviar el código OTP.
+  Diseño según Guía de Diseño Visual: título, párrafo, un campo, botón ancho completo, flecha de volver.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/login_root"
+    android:id="@+id/solicitar_codigo_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    tools:context=".ui.login.LoginActivity">
+    tools:context=".ui.recuperacion.SolicitarCodigoActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
         android:orientation="vertical"
         android:padding="@dimen/espaciado_pantalla">
 
+        <ImageButton
+            android:id="@+id/btn_volver_solicitar_codigo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/recuperacion_volver"
+            android:minWidth="@dimen/altura_minima_tactil"
+            android:minHeight="@dimen/altura_minima_tactil"
+            app:srcCompat="@drawable/ic_arrow_back" />
+
         <TextView
-            android:id="@+id/txt_titulo_login"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/login_titulo"
+            android:layout_marginTop="@dimen/espaciado_seccion"
+            android:text="@string/recuperacion_titulo"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
             android:textColor="?attr/colorOnSurface" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:text="@string/recuperacion_descripcion"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant" />
+
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_correo"
+            android:id="@+id/til_correo_solicitar"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/espaciado_seccion"
-            android:hint="@string/login_hint_correo">
+            android:hint="@string/recuperacion_hint_correo">
 
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_correo"
+                android:id="@+id/et_correo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:autofillHints="emailAddress"
-                android:imeOptions="actionNext"
+                android:imeOptions="actionDone"
                 android:inputType="textEmailAddress"
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_contrasenia"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_campo"
-            android:hint="@string/login_hint_contrasenia"
-            app:endIconMode="password_toggle">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_contrasenia"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:autofillHints="password"
-                android:imeOptions="actionDone"
-                android:inputType="textPassword"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
         <TextView
-            android:id="@+id/txt_error_login"
+            android:id="@+id/txt_error_solicitar_codigo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/espaciado_campo"
@@ -73,36 +71,26 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorError"
             android:visibility="gone"
-            tools:text="Correo o contraseña incorrectos"
+            tools:text="Sin conexión al servidor. Intentá de nuevo."
             tools:visibility="visible" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_login"
+            android:id="@+id/btn_enviar_codigo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/espaciado_seccion"
             android:minHeight="@dimen/altura_minima_tactil"
-            android:text="@string/login_boton" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_olvidaste_contrasenia"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_minimo"
-            android:minHeight="@dimen/altura_minima_tactil"
-            android:text="@string/login_olvidaste_contrasenia" />
+            android:text="@string/recuperacion_enviar_codigo" />
 
         <ProgressBar
-            android:id="@+id/progress_login"
+            android:id="@+id/progress_solicitar_codigo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="@dimen/espaciado_campo"
-            android:contentDescription="@string/login_cd_progreso"
+            android:contentDescription="@string/recuperacion_cd_progreso"
             android:visibility="gone"
             tools:visibility="visible" />
-
     </LinearLayout>
 
 </androidx.core.widget.NestedScrollView>

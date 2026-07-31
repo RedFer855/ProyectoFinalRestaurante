@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Paleta "Terracota Cálido" — variante oscura, misma nomenclatura que values/colors.xml -->
+    <color name="brand_primary">#FFB59B</color>
+    <color name="brand_on_primary">#5A1B00</color>
+    <color name="brand_primary_container">#7D2C0B</color>
+    <color name="brand_on_primary_container">#FFDBCF</color>
+    <color name="brand_secondary">#E7BDB0</color>
+    <color name="brand_on_secondary">#442A1D</color>
+    <color name="brand_surface">#201A18</color>
+    <color name="brand_surface_variant">#53433E</color>
+    <color name="brand_on_surface">#EDE0DC</color>
+    <color name="brand_on_surface_variant">#D8C2BB</color>
+    <color name="brand_outline">#A08C86</color>
+    <color name="brand_error">#FFB4AB</color>
+    <color name="brand_on_error">#690005</color>
+</resources>

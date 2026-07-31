@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectofinalrestaurante.MainActivity;
 import com.example.proyectofinalrestaurante.R;
+import com.example.proyectofinalrestaurante.ui.recuperacion.SolicitarCodigoActivity;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -45,6 +46,9 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> viewModel.login(
                 txtCorreo.getText().toString(),
                 txtContrasenia.getText().toString()));
+
+        findViewById(R.id.btn_olvidaste_contrasenia).setOnClickListener(
+                v -> startActivity(new Intent(this, SolicitarCodigoActivity.class)));
 
         viewModel.getEstado().observe(this, this::render);
     }

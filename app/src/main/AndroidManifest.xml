@@ -24,6 +24,14 @@
             </intent-filter>
         </activity>
         <activity
+            android:name=".ui.recuperacion.SolicitarCodigoActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".ui.recuperacion.CambiarContraseniaActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
             android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
