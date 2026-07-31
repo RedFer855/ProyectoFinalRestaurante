@@ -46,7 +46,7 @@ Pregunta: [PENDIENTE — completar]
 
 1. **Fase 0 — remediación**: empezar por **P-003** (`minSdk 37 → 24`), luego **P-004** (edge-to-edge en el login) y **P-006** (Java 17). Ver [[Roadmap de Fases]].
 2. **Fase 2 — Menú**: primer módulo con **Room + offline-first desde el día uno** ([[ADR-005 - Offline-first obligatorio desde la Fase 2]]).
-3. Completar `SUPABASE_URL` y la llave **publishable** en `local.properties` con un proyecto Supabase real.
+3. ~~Completar `SUPABASE_URL` y la llave en `local.properties`~~ ✅ Hecho 2026-07-29 (proyecto **Restaurante**, `mxarlisuueovxvttytcm`) + tabla `perfiles` con RLS creada. **Falta:** crear un usuario de prueba en el dashboard (Authentication → Users) y su fila en `perfiles` — paso manual, ver [[Plan de Conexión con Supabase]].
 4. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
 ---
@@ -62,6 +62,12 @@ Pregunta: [PENDIENTE — completar]
 ### Proyecto
 - [[Arquitectura Actual]] — estado real de capas, build y módulos
 - [[Roadmap de Fases]] — fases, ramas `feat/faseN-...`, decisiones con ventana de oportunidad
+- [[Plan de Fase 1 - Roles, Autenticación y Recuperación]] — **qué falta** para cerrar la Fase 1
+- [[Plan Fase 1b - Recuperación de Contraseña y Roles]] — **6 entregables ejecutables**, solo código (sin acceso a Supabase)
+- [[Guía de Diseño Visual]] — paleta, tipografía y componentes ("barato de renderizar, caro de ver")
+- [[Esquema de Base de Datos]] — **14 tablas** en Supabase, RLS y conflicto `usuarios` vs `perfiles`
+- [[Plan de Conexión con Supabase]] — **4 propuestas** para conectar el login a un backend real
+- [[Propuesta de División de Arquitectura]] — **3 propuestas** de cómo dividir lo que se va agregando
 - [[Deuda Técnica - Pendientes]] — 18 ítems `P-NNN`
 - [[CLAUDE]] — contexto de código para Claude Code
 
@@ -71,6 +77,7 @@ Pregunta: [PENDIENTE — completar]
 - [[ADR-003 - Politica de minSdk 24 y targetSdk 36]]
 - [[ADR-004 - Java + Views en vez de Kotlin + Compose]]
 - [[ADR-005 - Offline-first obligatorio desde la Fase 2]]
+- [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]]
 
 ### Arquitectura y patrones
 - [[Clean Architecture]] · [[SOLID]] · [[Capa de Dominio]] · [[Modularizacion por Feature]]

@@ -52,7 +52,7 @@ Verificar que nada del código use APIs por encima de 24 sin guard. Cierra tambi
 
 ---
 
-### P-004 · `LoginActivity` no maneja edge-to-edge ni insets
+### ~~P-004~~ ✅ · `LoginActivity` no maneja edge-to-edge ni insets
 
 **Archivo:** `app/src/main/java/.../ui/login/LoginActivity.java`
 
@@ -64,7 +64,8 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 
 **Solución:** replicar el bloque de `MainActivity` en `LoginActivity`, incluyendo `WindowInsetsCompat.Type.ime()` porque la pantalla tiene campos de texto. Ver [[Android 16 y 17 - Cambios de Comportamiento]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-29) — `LoginActivity` llama `EdgeToEdge.enable(this)` y aplica insets de `systemBars() | ime()` sobre `login_root` en el método `aplicarInsets()`. Ver [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]].
+**Falta verificar:** en dispositivo real (bloqueado por **P-003**, `minSdk 37`).
 
 ---
 
@@ -164,7 +165,7 @@ Sin `contentDescription`, sin `android:labelFor`, y los campos usan `android:hin
 
 **Solución:** ver el checklist de [[Accesibilidad Android]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[~] Parcial` (2026-07-29) — el layout se rehízo con `TextInputLayout` (hint flotante que no se pierde al escribir), `contentDescription` en el `ProgressBar` y `accessibilityLiveRegion="polite"` en el `TextView` de error, para que TalkBack anuncie el error sin que el usuario lo busque. **Falta:** verificar con TalkBack y con fuente al 200 %, y asociar el mensaje de error al campo que lo causó (`TextInputLayout#setError`, hoy el error es un `TextView` suelto).
 
 ---
 
@@ -263,7 +264,7 @@ Se usa Retrofit 2.11.0 con llamadas bloqueantes dentro de un `ExecutorService`. 
 
 **Riesgo:** bajo, pero el color hardcodeado rompe el modo oscuro y se replicará por copia.
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[~] Parcial` (2026-07-29) — el color hardcodeado se reemplazó por `?attr/colorError` del tema Material 3 (mejor que un `@color/` propio: se adapta solo a claro/oscuro). Los `dp` sueltos del layout también pasaron a `@dimen/`. **Falta:** renombrar los IDs `snake_case` → `camelCase` (`txt_correo` → `etCorreo`, etc.), que obliga a tocar `LoginActivity`.
 
 ---
 
@@ -305,6 +306,75 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 
 ---
 
+### P-019 · Mensajes de error hardcodeados en el ViewModel y el repositorio
+
+**Archivos:** `ui/login/LoginViewModel.java`, `data/repository/SupabaseAuthRepository.java`
+
+Los textos que ve el usuario están como literales Java: `"Completá correo y contraseña"`, `"Correo o contraseña incorrectos"`, `"Sin conexión al servidor. Intentá de nuevo."`, `"Respuesta inesperada del servidor"`. Viola la regla de oro #8 (cero strings hardcodeados) y hace intraducible la app.
+
+Detectado al rehacer el layout del login: la pantalla quedó con **cero strings hardcodeados en XML**, pero los del `ViewModel` siguen ahí.
+
+**Riesgo:** bajo hoy, medio al replicarse — cada módulo nuevo va a copiar el patrón.
+
+**Solución:** que `EstadoLogin` transporte un `@StringRes int` (o el `AppException` tipado de **P-016**) en vez de un `String`, y que la `Activity` resuelva el texto con `getString()`. Va junto con P-016, no antes.
+
+**Estado:** `[ ] Pendiente`
+
+---
+
+### P-020 · `SupabaseAuthRepository` sin ningún test
+
+**Archivo:** `data/repository/SupabaseAuthRepository.java`
+
+Desde el 2026-07-29 el repositorio orquesta 3 llamadas de red (login → GET perfil → logout condicional) con 4 caminos de error distintos (credenciales inválidas, perfil inexistente, perfil inactivo, sin conexión). Cero cobertura de test — mismo problema de fondo que **P-005** (el `Executor` no inyectado impide testear el `ViewModel`; acá el problema es que no hay ningún fake/mock de `SupabaseAuthApi`/`SupabasePerfilApi` para testear el repositorio en aislamiento).
+
+**Riesgo:** medio — la lógica de "cuenta activa" es justo la que no se puede permitir romper en silencio.
+
+**Solución:** introducir una interfaz fake de los dos Retrofit services (o Mockito, hoy no está en las dependencias) y testear los 4 caminos con JUnit puro, sin red real.
+
+**Estado:** `[ ] Pendiente`
+
+---
+
+### ~~P-021~~ ✅ · Dos sistemas de autenticación conviviendo: `usuarios` vs `perfiles`
+
+**Alcance:** base de datos Supabase + `data/repository/SupabaseAuthRepository.java`
+
+El esquema relacional subido el 2026-07-29 trae `public.usuarios` con columna **`contrasena VARCHAR(255)`**, en paralelo al par `auth.users` + `public.perfiles` que **es el que el código usa hoy**. Son dos modelos de identidad incompatibles: uno con PK `uuid` gestionado por Supabase Auth, otro con PK `INT` y credencial propia.
+
+**Riesgo:** alto si `usuarios.contrasena` se llega a usar. Implica hacerse cargo de hashing, salt, política de fuerza, rate limiting y recuperación de contraseña — todo lo que Supabase Auth ya resuelve y que Bimbo documentó como trabajo real en su `Plan de Seguridad - Roadmap 10-10`. Una contraseña mal hasheada es la falla más común de este tipo de proyecto.
+
+**Solución propuesta:** eliminar `usuarios.contrasena` y enlazar con `usuarios.id_auth_user uuid REFERENCES auth.users(id)`, dejando las credenciales en Supabase Auth y `usuarios` como tabla de datos de negocio (rol, empleado, estado). Alternativa: descartar `perfiles` y absorber su rol dentro de `usuarios` con el mismo enlace por `uuid`.
+
+Es una **decisión de fondo** → cuando se resuelva va un ADR en `45 - Decisiones/`. Ver [[Esquema de Base de Datos]].
+
+**Estado:** `[x] Resuelto` (2026-07-29) — se eliminó `usuarios.contrasena` y se agregó `usuarios.id_auth_user uuid REFERENCES auth.users(id)` con policy RLS propia. Verificado que Supabase Auth usa bcrypt + salt aleatorio (`auth.users.encrypted_password`) — nunca se reimplementa hashing propio. **Sigue abierto:** decidir si `perfiles` y `usuarios` conviven o se consolidan en una sola tabla (el código Android hoy solo lee `perfiles`).
+
+---
+
+### ~~P-022~~ ✅ · `AndroidManifest.xml` sin permiso `INTERNET` — crasheaba la app al loguear
+
+**Archivo:** `app/src/main/AndroidManifest.xml`, `data/repository/SupabaseAuthRepository.java`
+
+Al probar el login por primera vez en un emulador real (2026-07-31), la app **se cerraba** al tocar "Ingresar". El log (`adb logcat`) mostró la causa exacta:
+
+```
+java.lang.SecurityException: Permission denied (missing INTERNET permission?)
+    at okhttp3.Dns... → SupabaseAuthRepository.login(SupabaseAuthRepository.java:40)
+```
+
+Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el manifest — sin eso, **ninguna llamada de red puede funcionar nunca**, sin importar qué tan bien esté el resto del código. Y como `SecurityException` no es un `IOException`, el `catch` del repositorio no la atrapaba: se escapaba del hilo del `Executor` sin manejar y Android mataba todo el proceso.
+
+**Solución aplicada:**
+1. Se agregó el permiso `INTERNET` al manifest.
+2. Se agregó `catch (SecurityException ex)` en `SupabaseAuthRepository.login()`, como defensa adicional para que un problema de permisos nunca vuelva a tumbar la app en vez de mostrar un error en pantalla.
+
+**Verificado en vivo:** reinstalada la APK en el emulador, se automatizó el login por `adb shell input` (correo/contraseña del admin) y se confirmó en `logcat` + captura de pantalla que navega a `MainActivity` ("¡Bienvenido!") sin crash. Es la **primera vez que el login corre de punta a punta**.
+
+**Estado:** `[x] Resuelto` (2026-07-31)
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -312,14 +382,14 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 | P-001 | Falta `BaseRepository` compartido | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Bootstrap de bóveda y Fase 1 Login]] |
 | P-002 | DI manual sin framework | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Bootstrap de bóveda y Fase 1 Login]] |
 | P-003 | `minSdk 37` → 0% de dispositivos | 🔴 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Auditoría contra el Estándar de Ingeniería Android]] |
-| P-004 | `LoginActivity` sin edge-to-edge ni insets | 🔴 | `[ ]` Pendiente | idem |
+| ~~P-004~~ | `LoginActivity` sin edge-to-edge ni insets | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | P-005 | `Executor` no inyectado → cero pruebas | 🟡 | `[ ]` Pendiente | idem |
 | P-006 | Java 11 en vez de 17 | 🟡 | `[ ]` Pendiente | idem |
 | P-007 | Retrofit 2 con `.execute()` sin adaptadores | 🟢 | `[ ]` Pendiente | idem |
 | P-008 | Sin R8, Baseline Profile ni benchmark | 🟡 | `[ ]` Pendiente | idem |
 | P-009 | Token no persistido ni cifrado; sin refresh | 🟡 | `[ ]` Pendiente | idem |
-| P-010 | Login sin accesibilidad | 🟡 | `[ ]` Pendiente | idem |
-| P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[ ]` Pendiente | idem |
+| P-010 | Login sin accesibilidad | 🟡 | `[~]` Parcial 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
+| P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[~]` Parcial 2026-07-29 | idem |
 | P-012 | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[ ]` Pendiente | idem |
 | P-013 | Evento de navegación sin marcar consumido | 🟡 | `[ ]` Pendiente | idem |
 | P-014 | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[ ]` Pendiente | idem |
@@ -327,6 +397,10 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 | P-016 | `Result` con `String` en vez de `AppException` | 🟡 | `[ ]` Pendiente | idem |
 | P-017 | Paquetes layer-first en vez de feature-first | 🟢 | `[ ]` Pendiente | idem |
 | P-018 | `applicationId` sigue en `com.example.*` | 🟢 | `[ ]` Pendiente | idem |
+| P-019 | Mensajes de error hardcodeados en VM/repositorio | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
+| ~~P-022~~ | Sin permiso `INTERNET` — crasheaba al loguear | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Primer login verificado en emulador]] |
+| P-020 | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Conexión real a Supabase y verificación de perfil activo]] |
+| ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 
 ---
 

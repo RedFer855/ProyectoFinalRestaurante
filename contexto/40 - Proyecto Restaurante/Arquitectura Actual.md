@@ -60,7 +60,7 @@ graph TD
 | `domain.model` | `Sesion` | — |
 | `domain.repository` | `AuthRepository` (interfaz) | — |
 | `domain` (raíz) | `Result<T>` | — |
-| `data.remote` | `SupabaseAuthApi` (Retrofit), DTOs | `core` |
+| `data.remote` | `SupabaseAuthApi` (login+logout), `SupabasePerfilApi` (Retrofit), DTOs | `core` |
 | `data.repository` | `SupabaseAuthRepository` | `domain`, `data.remote` |
 | `core` | `SupabaseClient` (Retrofit singleton, credenciales vía `BuildConfig`) | — |
 
@@ -128,10 +128,10 @@ Ver [[Roadmap de Fases]].
 ## Advertencias conocidas
 
 1. 🔴 **`minSdk = 37`** — la app no instala en dispositivos reales (**P-003**).
-2. 🔴 **`LoginActivity` sin manejo de insets** — con `targetSdk 37` el contenido queda bajo las barras del sistema (**P-004**).
+2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
 3. 🔴 **Sin arquitectura offline** — decisión obligada al arrancar la Fase 2 (**P-014**).
 4. ⚠️ **Cero pruebas propias** — solo los ejemplos de Android Studio (**P-005**).
-5. ⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos en `local.properties` — hay que crear un proyecto Supabase real y usar la llave **publishable** (`sb_publishable_...`), no la `anon` legada (**P-012**).
+5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**), con llave `anon` legada (falta generar la `sb_publishable_...`, **P-012**). `public.perfiles` con RLS ya existe; falta el usuario de prueba (manual).
 6. ⚠️ `applicationId` sigue en `com.example.*` — Play lo rechaza y es irreversible tras publicar (**P-018**).
 
 ---
@@ -139,9 +139,10 @@ Ver [[Roadmap de Fases]].
 ## Próximos pasos recomendados
 
 1. **Fase 0** — cerrar la brecha crítica contra el estándar, empezando por **P-003**.
-2. **Fase 2 (Menú)** — implementar Room + offline-first **desde el día uno** de ese módulo.
-3. Extraer `BaseRepository` + `AppException` al agregar el segundo repositorio.
-4. Decidir feature-first vs layer-first antes de que existan tres features.
+2. **Conectar el login a un Supabase real** — ver [[Plan de Conexión con Supabase]] (Propuesta A: 15 min, sin código nuevo).
+3. **Fase 2 (Menú)** — implementar Room + offline-first **desde el día uno** de ese módulo.
+4. Extraer `BaseRepository` + `AppException` al agregar el segundo repositorio.
+5. Decidir feature-first vs layer-first antes de que existan tres features → propuesta lista en [[Propuesta de División de Arquitectura]] (**P-017**).
 
 ---
 
