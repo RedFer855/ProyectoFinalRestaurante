@@ -2,9 +2,13 @@ package com.example.proyectofinalrestaurante.data.repository;
 
 import com.example.proyectofinalrestaurante.data.remote.SupabaseAuthApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
+import com.example.proyectofinalrestaurante.data.remote.dto.CambiarContraseniaRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.LoginRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.LoginResponseDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PerfilDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.RecuperarRequestDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoRequestDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoResponseDto;
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
 import com.example.proyectofinalrestaurante.domain.repository.AuthRepository;
@@ -80,5 +84,63 @@ public class SupabaseAuthRepository implements AuthRepository {
         }
 
         return Result.ok(new Sesion(idUsuario, correo, accessToken, perfil.getRol()));
+    }
+
+    @Override
+    public Result<Void> solicitarCodigo(String correo) {
+        try {
+            // Supabase responde 200 incluso si el correo no existe. Si llegara a
+            // responder error (p. ej. "correo no encontrado"), se trata igual que
+            // el éxito: nunca se revela si una cuenta está registrada.
+            authApi.solicitarCodigo(new RecuperarRequestDto(correo)).execute();
+            return Result.ok(null);
+        } catch (IOException ex) {
+            return Result.fail("Sin conexión al servidor. Intentá de nuevo.");
+        } catch (SecurityException ex) {
+            return Result.fail("La app no tiene permiso de red. Contactá al desarrollador.");
+        }
+    }
+
+    @Override
+    public Result<String> verificarCodigo(String correo, String codigo) {
+        try {
+            Response<VerificarCodigoResponseDto> response =
+                    authApi.verificarCodigo(new VerificarCodigoRequestDto("recovery", correo, codigo)).execute();
+
+            if (!response.isSuccessful() || response.body() == null || response.body().getAccessToken() == null) {
+                return Result.fail("El código es incorrecto o ya venció. Volvé a intentarlo.");
+            }
+            return Result.ok(response.body().getAccessToken());
+        } catch (IOException ex) {
+            return Result.fail("Sin conexión al servidor. Intentá de nuevo.");
+        } catch (SecurityException ex) {
+            return Result.fail("La app no tiene permiso de red. Contactá al desarrollador.");
+        }
+    }
+
+    @Override
+    public Result<Void> cambiarContrasenia(String accessToken, String nuevaContrasenia) {
+        String bearerToken = "Bearer " + accessToken;
+        try {
+            Response<Void> response =
+                    authApi.cambiarContrasenia(bearerToken, new CambiarContraseniaRequestDto(nuevaContrasenia)).execute();
+
+            if (!response.isSuccessful()) {
+                return Result.fail("No se pudo actualizar la contraseña. Intentá de nuevo.");
+            }
+
+            // La sesión temporal del OTP se revoca apenas se cambia la contraseña:
+            // el usuario vuelve a loguearse con su clave nueva.
+            try {
+                authApi.logout(bearerToken).execute();
+            } catch (IOException | SecurityException ignorada) {
+                // El cambio ya fue exitoso; un fallo de logout no debe reportarse como error.
+            }
+            return Result.ok(null);
+        } catch (IOException ex) {
+            return Result.fail("Sin conexión al servidor. Intentá de nuevo.");
+        } catch (SecurityException ex) {
+            return Result.fail("La app no tiene permiso de red. Contactá al desarrollador.");
+        }
     }
 }
