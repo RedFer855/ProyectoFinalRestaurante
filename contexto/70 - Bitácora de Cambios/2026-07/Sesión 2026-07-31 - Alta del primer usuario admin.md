@@ -64,6 +64,20 @@ Un solo `INSERT` atómico con CTEs — evita tener que adivinar el `id_empleado`
 
 ---
 
+## Segundo admin — Kelvin Izaguirre (mismo día)
+
+Mismo patrón exacto: el usuario creó la cuenta en Auth (`kelvinizaguirre914@gmail.com`, *Auto Confirm User*), se verificó con `select ... from auth.users` antes de insertar (UUID `268b5b71-3908-43cb-89da-ff76ee430274`), y se cargaron las 3 tablas en una sola transacción con CTE:
+
+| Tabla | Fila |
+|---|---|
+| `perfiles` | `rol='admin'`, `activo=true` |
+| `empleados` | Kelvin Francisco / Izaguirre / `0719200601382` |
+| `usuarios` | `id_usuario=2`, `apodo_usuario='kizaguirre'`, `id_rol=1 (admin)` |
+
+Verificado con el mismo `select` con joins de las 3 tablas — consistente.
+
+---
+
 ## Lo que NO cambió
 
 - Ningún código Java tocado.

@@ -37,20 +37,25 @@ Lección de Bimbo aplicable: ahí hubo que **quitar** `DropShadowEffect` de los 
 
 Material 3 con acento cálido: evoca comida y hospitalidad sin ser estridente. Un solo color de acento + neutros; el color se usa **para señalar**, no para decorar.
 
+> [!success] Valores oficiales — extraídos del diseño aprobado (2026-07-31)
+> Estos hex **no son una propuesta**: salen del archivo `Restaurant App v2.dc.html` del proyecto de Claude Design (`3f58f5fc-cf82-4509-9b37-978984f85107`), leído directamente. La versión anterior de esta nota tenía valores tentativos ligeramente distintos (`#9C4221` en vez de `#a8452d`); se reemplazaron para que exista **una sola fuente de verdad**.
+
 ### Claro (`values/colors.xml`)
 
 ```xml
-<color name="brand_primary">#9C4221</color>          <!-- terracota: botones, acentos -->
+<color name="brand_primary">#a8452d</color>          <!-- terracota: botones, acentos, activo -->
 <color name="brand_on_primary">#FFFFFF</color>
-<color name="brand_primary_container">#FFDBCF</color>
-<color name="brand_on_primary_container">#3A0B00</color>
-<color name="brand_secondary">#77574C</color>        <!-- chips, elementos de apoyo -->
-<color name="brand_surface">#FFFBFF</color>          <!-- fondo de pantalla -->
-<color name="brand_surface_variant">#F5DED6</color>  <!-- tarjetas, campos -->
-<color name="brand_on_surface">#201A18</color>       <!-- texto principal -->
-<color name="brand_on_surface_variant">#53433E</color><!-- texto secundario -->
-<color name="brand_outline">#85736E</color>          <!-- bordes -->
-<color name="brand_error">#BA1A1A</color>
+<color name="brand_primary_container">#f6dcce</color><!-- ítem seleccionado, íconos de tarjeta -->
+<color name="brand_on_primary_container">#6b4a3a</color>
+<color name="brand_secondary">#8a5a45</color>        <!-- chips, elementos de apoyo -->
+<color name="brand_surface">#f7ece7</color>          <!-- fondo de pantalla -->
+<color name="brand_surface_card">#FFFFFF</color>     <!-- tarjetas, hojas, modales -->
+<color name="brand_surface_field">#fbf3ee</color>    <!-- fondo de campos de texto -->
+<color name="brand_on_surface">#241c19</color>       <!-- texto principal -->
+<color name="brand_on_surface_variant">#8a7a74</color><!-- texto secundario, placeholders -->
+<color name="brand_outline">#f0dccf</color>          <!-- bordes de campos y tarjetas -->
+<color name="brand_error">#9a4a42</color>
+<color name="brand_success">#4f8a5b</color>          <!-- estado "listo" / mesa libre -->
 ```
 
 ### Oscuro (`values-night/colors.xml`)

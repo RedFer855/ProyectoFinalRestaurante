@@ -21,7 +21,7 @@ date: 2026-07-29
 
 ---
 
-### P-003 · `minSdk = 37` deja la app fuera del 100% de los teléfonos del mercado
+### ~~P-003~~ ✅ · `minSdk = 37` deja la app fuera del 100% de los teléfonos del mercado
 
 **Archivo:** `app/build.gradle.kts` — `defaultConfig.minSdk`
 **Introducido en:** el esqueleto generado por Android Studio (commit inicial `886033e`).
@@ -48,7 +48,11 @@ dependencies { coreLibraryDesugaring(libs.desugar.jdk.libs) }
 ```
 Verificar que nada del código use APIs por encima de 24 sin guard. Cierra también **P-006**.
 
-**Estado:** `[ ] Pendiente — máxima prioridad`
+**Estado:** `[x] Resuelto` (2026-07-31) — `minSdk = 24`, `sourceCompatibility`/`targetCompatibility` a `VERSION_17` (cierra también **P-006**), `isCoreLibraryDesugaringEnabled = true` + dependencia `coreLibraryDesugaring(libs.desugar.jdk.libs)` (versión `2.1.4`, verificada en Maven Central). `compileSdk`/`targetSdk` se mantienen en 37 — solo el piso baja, no el techo.
+
+**Efecto colateral encontrado y corregido:** con `minSdk=24`, el linker de recursos (`aapt2`) rechazó `mipmap-anydpi/ic_launcher.xml` porque `<adaptive-icon>` requiere API 26+ y esa carpeta no tenía calificador de versión. Se renombró a `mipmap-anydpi-v26/` (con `git mv`, preservando historial) — los bitmaps de `mipmap-hdpi/mdpi/xhdpi/xxhdpi/xxxhdpi` ya existían como *fallback* para API 24-25.
+
+**Verificado:** `./gradlew clean assembleDebug testDebugUnitTest` → BUILD SUCCESSFUL, 17 tests sin fallas. `aapt2 dump badging` sobre el APK real confirma `minSdkVersion="24"` `targetSdkVersion="37"` — no solo en el `.kts`, en el binario. Ver [[Sesión 2026-07-31 - Fix de minSdk y Java 17]].
 
 ---
 
@@ -65,7 +69,7 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 **Solución:** replicar el bloque de `MainActivity` en `LoginActivity`, incluyendo `WindowInsetsCompat.Type.ime()` porque la pantalla tiene campos de texto. Ver [[Android 16 y 17 - Cambios de Comportamiento]].
 
 **Estado:** `[x] Resuelto` (2026-07-29) — `LoginActivity` llama `EdgeToEdge.enable(this)` y aplica insets de `systemBars() | ime()` sobre `login_root` en el método `aplicarInsets()`. Ver [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]].
-**Falta verificar:** en dispositivo real (bloqueado por **P-003**, `minSdk 37`).
+**Falta verificar:** en dispositivo real — ya no bloqueado desde que se resolvió **P-003** (2026-07-31), solo falta hacer la prueba física.
 
 ---
 
@@ -107,7 +111,7 @@ Consecuencia directa: **el proyecto no tiene ni una sola prueba propia** — sol
 
 ---
 
-### P-006 · `sourceCompatibility` en Java 11, el estándar pide 17
+### ~~P-006~~ ✅ · `sourceCompatibility` en Java 11, el estándar pide 17
 
 **Archivo:** `app/build.gradle.kts` — `compileOptions`
 
@@ -117,7 +121,7 @@ AGP 9.x y Gradle 9.x **requieren JDK 17** para correr, y Hilt 2.57.1+ también l
 
 **Solución:** `VERSION_17` en `sourceCompatibility`/`targetCompatibility`. Se resuelve junto con **P-003**. Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-31) — resuelto junto con **P-003** en el mismo cambio de `app/build.gradle.kts`.
 
 ---
 
@@ -381,10 +385,10 @@ Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el m
 |---|---|---|---|---|
 | P-001 | Falta `BaseRepository` compartido | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Bootstrap de bóveda y Fase 1 Login]] |
 | P-002 | DI manual sin framework | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Bootstrap de bóveda y Fase 1 Login]] |
-| P-003 | `minSdk 37` → 0% de dispositivos | 🔴 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Auditoría contra el Estándar de Ingeniería Android]] |
+| ~~P-003~~ | `minSdk 37` → 0% de dispositivos | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Fix de minSdk y Java 17]] |
 | ~~P-004~~ | `LoginActivity` sin edge-to-edge ni insets | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | P-005 | `Executor` no inyectado → cero pruebas | 🟡 | `[ ]` Pendiente | idem |
-| P-006 | Java 11 en vez de 17 | 🟡 | `[ ]` Pendiente | idem |
+| ~~P-006~~ | Java 11 en vez de 17 | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Fix de minSdk y Java 17]] |
 | P-007 | Retrofit 2 con `.execute()` sin adaptadores | 🟢 | `[ ]` Pendiente | idem |
 | P-008 | Sin R8, Baseline Profile ni benchmark | 🟡 | `[ ]` Pendiente | idem |
 | P-009 | Token no persistido ni cifrado; sin refresh | 🟡 | `[ ]` Pendiente | idem |

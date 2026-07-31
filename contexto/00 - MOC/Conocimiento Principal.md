@@ -38,8 +38,8 @@ Pregunta: [PENDIENTE — completar]
 | Offline-first (Room + outbox) | ⬜ Obligatorio desde Fase 2 |
 | Menú, Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
-> [!danger] Bloqueante conocido
-> **`minSdk = 37`** (Android 17, ~0% de dispositivos) hace que la app **no se instale en ningún teléfono real**. Es el ítem **P-003** de [[Deuda Técnica - Pendientes]] y la primera tarea de la Fase 0.
+> [!success] Bloqueante resuelto — 2026-07-31
+> **`minSdk`** bajó de 37 a **24** (~96.6% de dispositivos reales), junto con Java 17 (**P-006**). Era **P-003** en [[Deuda Técnica - Pendientes]]. Falta la prueba en un teléfono físico real.
 
 ---
 
@@ -65,6 +65,7 @@ Pregunta: [PENDIENTE — completar]
 - [[Roadmap de Fases]] — fases, ramas `feat/faseN-...`, decisiones con ventana de oportunidad
 - [[Plan de Fase 1 - Roles, Autenticación y Recuperación]] — **qué falta** para cerrar la Fase 1
 - [[Plan Fase 1b - Recuperación de Contraseña y Roles]] — **6 entregables ejecutables**, solo código (sin acceso a Supabase)
+- [[Plan Fase 1c - Maqueta Visual por Roles]] — maqueta completa con permisos por rol, respaldados por RLS
 - [[Guía de Diseño Visual]] — paleta, tipografía y componentes ("barato de renderizar, caro de ver")
 - [[Esquema de Base de Datos]] — **14 tablas** en Supabase, RLS y conflicto `usuarios` vs `perfiles`
 - [[Plan de Conexión con Supabase]] — **4 propuestas** para conectar el login a un backend real

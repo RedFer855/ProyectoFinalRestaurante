@@ -86,8 +86,8 @@ graph TD
 | AGP | 9.2.1 | ✅ 9.x |
 | Gradle | 9.4.1 | ✅ coincide con el mínimo de AGP 9.2 |
 | `compileSdk` / `targetSdk` | 37 / 37 | ✅ ≥ 36 |
-| **`minSdk`** | **37** | 🔴 **24** — ver **P-003** |
-| Java source/target | 11 | 🟡 17 — ver **P-006** |
+| **`minSdk`** | ✅ **24** — resuelto 2026-07-31 | ver **P-003** |
+| Java source/target | ✅ **17** — resuelto 2026-07-31 | ver **P-006** |
 | R8 en release | desactivado | 🟡 activado — ver **P-008** |
 | Build DSL | Kotlin DSL + Version Catalog | ✅ |
 
@@ -131,7 +131,7 @@ Ver [[Roadmap de Fases]].
 
 ## Advertencias conocidas
 
-1. 🔴 **`minSdk = 37`** — la app no instala en dispositivos reales (**P-003**).
+1. ~~🔴 `minSdk = 37`~~ — ✅ resuelto el 2026-07-31 (**P-003**), ahora `minSdk = 24` (~96.6% de dispositivos). Falta la prueba en un teléfono físico real.
 2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
 3. 🔴 **Sin arquitectura offline** — decisión obligada al arrancar la Fase 2 (**P-014**).
 4. ⚠️ **Cero pruebas propias** — solo los ejemplos de Android Studio (**P-005**).
