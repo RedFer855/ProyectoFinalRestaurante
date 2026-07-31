@@ -57,23 +57,25 @@ graph TD
 | Paquete | Rol | Depende de |
 |---|---|---|
 | `ui.login` | `LoginActivity`, `LoginViewModel`, `EstadoLogin`, `LoginViewModelFactory` | `domain` |
-| `domain.model` | `Sesion` | — |
-| `domain.repository` | `AuthRepository` (interfaz) | — |
-| `domain` (raíz) | `Result<T>` | — |
-| `data.remote` | `SupabaseAuthApi` (login+logout), `SupabasePerfilApi` (Retrofit), DTOs | `core` |
+| `ui.recuperacion` | `SolicitarCodigo*`, `CambiarContrasenia*` (Activities + VMs + Factory + estados) | `domain` |
+| `domain.model` | `Sesion` (id, correo, access token, **nombre**, rol) | — |
+| `domain.repository` | `AuthRepository` (interfaz: login + logout + solicitarCodigo + verificarCodigo + cambiarContrasenia) | — |
+| `domain` (raíz) | `Result<T>`, `RequisitoContrasenia`, `ResultadoValidacion`, `ValidadorContrasenia`, `VisibilidadMenu` | — |
+| `data.remote` | `SupabaseAuthApi` (login/logout/recover/verify/user), `SupabasePerfilApi` (Retrofit), DTOs | `core` |
 | `data.repository` | `SupabaseAuthRepository` | `domain`, `data.remote` |
-| `core` | `SupabaseClient` (Retrofit singleton, credenciales vía `BuildConfig`) | — |
+| `core` | `SupabaseClient` (Retrofit singleton), `SesionActual` (sesión en memoria) | — |
 
 ---
 
 ## Entry point
 
 - `AndroidManifest.xml`: `LoginActivity` es la actividad `LAUNCHER`.
-- Login exitoso → `startActivity(MainActivity)` + `finish()`.
-- `MainActivity` es la pantalla post-login (placeholder de Fase 1).
+- Login exitoso → `SesionActual.guardar(...)` + `startActivity(MainActivity)` + `finish()`.
+- `MainActivity` es la pantalla post-login: **DrawerLayout + NavigationView con ítems filtrados por rol** (`domain/VisibilidadMenu`) y placeholder "Próximamente" para módulos no construidos. "Cerrar sesión" limpia `SesionActual` y vuelve al login con `CLEAR_TASK`.
+- Desde el login, "¿Olvidaste tu contraseña?" → flujo de recuperación de 2 pasos (`SolicitarCodigoActivity` → `CambiarContraseniaActivity` → login).
 
 > [!warning] Diverge del estándar
-> El estándar pide **single-Activity + Fragments + Navigation Component**. Hoy son dos `Activity` con `Intent` explícito. Ver **P-015**.
+> El estándar pide **single-Activity + Fragments + Navigation Component**. Hoy son varias `Activity` con `Intent` explícito. Ver **P-015**.
 
 ---
 
@@ -100,8 +102,9 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | [[Clean Architecture]] | `ui`/`domain`/`data`/`core` | ✅ Capas separadas; ⬜ sin `UseCase` todavía |
 | [[Repository Pattern]] | `data.repository` | ✅ Implementado |
 | [[Result Pattern]] | `domain.Result`, `SupabaseAuthRepository` | ✅ Básico; ⬜ sin `AppException` (**P-016**) |
-| [[MVVM en Android (ViewModel + LiveData)]] | `ui.login` | ✅ Implementado; ⚠️ `Executor` no inyectado (**P-005**) |
-| [[UiState Inmutable y Flujo Unidireccional]] | `ui.login.EstadoLogin` | ✅ Estado único inmutable; ⚠️ sin evento consumido (**P-013**) |
+| [[MVVM en Android (ViewModel + LiveData)]] | `ui.login`, `ui.recuperacion` | ✅ Implementado; ⚠️ `Executor` no inyectado en login (**P-005**) — en recuperación sí inyectado |
+| [[UiState Inmutable y Flujo Unidireccional]] | `ui.login.EstadoLogin`, `ui.recuperacion.EstadoCambioContrasenia` | ✅ Estado único inmutable; ⚠️ login sin evento consumido (**P-013**) — recuperación sí lo consume |
+| Regla de negocio en dominio | `domain.ValidadorContrasenia`, `domain.VisibilidadMenu` | ✅ Java puro, testeable con JUnit |
 | Interceptor (Decorator) | `core.SupabaseClient` — header `apikey` | ✅ Implementado |
 | [[Offline-First con Room y Outbox]] | — | ⬜ **No implementado** (**P-014**) |
 | [[Base Repository con manejo de errores]] | — | ⬜ Documentado, no extraído (**P-001**) |
@@ -115,7 +118,8 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | Módulo | Estado | Archivos clave |
 |---|---|---|
 | [[Módulo Login]] | 🟡 Funcional con deuda | `LoginActivity`, `LoginViewModel`, `SupabaseAuthRepository` |
-| Menú | ⬜ No iniciado — **primer módulo con Room/offline** | — |
+| Recuperación de contraseña | 🟢 Funcional (Fase 1b) — falta verificación manual | `ui/recuperacion/*`, `ValidadorContrasenia` |
+| Menú | ⬜ No iniciado — **primer módulo con Room/offline** | placeholder "Próximamente" en `MainActivity` |
 | Pedidos | ⬜ No iniciado | — |
 | Mesas | ⬜ No iniciado | — |
 | Usuarios/Roles | ⬜ No iniciado | — |
@@ -138,8 +142,8 @@ Ver [[Roadmap de Fases]].
 
 ## Próximos pasos recomendados
 
-1. **Fase 0** — cerrar la brecha crítica contra el estándar, empezando por **P-003**.
-2. **Conectar el login a un Supabase real** — ver [[Plan de Conexión con Supabase]] (Propuesta A: 15 min, sin código nuevo).
+1. **Verificar en emulador** la Fase 1b completa (login → drawer por rol → recuperación de 2 pasos); se necesita `local.properties` con credenciales de Supabase reales para la e2e.
+2. **Fase 0** — cerrar la brecha crítica contra el estándar, empezando por **P-003**.
 3. **Fase 2 (Menú)** — implementar Room + offline-first **desde el día uno** de ese módulo.
 4. Extraer `BaseRepository` + `AppException` al agregar el segundo repositorio.
 5. Decidir feature-first vs layer-first antes de que existan tres features → propuesta lista en [[Propuesta de División de Arquitectura]] (**P-017**).

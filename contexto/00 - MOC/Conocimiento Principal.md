@@ -33,6 +33,7 @@ Pregunta: [PENDIENTE — completar]
 | Bóveda de conocimiento (`contexto/`) | ✅ Estándar de ingeniería documentado |
 | Arquitectura por capas (`ui`/`domain`/`data`/`core`) | ✅ Definida e implementada |
 | **Fase 1 — Login** | 🟡 Funciona y compila, **con 16 ítems de deuda catalogados** |
+| **Fase 1b — Recuperación + Roles** | ✅ Código completo (6 entregables) en `feat/fase1-login`; falta verificación manual en emulador |
 | **Fase 0 — Remediación contra el estándar** | ⬜ **Siguiente prioridad** |
 | Offline-first (Room + outbox) | ⬜ Obligatorio desde Fase 2 |
 | Menú, Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
@@ -122,4 +123,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-07-29 - Auditoría contra el Estándar de Ingeniería Android]]
+Sesión más reciente: [[Sesión 2026-07-31 - Plan Fase 1b completo (recuperación de contraseña y roles)]]
