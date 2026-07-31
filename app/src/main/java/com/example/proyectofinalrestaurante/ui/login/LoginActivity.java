@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectofinalrestaurante.MainActivity;
 import com.example.proyectofinalrestaurante.R;
+import com.example.proyectofinalrestaurante.core.SesionActual;
 import com.example.proyectofinalrestaurante.ui.recuperacion.SolicitarCodigoActivity;
 
 public class LoginActivity extends AppCompatActivity {
@@ -79,6 +80,7 @@ public class LoginActivity extends AppCompatActivity {
         }
 
         if (estadoLogin.getSesion() != null) {
+            SesionActual.guardar(estadoLogin.getSesion());
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();

@@ -9,6 +9,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.example.proyectofinalrestaurante.core.SesionActual;
+import com.example.proyectofinalrestaurante.domain.model.Sesion;
 import com.example.proyectofinalrestaurante.ui.login.LoginActivity;
 
 /**
@@ -29,8 +31,18 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
+        Sesion sesion = SesionActual.obtener();
+        if (sesion == null) {
+            // No hay sesión activa (app recién abierta) → volver al login.
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
+
         findViewById(R.id.btn_cerrar_sesion).setOnClickListener(v -> {
+            SesionActual.limpiar();
             Intent intent = new Intent(this, LoginActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
             finish();
         });
