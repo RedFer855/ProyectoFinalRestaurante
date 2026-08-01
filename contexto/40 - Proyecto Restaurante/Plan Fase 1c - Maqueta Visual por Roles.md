@@ -8,7 +8,7 @@ tags:
   - permisos
   - ui
 date: 2026-07-31
-lifecycle: draft
+lifecycle: verified
 ---
 
 # Plan Fase 1c — Maqueta visual con permisos por rol
@@ -431,7 +431,22 @@ Un menú en la toolbar que cambia el rol de `SesionActual` en memoria y refresca
 
 **La Fase 1c está completa** (2026-07-31): los 7 entregables de código **y** las policies RLS del servidor. El proyecto pasó de 17 a 33 tests y de 2 pantallas a 10.
 
-Queda pendiente solo **S-4** (Leaked Password Protection, requiere plan Pro) — opcional desde el principio.
+Queda pendiente solo **S-4** (Leaked Password Protection, requiere plan Pro) — opcional desde el principio. Verificado el 2026-08-01: `get_advisors(security)` sigue reportando `auth_leaked_password_protection`, así que continúa apagado.
+
+> [!note] Qué pasó después con la maqueta que dejó esta fase (2026-08-01)
+> `DatosMaqueta` era para "borrarlo entero en la Fase 2". Se está borrando por partes, a
+> medida que cada módulo se vuelve real, que es lo que corresponde:
+>
+> | Módulo de la 1c | Hoy |
+> |---|---|
+> | Menú | 🟢 Real y local-first — ver [[Módulo Menú]] |
+> | Empleados | 🟢 Real y local-first — ver [[Módulo Empleados]] |
+> | Mesas · Clientes | 🟡 Maqueta; planificados en [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]] |
+> | Pedidos (Fase 4) · Reportes (Fase 6) | 🟡 Maqueta; sin planificar |
+> | Inicio | 🟡 Sus contadores siguen saliendo de `DatosMaqueta` |
+>
+> Lo que **no** se movió y era el punto de la fase: `Permisos`, `VistaPorPermiso`, el drawer
+> por rol y las policies RLS siguen intactos y en uso por los módulos reales.
 
 ---
 
