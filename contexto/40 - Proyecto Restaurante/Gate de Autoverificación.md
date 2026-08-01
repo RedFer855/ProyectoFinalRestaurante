@@ -24,6 +24,7 @@ date: 2026-07-29
 [ ] Toda dependencia usada está en libs.versions.toml y en el build.gradle.kts del módulo
 [ ] Ninguna API deprecada (ver Lista Negra); nada que rompa con el targetSdk actual
 [ ] domain/ sin un solo import de android.* / androidx.* / Retrofit / Room
+    (excepción documentada: androidx.annotation y androidx.lifecycle.LiveData)
 [ ] La UI no llama a DAO, ApiService ni DataSource directamente
 [ ] Cero trabajo de I/O en el hilo principal; todo I/O en un Executor inyectado
 [ ] ViewModel sin Context / Activity / Fragment / Resources / View

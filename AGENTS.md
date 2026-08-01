@@ -43,7 +43,7 @@ Este proyecto se rige por un **estándar de ingeniería Android (Java, gama baja
 ## Reglas de oro (no negociables)
 
 1. **Arquitectura por capas dentro del módulo `app`**: `ui` → `domain` ← `data`, con `core` para infraestructura compartida (cliente HTTP/Supabase). Ver [`Arquitectura Actual`](contexto/40%20-%20Proyecto%20Restaurante/Arquitectura%20Actual.md).
-2. **`domain` nunca referencia `data`.** La dependencia va al revés: `data` implementa los contratos (interfaces) definidos en `domain`. `domain` no importa **nada** de `android.*`/`androidx.*`/Retrofit/Room.
+2. **`domain` nunca referencia `data`.** La dependencia va al revés: `data` implementa los contratos (interfaces) definidos en `domain`. `domain` no importa **nada** de `android.*`/`androidx.*`/Retrofit/Room, **salvo las excepciones documentadas**: `androidx.annotation` y `androidx.lifecycle` (solo `LiveData`, para las lecturas por contrato desde la Fase 2b — ver Plan Fase 2b, §4.1, opción B). Ambas son JARs que corren en la JVM de los unit tests sin emulador.
 3. `ui` (Activities/ViewModels) solo habla con interfaces de `domain`, nunca con un DAO, `ApiService` o `DataSource`.
 4. **MVVM con `androidx.lifecycle`**: `ViewModel` + `LiveData`, un **único objeto de estado inmutable** por pantalla. Nunca lógica de red/negocio dentro de una `Activity`. El `ViewModel` no recibe `Context`/`Activity`/`View`.
 5. Repositorios nuevos: envolver la llamada de red en `Result`/`Result<T>`. Nunca dejar que una excepción de Retrofit llegue cruda a la UI, ni `catch (Exception e) {}` vacío, ni `printStackTrace()`.

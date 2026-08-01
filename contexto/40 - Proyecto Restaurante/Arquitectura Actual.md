@@ -145,7 +145,7 @@ Ver [[Roadmap de Fases]].
 1. ~~🔴 `minSdk = 37`~~ — ✅ resuelto el 2026-07-31 (**P-003**), ahora `minSdk = 24` (~96.6% de dispositivos). Falta la prueba en un teléfono físico real.
 2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
 3. 🔴 **Sin arquitectura offline** (**P-014**) — programada para la sub-fase **2b**; la 2a se escribe contra la red a propósito, con el costo documentado en [[Plan de Fase 2 - Menu]].
-4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **124 tests** propios entre ViewModels, repositorios y dominio (56 tras la Fase 0, +68 en la Fase 2a). `CompresorDeImagen` sigue sin cobertura (**P-024**).
+4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **124 tests** propios entre ViewModels, repositorios y dominio (56 tras la Fase 0, +68 en la Fase 2a). Con la **Fase 2b** (2026-08-01) la suite creció a **195 tests** agregando DAOs con Robolectric, outbox, clasificador de errores y la migración (`MigrationTestHelper` con `AndroidSQLiteDriver`). `CompresorDeImagen` sigue sin cobertura (**P-024**).
 5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**); la constante se renombró a `SUPABASE_PUBLISHABLE_KEY` el 2026-07-31 (**P-012** resuelto). `perfiles` con RLS y usuarios reales cargados.
 6. ⚠️ `applicationId` sigue en `com.example.*` — Play lo rechaza y es irreversible tras publicar (**P-018**).
 

@@ -86,7 +86,9 @@ Completas en [`AGENTS.md`](../../AGENTS.md). Las que más muerden:
 
 1. **`domain` nunca referencia `data`**, y no importa nada de `android.*`, Retrofit, Room ni
    Glide. La dependencia va `ui → domain ← data → core`. Única excepción admitida:
-   `androidx.annotation` (`@Nullable`/`@NonNull`), que es un JAR de anotaciones sin runtime.
+   `androidx.annotation` (`@Nullable`/`@NonNull`) y `androidx.lifecycle` (solo `LiveData`,
+   para las lecturas por contrato desde la Fase 2b — Plan Fase 2b, §4.1, opción B). Son JARs
+   sin runtime de Android, que corren en la JVM de los unit tests.
 2. `ui` habla **solo** con interfaces de `domain`. Nunca con un `ApiService`, un DAO ni un DTO.
 3. **Un único objeto de estado inmutable por pantalla**, con los cuatro estados reales
    (cargando · con datos · vacío · error) y `isVacio()` **derivado**, nunca una bandera

@@ -19,8 +19,8 @@ lifecycle: verified
 |---|---|---|
 | `domain` | JUnit4 + Truth (JVM puro, sin Robolectric) | Todos los `UseCase`, mappers, reducers, validaciones |
 | `ui` (ViewModel) | JUnit4 + `InstantTaskExecutorRule` + fakes | Transiciones de `UiState`: inicial → cargando → éxito/error |
-| `data` (DAO) | Room in-memory + `androidTest` | Queries, índices, borrado lógico |
-| `data` (migraciones) | `MigrationTestHelper` | **Toda** migración de esquema |
+| `data` (DAO) | Robolectric (`@Config(sdk=35)`) + Room in-memory | Queries, índices, borrado lógico — en la JVM local, sin emulador |
+| `data` (migraciones) | `MigrationTestHelper` (constructor `SQLiteDriver` + `AndroidSQLiteDriver`) | **Toda** migración de esquema; ver [[Room 2.8.4 y MigrationTestHelper en Windows (Robolectric)]] |
 | `data` (repositorio) | Fakes de los DataSource | Política offline-first, resolución de conflictos |
 | UI end-to-end | Espresso | *Happy path* de cada pantalla + regresión de navegación |
 | Rendimiento | Macrobenchmark | Arranque y scroll (ver [[Presupuestos de Rendimiento en Gama Baja]]) |
@@ -66,9 +66,11 @@ public class LoginViewModelTest {
 ```
 
 > [!warning] Estado en este proyecto
-> **No hay ni una sola prueba propia.** Solo quedan los dos archivos de ejemplo que generó Android Studio (`ExampleUnitTest`, `ExampleInstrumentedTest`), que no prueban nada del proyecto.
->
-> Además, `LoginViewModel` **no es testeable hoy**: crea su propio `ExecutorService` internamente en vez de recibirlo inyectado, así que un test no puede forzar ejecución síncrona. Registrado como **P-005** en [[Deuda Técnica - Pendientes]].
+> **La suite pasó de cero a cubierta en la Fase 2b (2026-08-01):** `./gradlew
+> testDebugUnitTest` corre **195 tests** con aserciones reales — `domain`, ViewModels,
+> DAOs (Robolectric + Room in-memory), outbox, clasificador de errores, migración y
+> repositorios con fakes. P-005 quedó cerrado (los ViewModels ya inyectan su
+> `ExecutorService`).
 
 ---
 
