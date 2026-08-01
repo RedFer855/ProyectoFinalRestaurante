@@ -122,7 +122,7 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | Menú | ⬜ No iniciado — **primer módulo con Room/offline** | placeholder "Próximamente" en `MainActivity` |
 | Pedidos | ⬜ No iniciado | — |
 | Mesas | ⬜ No iniciado | — |
-| Usuarios/Roles | ⬜ No iniciado | — |
+| Empleados / Usuarios / Roles | 🟢 **Funcional** (Fase 1d) — CRUD real contra Supabase, alta vía Edge Function | `ui/empleados/*`, `SupabaseEmpleadoRepository`, `supabase/functions/crear-empleado/` |
 | Reportes | ⬜ No iniciado | — |
 
 Ver [[Roadmap de Fases]].

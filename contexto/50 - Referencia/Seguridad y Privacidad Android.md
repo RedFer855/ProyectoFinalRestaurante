@@ -19,6 +19,18 @@ lifecycle: verified
 - `google-services.json`, keystores y `.env` van en `.gitignore`.
 - **Los tokens de sesión se guardan en `EncryptedSharedPreferences`/Jetpack Security**, nunca en texto plano ni en logs.
 
+> [!danger] La bóveda se versiona: nunca escribir una contraseña acá
+> `contexto/` está dentro del repo y se sube a GitHub. Anotar una credencial de prueba
+> en una nota **es publicarla**, y borrarla después no la saca del historial de git.
+>
+> Las credenciales de cuentas de prueba se consultan o se resetean desde el dashboard
+> de Supabase (Authentication → Users). En las notas se referencia la cuenta por su
+> correo, nunca por su contraseña.
+>
+> **Ocurrió el 2026-07-29:** una nota de sesión quedó con la contraseña del admin y se
+> pusheó. Se limpió el archivo el 2026-07-31, pero el valor sigue en commits anteriores
+> — la única solución real fue **rotar esa contraseña**.
+
 > [!note] Estado en este proyecto
 > ✅ `SUPABASE_URL`/`SUPABASE_ANON_KEY` ya se leen de `local.properties` vía `BuildConfig`.
 > ⚠️ El `access_token` que devuelve el login **hoy no se persiste en ningún lado** (se pierde al cerrar la app). Cuando se persista, debe ir cifrado. Ver **P-009** en [[Deuda Técnica - Pendientes]].
