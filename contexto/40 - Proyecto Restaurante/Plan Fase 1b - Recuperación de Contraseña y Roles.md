@@ -32,9 +32,18 @@ Estas tareas **no las hace quien programa**. Requieren el panel de Supabase y qu
 | # | Tarea | Dónde |
 |---|---|---|
 | S-1 | Editar la plantilla de correo de recuperación para que incluya **`{{ .Token }}`** (el código de 6 dígitos) además del link | Authentication → Emails → Reset Password |
-| S-2 | Fijar la política de contraseñas: **mínimo 8 caracteres** + requerir dígitos, mayúsculas, minúsculas y símbolos | Authentication → Policies |
+| ~~S-2~~ ✅ | Fijar la política de contraseñas: **mínimo 8 caracteres** + requerir dígitos, mayúsculas, minúsculas y símbolos | Authentication → Policies |
 | S-3 | Revisar el tiempo de expiración del OTP (recomendado ≤ 3600 s) | Authentication → Providers → Email |
 | S-4 | *(Opcional, plan Pro)* activar **Leaked Password Protection** (HaveIBeenPwned) | Authentication → Policies |
+
+> [!success] S-2 configurado (2026-08-01)
+> Lo hizo el usuario desde el dashboard. Con eso, la validación de fuerza que hace
+> `ValidadorContrasenia` en la app deja de ser la única defensa: ahora el servidor también
+> rechaza una clave débil.
+>
+> **S-4 sigue apagado** — lo confirma `get_advisors(security)`, que reporta *"Leaked
+> password protection is currently disabled"*. Es el único ítem de esta tabla que un agente
+> puede verificar desde afuera, y era opcional desde el principio.
 
 > [!warning] Consecuencia
 > Sin **S-1**, el correo de recuperación llega **sin código** y el flujo no se puede probar de punta a punta — aunque el código de la app esté perfecto. Todo lo demás (compilación, pruebas unitarias, navegación, estados de error) **sí se verifica sin Supabase**.

@@ -31,22 +31,22 @@ Respuesta: My Cat
 | App base Android (Java + XML Views) | ✅ Esqueleto + Fase 1 |
 | Bóveda de conocimiento (`contexto/`) | ✅ Estándar de ingeniería documentado |
 | Arquitectura por capas (`ui`/`domain`/`data`/`core`) | ✅ Definida e implementada |
-| **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020); quedan 3 ítems que solo se cierran con acceso a Supabase o a un dispositivo — ver [[Deuda Técnica - Pendientes]] |
+| **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020). Verificada en emulador y con **S-2** configurado (2026-08-01); queda **solo P-004** en un teléfono físico — ver [[Deuda Técnica - Pendientes]] |
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
 | **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
 | Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, va en la sub-fase **2b** |
 | Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
-> [!warning] `feat/fase1-login` no se mergea a `master` todavía
-> Faltan 3 ítems que **solo el usuario puede cerrar**: probar el login/Empleados en un emulador o dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas del servidor en el dashboard de Supabase (S-2). Ver la sesión [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]].
+> [!warning] `feat/fase1-login`: queda 1 ítem para poder mergear a `master`
+> ~~Probar el login/Empleados en un emulador o dispositivo~~ ✅ y ~~configurar la política de contraseñas del servidor (S-2)~~ ✅ — los cerró el usuario el 2026-08-01. **Falta solo verificar P-004** (edge-to-edge e insets del login) en un teléfono físico. Ver [[Deuda Técnica - Pendientes]].
 
 ---
 
 ## Próximos pasos
 
 1. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
-2. **Vos:** probar login + Empleados en un emulador/dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas en el dashboard de Supabase (Authentication → Policies). Con eso cerrado, se mergea `feat/fase1-login` a `master`.
+2. **Vos:** verificar **P-004** (edge-to-edge e insets del login) en un teléfono físico — es lo único que falta para mergear `feat/fase1-login` a `master`. El login/Empleados en emulador y la política de contraseñas (S-2) ya están cerrados.
 3. **Fase 2b — offline-first**: Room + outbox + `SyncWorker` (**P-014**). Es la deuda más cara que dejó la 2a: hoy todo el Menú lee y escribe contra la red. Ver [[Plan de Fase 2 - Menu]].
 4. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
 5. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
@@ -129,4 +129,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-08-01 - Rediseño de la tarjeta de platillo y filtro que escondía lo guardado]]
+Sesión más reciente: [[Sesión 2026-08-01 - Cierre de pendientes de Fase 1 (emulador y política de contraseñas)]]

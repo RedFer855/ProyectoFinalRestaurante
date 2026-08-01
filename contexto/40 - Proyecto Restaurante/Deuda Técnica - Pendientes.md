@@ -69,7 +69,7 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 **Solución:** replicar el bloque de `MainActivity` en `LoginActivity`, incluyendo `WindowInsetsCompat.Type.ime()` porque la pantalla tiene campos de texto. Ver [[Android 16 y 17 - Cambios de Comportamiento]].
 
 **Estado:** `[x] Resuelto` (2026-07-29) — `LoginActivity` llama `EdgeToEdge.enable(this)` y aplica insets de `systemBars() | ime()` sobre `login_root` en el método `aplicarInsets()`. Ver [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]].
-**Falta verificar:** en dispositivo real — ya no bloqueado desde que se resolvió **P-003** (2026-07-31), solo falta hacer la prueba física.
+**Falta verificar:** en un teléfono físico. Es el **último ítem abierto de la Fase 1** — el login/Empleados en emulador y **S-2** se cerraron el 2026-08-01. Lo que hay que mirar: que el título no quede bajo la barra de estado y que el botón "Ingresar" no quede tapado por la barra de navegación ni por el teclado.
 
 ---
 

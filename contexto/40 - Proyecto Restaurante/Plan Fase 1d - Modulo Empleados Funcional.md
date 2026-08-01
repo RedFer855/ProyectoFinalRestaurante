@@ -173,7 +173,7 @@ los triggers.
 **Estado final:** `auth.users` 3 · `empleados` 3 · `usuarios` 3 · `perfiles` 3 — sin
 huérfanos. `get_advisors(security)` → 0 errores. Build debug y 47 tests en verde.
 
-⬜ **Falta:** probar el flujo desde el emulador (no había uno conectado al cerrar).
+~~⬜ **Falta:** probar el flujo desde el emulador~~ ✅ **Verificado por el usuario el 2026-08-01** en emulador y en un dispositivo real.
 
 ---
 
@@ -201,7 +201,7 @@ el bloqueo por RLS del guion de la [[Plan Fase 1c - Maqueta Visual por Roles]].
 | Ítem | Detalle |
 |---|---|
 | Forzar cambio de contraseña en el primer ingreso | Hoy la temporal que puso el admin sirve indefinidamente. **Bloqueado** (2026-07-31): exige una columna nueva en `perfiles`/`usuarios` y tocar la Edge Function `crear-empleado` — sin acceso al conector de Supabase en este entorno. Ver [[Deuda Técnica - Pendientes]]. |
-| **S-2** del Plan Fase 1b | La política de contraseñas del servidor sigue sin configurarse: hoy Supabase aceptaría una clave débil aunque la Edge Function la valide. **Bloqueado** (2026-07-31): es un ajuste del dashboard de Supabase (Authentication), no de código. |
+| ~~**S-2** del Plan Fase 1b~~ ✅ | La política de contraseñas del servidor **la configuró el usuario el 2026-08-01** en el dashboard (Authentication → Policies). Era un ajuste de dashboard, no de código. Ver la nota de S-2 en [[Plan Fase 1b - Recuperación de Contraseña y Roles]]. |
 | **P-021** | El rol sigue duplicado en dos tablas; el trigger lo mantiene consistente, pero la resolución de fondo (una sola tabla) sigue abierta — decisión de arquitectura, no se resuelve al pasar. |
 | ~~Tests del repositorio~~ ✅ | Resuelto 2026-07-31: `SupabaseEmpleadoRepositoryTest` (6 casos, fakes manuales sin Mockito) — mismo patrón que cerró **P-020**. Ver [[Deuda Técnica - Pendientes]]. |
 

@@ -154,7 +154,7 @@ Ver [[Roadmap de Fases]].
 ## Próximos pasos recomendados
 
 1. **Verificar en dispositivo** el Menú de la Fase 2a: subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
-2. **Cerrar la Fase 1**: probar login + Empleados en emulador, verificar **P-004** en un teléfono físico y configurar la política de contraseñas en el dashboard de Supabase. Recién entonces se mergea `feat/fase1-login` a `master`.
+2. **Cerrar la Fase 1**: solo falta verificar **P-004** en un teléfono físico. El login + Empleados en emulador y la política de contraseñas del dashboard (**S-2**) los cerró el usuario el 2026-08-01. Con P-004 se mergea `feat/fase1-login` a `master`.
 3. **Fase 2b** — Room + outbox + `SyncWorker` (**P-014**), que es la deuda más cara que dejó la 2a: hoy todo el Menú lee y escribe contra la red.
 4. Extraer `BaseRepository` + `AppException` (**P-001**/**P-016**): ya hay **tres** repositorios con el mismo `mensajeDeError()` copiado.
 5. Decidir feature-first vs layer-first — ya existen tres features (`login`, `empleados`, `menu`), que era el umbral que fijaba [[Propuesta de División de Arquitectura]] (**P-017**).
