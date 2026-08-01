@@ -34,7 +34,7 @@ Respuesta: My Cat
 | **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020); quedan 3 ítems que solo se cierran con acceso a Supabase o a un dispositivo — ver [[Deuda Técnica - Pendientes]] |
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
-| **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. 124 tests en verde. Falta la prueba en dispositivo — ver [[Módulo Menú]] |
+| **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
 | Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, va en la sub-fase **2b** |
 | Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
@@ -129,4 +129,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]
+Sesión más reciente: [[Sesión 2026-08-01 - Rediseño de la tarjeta de platillo y filtro que escondía lo guardado]]

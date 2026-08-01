@@ -63,7 +63,7 @@ repository/SupabaseMenuRepository.java — implementa MenuRepository; orquesta b
 ### `ui/menu/`
 ```
 MenuFragment.java             — observa el estado, chips de filtro, FAB, botón Categorías
-PlatilloAdapter.java          — ListAdapter + DiffUtil; Glide; ⋮ filtrado por permiso
+PlatilloAdapter.java          — ListAdapter + DiffUtil; Glide; botones filtrados por permiso
 MenuViewModel.java            — LiveData<EstadoMenu>; filtro y búsqueda viven acá
 EstadoMenu.java               — estado único inmutable (cargando/datos/vacío/error)
 MenuViewModelFactory.java     — DI manual (P-002)
@@ -77,7 +77,7 @@ CompresorDeImagen.java        — mide, rota por EXIF, redimensiona y comprime a
 ```
 layout/fragment_menu.xml · item_platillo.xml · dialog_platillo.xml
 layout/dialog_categorias.xml · item_categoria.xml
-menu/menu_platillo.xml · menu_categoria.xml
+menu/menu_categoria.xml
 drawable/ic_platillo_sin_foto.xml
 ```
 
@@ -100,7 +100,7 @@ Aplicado y verificado el 2026-07-31, ver [[Esquema de Base de Datos]].
 | `CHECK (precio > 0)` | `ValidadorPlatillo` |
 | `uq_platillo_nombre` sobre `lower(btrim(nombre))` | `ReglasMenu.existeOtroPlatilloLlamado` |
 | `uq_categoria_descripcion` | `ReglasMenu.existeOtraCategoriaLlamada` |
-| `trg_platillo_no_borrar` | el ⋮ dice "Desactivar", nunca "Eliminar" |
+| `trg_platillo_no_borrar` | el botón dice "Desactivar", nunca "Eliminar" |
 | `trg_categoria_no_borrar_con_platillos` | `ReglasMenu.puedeBorrarse` oculta la opción |
 | Límite de 2 MB y MIME del bucket | `ReglasMenu.cabeEnElBucket` / `tipoDeImagenPermitido` |
 | `trg_*_actualizado_en` | la app **no manda** ese campo |
@@ -190,6 +190,42 @@ de los unit tests. Registrado como **P-024**.
 | 🟢 **P-002** | DI manual por Factory |
 
 Detalle completo en [[Deuda Técnica - Pendientes]].
+
+---
+
+## Rediseño de la tarjeta y el filtro obsoleto (2026-08-01)
+
+**El bug que se veía como "no se guarda el cambio de categoría".** Editar un platillo y
+moverlo de categoría **sí** funcionaba: el `PATCH` respondía `204` y la fila cambiaba. Lo
+que fallaba era la pantalla — con un chip de categoría activo, el platillo recién guardado
+dejaba de cumplir el filtro y **desaparecía de la lista**. Los logs de la API mostraban el
+síntoma en crudo: tres `PATCH` seguidos al mismo `id_platillo`, o sea alguien reintentando
+algo que ya se había guardado las tres veces.
+
+`MenuViewModel.descartarFiltroQueEsconde(int)` suelta el filtro cuando dejaría fuera al
+platillo que se acaba de crear o editar. Es el mismo criterio que `borrarCategoria` ya
+aplicaba: **un filtro que esconde el resultado de la acción recién hecha es un filtro
+obsoleto.**
+
+> [!tip] La lección, que no es del Menú
+> Una operación que el servidor acepta puede seguir siendo un fallo para el usuario si el
+> resultado no queda a la vista. Todo módulo con filtros y con escritura tiene este
+> problema latente — Pedidos y Mesas van a tenerlo igual.
+
+**La tarjeta.** `item_platillo.xml` pasó de una fila con miniatura de 72 dp a una tarjeta
+con la foto al 40 % del ancho y **al alto completo** (`layout_height=0dp` anclado arriba y
+abajo, con `layout_constraintHeight_min`), nombre grande, precio en pastilla, categoría en
+pastilla y la descripción a tres líneas.
+
+| Decisión | Por qué |
+|---|---|
+| El precio va en una pastilla, no en un círculo | Un `<shape android:shape="oval">` recorta "L 1,250.00". Con radio grande + `minWidth` = `minHeight`, un precio corto se ve circular y uno largo se estira |
+| Las acciones son botones a la vista; se eliminó `menu_platillo.xml` | Con dos opciones, un menú ⋮ cuesta un toque de más sin ganar nada |
+| El botón dice "Desactivar" y su ícono es un círculo tachado, no un basurero | El diseño de referencia decía "Eliminar", pero `trg_platillo_no_borrar` rechaza el `DELETE`. Un basurero prometería una acción que el servidor niega |
+| `AlElegirAccion` pasó de `onAccion(platillo, int accionId)` a dos métodos | El `int` era el id del `MenuItem` del `PopupMenu`. Sin menú, el compilador puede verificar que las dos acciones estén atendidas |
+
+Colores solo por nombre de la paleta (`brand_primary_container`, `brand_secondary`…), así
+que el modo oscuro sale de `values-night/colors.xml` sin trabajo extra.
 
 ---
 

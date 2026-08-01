@@ -99,6 +99,7 @@ public class MenuViewModel extends ViewModel {
         executor.execute(() -> {
             Result<Platillo> resultado = repositorio.crearPlatillo(nuevo, imagen);
             if (resultado.isSuccess()) {
+                descartarFiltroQueEsconde(nuevo.getIdCategoria());
                 recargarCon(PLATILLO_CREADO);
             } else {
                 estado.postValue(EstadoMenu.error(resultado.getError()));
@@ -108,8 +109,32 @@ public class MenuViewModel extends ViewModel {
 
     public void actualizarPlatillo(Platillo platillo, @Nullable ImagenPlatillo imagenNueva) {
         estado.setValue(EstadoMenu.cargando());
-        executor.execute(() -> ejecutar(
-                repositorio.actualizarPlatillo(platillo, imagenNueva), PLATILLO_ACTUALIZADO));
+        executor.execute(() -> {
+            Result<Void> resultado = repositorio.actualizarPlatillo(platillo, imagenNueva);
+            if (resultado.isSuccess()) {
+                descartarFiltroQueEsconde(platillo.getIdCategoria());
+                recargarCon(PLATILLO_ACTUALIZADO);
+            } else {
+                estado.postValue(EstadoMenu.error(resultado.getError()));
+            }
+        });
+    }
+
+    /**
+     * Suelta el filtro por categoría cuando dejaría fuera de la lista al platillo que se
+     * acaba de guardar.
+     *
+     * <p>Sin esto, mover un platillo de categoría con un chip activo lo hacía desaparecer
+     * de la pantalla: el servidor guardaba bien y respondía 204, pero el usuario veía el
+     * platillo esfumarse y lo leía como que no se había guardado. Mismo criterio que ya
+     * aplica {@link #borrarCategoria(int)} cuando el filtro apunta a algo que ya no está:
+     * un filtro que esconde el resultado de la acción recién hecha es un filtro obsoleto.</p>
+     */
+    private void descartarFiltroQueEsconde(int idCategoriaDelPlatillo) {
+        if (filtroCategoria != EstadoMenu.SIN_FILTRO
+                && filtroCategoria != idCategoriaDelPlatillo) {
+            filtroCategoria = EstadoMenu.SIN_FILTRO;
+        }
     }
 
     public void quitarImagen(Platillo platillo) {

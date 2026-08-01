@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Fila de un platillo del menú (Fase 2a). Un platillo desactivado no se esconde: se atenúa
-  y se le pone la etiqueta "Desactivado", porque el admin tiene que poder reactivarlo.
+  Tarjeta de un platillo del menú (Fase 2a, rediseñada 2026-08-01).
+
+  Foto grande a la izquierda que ocupa el alto completo de la tarjeta, y a la derecha
+  nombre + precio en pastilla, categoría en pastilla, descripción y las acciones.
+
+  Dos cosas que no son cosméticas:
+  - Las acciones son botones a la vista y ya no un menú ⋮. Con solo dos opciones, esconderlas
+    detrás de un menú cuesta un toque de más sin ganar nada.
+  - La segunda acción dice "Desactivar", nunca "Eliminar": un trigger del servidor rechaza
+    el DELETE de un platillo porque borrarlo rompería el historial de pedidos.
+
+  Un platillo desactivado no se esconde: se atenúa y se le marca la etiqueta "Desactivado",
+  porque el admin tiene que poder reactivarlo.
 -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -9,90 +20,159 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/espaciado_minimo"
-    app:cardBackgroundColor="@color/brand_surface_card"
-    app:cardCornerRadius="@dimen/radio_esquina_tarjeta"
+    app:cardBackgroundColor="@color/brand_primary_container"
+    app:cardCornerRadius="@dimen/radio_esquina_tarjeta_grande"
     app:cardElevation="0dp"
-    app:strokeColor="@color/brand_outline"
-    app:strokeWidth="1dp">
+    app:strokeWidth="0dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="@dimen/espaciado_campo">
+        android:padding="@dimen/espaciado_minimo">
 
+        <!--
+          height=0dp con top y bottom anclados al padre: la foto se estira al alto real de
+          la tarjeta, que lo define la columna de texto. El mínimo evita que quede una
+          franja fina cuando el platillo no tiene descripción.
+        -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/img_platillo"
-            android:layout_width="@dimen/foto_platillo_lista"
-            android:layout_height="@dimen/foto_platillo_lista"
-            android:layout_marginEnd="@dimen/espaciado_campo"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
             android:background="@color/brand_surface_variant"
             android:contentDescription="@string/menu_cd_foto_platillo"
-            android:padding="@dimen/espaciado_campo"
             android:scaleType="centerCrop"
             android:src="@drawable/ic_platillo_sin_foto"
-            app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHeight_min="@dimen/foto_platillo_tarjeta"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.4"
+            app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto"
+            tools:src="@drawable/ic_platillo_sin_foto" />
 
-        <LinearLayout
+        <TextView
+            android:id="@+id/txt_nombre_platillo"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_marginStart="@dimen/espaciado_campo"
+            android:layout_marginEnd="@dimen/espaciado_minimo"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="?attr/textAppearanceHeadlineSmall"
+            android:textColor="@color/brand_on_surface"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toTopOf="@id/txt_categoria_platillo"
+            app:layout_constraintEnd_toStartOf="@id/txt_precio_platillo"
+            app:layout_constraintStart_toEndOf="@id/img_platillo"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_chainStyle="packed"
+            tools:text="Asado de Res" />
 
-            <TextView
-                android:id="@+id/txt_nombre_platillo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="?attr/colorOnSurface"
-                tools:text="Pollo con tajadas" />
+        <!--
+          Ancho mínimo igual al alto: con "L 240.00" la pastilla se ve circular como en el
+          diseño, y con un precio largo se estira en vez de recortar el texto.
+        -->
+        <TextView
+            android:id="@+id/txt_precio_platillo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_precio_platillo"
+            android:gravity="center"
+            android:minWidth="@dimen/precio_pastilla_minimo"
+            android:minHeight="@dimen/precio_pastilla_minimo"
+            android:paddingHorizontal="@dimen/espaciado_campo"
+            android:paddingVertical="@dimen/espaciado_minimo"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="@color/brand_on_secondary"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="L 240.00" />
 
-            <TextView
-                android:id="@+id/txt_categoria_platillo"
+        <TextView
+            android:id="@+id/txt_categoria_platillo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/espaciado_campo"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:background="@drawable/bg_categoria_platillo"
+            android:paddingHorizontal="@dimen/espaciado_campo"
+            android:paddingVertical="@dimen/espaciado_minimo"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="@color/brand_on_primary_container"
+            app:layout_constraintBottom_toTopOf="@id/txt_estado_platillo"
+            app:layout_constraintStart_toEndOf="@id/img_platillo"
+            app:layout_constraintTop_toBottomOf="@id/txt_nombre_platillo"
+            tools:text="Platos Fuertes" />
+
+        <TextView
+            android:id="@+id/txt_estado_platillo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/espaciado_campo"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:text="@string/menu_platillo_desactivado"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="@color/brand_error"
+            android:visibility="gone"
+            app:layout_constraintBottom_toTopOf="@id/txt_descripcion_platillo"
+            app:layout_constraintStart_toEndOf="@id/img_platillo"
+            app:layout_constraintTop_toBottomOf="@id/txt_categoria_platillo"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/txt_descripcion_platillo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/espaciado_campo"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:ellipsize="end"
+            android:maxLines="3"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="@color/brand_on_surface"
+            app:layout_constraintBottom_toTopOf="@id/grupo_acciones_platillo"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/img_platillo"
+            app:layout_constraintTop_toBottomOf="@id/txt_estado_platillo"
+            tools:text="Corte especial a la parrilla servido con papas cambray al romero y verduras asadas al gratín." />
+
+        <!--
+          Se oculta entero cuando el rol no puede ni editar ni desactivar (mesero y cocina
+          solo ven el menú). Como cierra la cadena vertical contra el fondo del padre, con
+          visibility="gone" la tarjeta se encoge sola.
+        -->
+        <LinearLayout
+            android:id="@+id/grupo_acciones_platillo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/txt_descripcion_platillo">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_editar_platillo"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorPrimary"
-                tools:text="Platos fuertes" />
+                android:layout_height="@dimen/altura_minima_tactil"
+                android:text="@string/accion_editar"
+                android:textColor="@color/brand_on_surface"
+                app:icon="@drawable/ic_editar"
+                app:iconTint="@color/brand_on_surface" />
 
-            <TextView
-                android:id="@+id/txt_estado_platillo"
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_estado_platillo"
+                style="@style/Widget.Material3.Button.TextButton.Icon"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/espaciado_minimo"
-                android:text="@string/menu_platillo_desactivado"
-                android:textAppearance="?attr/textAppearanceLabelMedium"
-                android:textColor="?attr/colorError"
-                android:visibility="gone"
-                tools:visibility="visible" />
-
-            <TextView
-                android:id="@+id/txt_descripcion_platillo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/espaciado_minimo"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                tools:text="Pechuga a la plancha, tajadas de plátano y repollo" />
-
-            <TextView
-                android:id="@+id/txt_precio_platillo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/espaciado_minimo"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="?attr/colorOnSurface"
-                tools:text="L 145.00" />
+                android:layout_height="@dimen/altura_minima_tactil"
+                android:text="@string/accion_desactivar"
+                android:textColor="@color/brand_on_surface"
+                app:icon="@drawable/ic_desactivar"
+                app:iconTint="@color/brand_on_surface" />
         </LinearLayout>
 
-        <ImageButton
-            android:id="@+id/btn_opciones_platillo"
-            android:layout_width="@dimen/altura_minima_tactil"
-            android:layout_height="@dimen/altura_minima_tactil"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/cd_mas_opciones"
-            android:src="@drawable/ic_mas_opciones" />
-
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </com.google.android.material.card.MaterialCardView>

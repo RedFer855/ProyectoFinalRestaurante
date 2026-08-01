@@ -41,7 +41,8 @@ import java.util.List;
  * Postgres, que sigue valiendo aunque alguien modifique el APK.</p>
  */
 public class MenuFragment extends Fragment
-        implements FormularioPlatilloDialog.AlGuardar, CategoriasDialog.AlOperar {
+        implements FormularioPlatilloDialog.AlGuardar, CategoriasDialog.AlOperar,
+        PlatilloAdapter.AlElegirAccion {
 
     private MenuViewModel viewModel;
     private PlatilloAdapter adapter;
@@ -69,7 +70,7 @@ public class MenuFragment extends Fragment
         viewModel = new ViewModelProvider(this, new MenuViewModelFactory())
                 .get(MenuViewModel.class);
 
-        adapter = new PlatilloAdapter(this::alElegirAccion);
+        adapter = new PlatilloAdapter(this);
         RecyclerView lista = view.findViewById(R.id.lista_platillos);
         lista.setLayoutManager(new LinearLayoutManager(requireContext()));
         lista.setAdapter(adapter);
@@ -202,12 +203,14 @@ public class MenuFragment extends Fragment
 
     // ------------------------------------------------------------------ acciones
 
-    private void alElegirAccion(Platillo platillo, int accionId) {
-        if (accionId == R.id.accion_editar_platillo) {
-            abrirFormulario(platillo);
-        } else if (accionId == R.id.accion_activar_desactivar_platillo) {
-            viewModel.cambiarEstadoPlatillo(platillo, !platillo.isActivo());
-        }
+    @Override
+    public void onEditarPlatillo(Platillo platillo) {
+        abrirFormulario(platillo);
+    }
+
+    @Override
+    public void onAlternarEstadoPlatillo(Platillo platillo) {
+        viewModel.cambiarEstadoPlatillo(platillo, !platillo.isActivo());
     }
 
     private void abrirFormulario(@Nullable Platillo platillo) {

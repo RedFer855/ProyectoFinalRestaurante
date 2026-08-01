@@ -1,14 +1,12 @@
 package com.example.proyectofinalrestaurante.ui.menu;
 
 import android.view.LayoutInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.widget.PopupMenu;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,17 +17,21 @@ import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.imageview.ShapeableImageView;
 
 import java.util.Objects;
 
 /**
- * Lista de platillos del menú (Plan Fase 2a, E6).
+ * Lista de platillos del menú (Plan Fase 2a, E6; tarjeta rediseñada 2026-08-01).
  *
- * <p>El menú ⋮ solo aparece si el rol puede hacer algo con el platillo. Ojo con el nombre:
- * {@link Accion#ELIMINAR} en este módulo significa <b>desactivar</b>, porque el servidor no
- * permite borrar un platillo — la opción se etiqueta "Desactivar"/"Reactivar" y nunca
- * "Eliminar".</p>
+ * <p>Las acciones son botones a la vista dentro de la tarjeta, no un menú ⋮: con solo dos
+ * opciones, esconderlas detrás de un menú cuesta un toque de más sin ganar nada. El grupo
+ * entero desaparece si el rol no puede hacer ninguna de las dos.</p>
+ *
+ * <p>Ojo con el nombre: {@link Accion#ELIMINAR} en este módulo significa <b>desactivar</b>,
+ * porque el servidor no permite borrar un platillo — el botón dice "Desactivar" o
+ * "Reactivar" y nunca "Eliminar".</p>
  */
 public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holder> {
 
@@ -37,9 +39,17 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
     private static final float ALPHA_INACTIVO = 0.45f;
     private static final float ALPHA_ACTIVO = 1f;
 
-    /** El Fragment decide qué hacer con la acción elegida. */
+    /**
+     * El Fragment decide qué hacer con la acción elegida.
+     *
+     * <p>Un método por acción en vez de un {@code int} de id: el id venía del
+     * {@code PopupMenu} que ya no existe, y con dos acciones fijas el compilador puede
+     * verificar que las dos estén atendidas.</p>
+     */
     public interface AlElegirAccion {
-        void onAccion(Platillo platillo, int accionId);
+        void onEditarPlatillo(Platillo platillo);
+
+        void onAlternarEstadoPlatillo(Platillo platillo);
     }
 
     private final AlElegirAccion alElegirAccion;
@@ -89,7 +99,9 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
         private final TextView estado;
         private final TextView descripcion;
         private final TextView precio;
-        private final ImageButton opciones;
+        private final LinearLayout grupoAcciones;
+        private final MaterialButton botonEditar;
+        private final MaterialButton botonEstado;
 
         Holder(@NonNull View itemView) {
             super(itemView);
@@ -99,7 +111,9 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             estado = itemView.findViewById(R.id.txt_estado_platillo);
             descripcion = itemView.findViewById(R.id.txt_descripcion_platillo);
             precio = itemView.findViewById(R.id.txt_precio_platillo);
-            opciones = itemView.findViewById(R.id.btn_opciones_platillo);
+            grupoAcciones = itemView.findViewById(R.id.grupo_acciones_platillo);
+            botonEditar = itemView.findViewById(R.id.btn_editar_platillo);
+            botonEstado = itemView.findViewById(R.id.btn_estado_platillo);
         }
 
         void enlazar(Platillo platillo, AlElegirAccion alElegirAccion) {
@@ -158,31 +172,23 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             boolean puedeEditar = VistaPorPermiso.puede(Modulo.MENU, Accion.EDITAR);
             boolean puedeDesactivar = VistaPorPermiso.puede(Modulo.MENU, Accion.ELIMINAR);
 
-            // Sin ninguna acción disponible, el botón ⋮ no tiene razón de existir: abrirlo
-            // mostraría un menú vacío.
-            opciones.setVisibility(puedeEditar || puedeDesactivar ? View.VISIBLE : View.GONE);
-            if (!puedeEditar && !puedeDesactivar) {
-                opciones.setOnClickListener(null);
-                return;
-            }
+            // Mesero y cocina solo consultan la carta: sin ninguna acción disponible, la
+            // fila de botones desaparece entera y la tarjeta se encoge sola.
+            grupoAcciones.setVisibility(
+                    puedeEditar || puedeDesactivar ? View.VISIBLE : View.GONE);
 
-            opciones.setOnClickListener(v -> {
-                PopupMenu menu = new PopupMenu(v.getContext(), v);
-                menu.inflate(R.menu.menu_platillo);
-                menu.getMenu().findItem(R.id.accion_editar_platillo).setVisible(puedeEditar);
+            botonEditar.setVisibility(puedeEditar ? View.VISIBLE : View.GONE);
+            botonEditar.setOnClickListener(
+                    puedeEditar ? v -> alElegirAccion.onEditarPlatillo(platillo) : null);
 
-                MenuItem cambiarEstado =
-                        menu.getMenu().findItem(R.id.accion_activar_desactivar_platillo);
-                cambiarEstado.setVisible(puedeDesactivar);
-                cambiarEstado.setTitle(platillo.isActivo()
-                        ? R.string.accion_desactivar : R.string.accion_activar);
-
-                menu.setOnMenuItemClickListener(item -> {
-                    alElegirAccion.onAccion(platillo, item.getItemId());
-                    return true;
-                });
-                menu.show();
-            });
+            botonEstado.setVisibility(puedeDesactivar ? View.VISIBLE : View.GONE);
+            // La misma acción en los dos sentidos: el texto y el ícono dicen cuál toca.
+            botonEstado.setText(platillo.isActivo()
+                    ? R.string.accion_desactivar : R.string.accion_activar);
+            botonEstado.setIconResource(platillo.isActivo()
+                    ? R.drawable.ic_desactivar : R.drawable.ic_reactivar);
+            botonEstado.setOnClickListener(
+                    puedeDesactivar ? v -> alElegirAccion.onAlternarEstadoPlatillo(platillo) : null);
         }
     }
 }

@@ -225,6 +225,50 @@ public class MenuViewModelTest {
     }
 
     @Test
+    public void actualizarPlatillo_siLoMueveAOtraCategoria_sueltaElFiltroQueLoEsconderia() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+        viewModel.cargar();
+        viewModel.filtrarPorCategoria(ID_ENTRADAS);
+
+        // La baleada estaba en Entradas y el usuario la manda a Bebidas.
+        viewModel.actualizarPlatillo(platillo(1, "Baleada sencilla", ID_BEBIDAS), null);
+
+        // Con el filtro en Entradas, el platillo recién guardado desaparecía de la pantalla
+        // y se leía como que el cambio no se había aplicado.
+        EstadoMenu estado = viewModel.getEstado().getValue();
+        assertEquals(EstadoMenu.SIN_FILTRO, estado.getFiltroCategoria());
+        assertEquals("Platillo actualizado.", estado.getMensajeExito());
+    }
+
+    @Test
+    public void actualizarPlatillo_siSigueEnLaCategoriaDelFiltro_loConserva() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+        viewModel.cargar();
+        viewModel.filtrarPorCategoria(ID_BEBIDAS);
+
+        // Solo cambia el nombre: el platillo sigue visible, así que el filtro no estorba.
+        viewModel.actualizarPlatillo(platillo(4, "Refresco de tamarindo XL", ID_BEBIDAS), null);
+
+        assertEquals(ID_BEBIDAS, viewModel.getEstado().getValue().getFiltroCategoria());
+    }
+
+    @Test
+    public void crearPlatillo_enOtraCategoria_sueltaElFiltroQueLoEsconderia() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+        viewModel.cargar();
+        viewModel.filtrarPorCategoria(ID_BEBIDAS);
+
+        viewModel.crearPlatillo(new NuevoPlatillo("Pinchos", null, 165.0, ID_ENTRADAS), null);
+
+        // Mismo problema que al editar: crear algo que no se ve parece que falló.
+        assertEquals(EstadoMenu.SIN_FILTRO,
+                viewModel.getEstado().getValue().getFiltroCategoria());
+    }
+
+    @Test
     public void borrarCategoria_siEraLaDelFiltro_vuelveATodos() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);

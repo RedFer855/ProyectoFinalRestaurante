@@ -12,6 +12,14 @@
     <!-- Previsualización de la foto dentro del formulario de platillo. -->
     <dimen name="foto_platillo_formulario">160dp</dimen>
     <dimen name="radio_esquina_tarjeta">12dp</dimen>
+    <!-- Tarjeta del platillo: esquina más suave que el resto, es la pieza protagonista. -->
+    <dimen name="radio_esquina_tarjeta_grande">20dp</dimen>
+    <!-- Radio "pastilla": cualquier valor mayor a la mitad del alto redondea del todo. -->
+    <dimen name="radio_pastilla">100dp</dimen>
+    <!-- Alto mínimo de la foto en la tarjeta; crece sola si el texto de al lado es más alto. -->
+    <dimen name="foto_platillo_tarjeta">132dp</dimen>
+    <!-- Ancho mínimo de la pastilla del precio: con precios cortos queda circular. -->
+    <dimen name="precio_pastilla_minimo">56dp</dimen>
     <!-- Deja respirar el último ítem de la lista por debajo del FAB. -->
     <dimen name="espaciado_lista_bajo_fab">88dp</dimen>
 </resources>

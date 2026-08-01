@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pastilla del precio en la tarjeta del platillo.
+
+  Es un rectángulo con radio grande y no un <shape android:shape="oval">: con un óvalo,
+  "L 1,250.00" se deformaría o se recortaría. Así, un precio corto se ve circular (el
+  ancho mínimo lo fija @dimen/precio_pastilla_minimo) y uno largo se estira a pastilla.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/brand_secondary" />
+    <corners android:radius="@dimen/radio_pastilla" />
+</shape>
