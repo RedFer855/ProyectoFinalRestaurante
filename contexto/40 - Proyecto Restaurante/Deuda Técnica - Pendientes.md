@@ -91,7 +91,7 @@ El requisito no funcional #1 es que la app sea usable sin red — un restaurante
 
 ---
 
-### P-005 · `LoginViewModel` crea su propio `Executor` → intesteable; cero pruebas en el proyecto
+### ~~P-005~~ ✅ · `LoginViewModel` crea su propio `Executor` → intesteable; cero pruebas en el proyecto
 
 **Archivo:** `app/src/main/java/.../ui/login/LoginViewModel.java`
 
@@ -107,7 +107,7 @@ Consecuencia directa: **el proyecto no tiene ni una sola prueba propia** — sol
 
 **Solución:** recibir `Executor` por constructor (lo provee `LoginViewModelFactory` o Hilt) y escribir `LoginViewModelTest` con `InstantTaskExecutorRule` + `FakeAuthRepository`. Ver [[Asincronia en Java para Android]] y [[Estrategia de Pruebas Android]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-31) — `LoginViewModel` recibe `ExecutorService` por constructor; `LoginViewModelFactory` lo provee con `Executors.newSingleThreadExecutor()`. Se agregó `androidx.arch.core:core-testing` (`InstantTaskExecutorRule`) y `LoginViewModelTest` con un `ExecutorService` síncrono y un `FakeAuthRepository` — primer test real del proyecto sobre un ViewModel. 3 casos: campos vacíos, login exitoso, credenciales inválidas.
 
 ---
 
@@ -173,7 +173,7 @@ Sin `contentDescription`, sin `android:labelFor`, y los campos usan `android:hin
 
 ---
 
-### P-013 · El evento de navegación del login no se marca como consumido
+### ~~P-013~~ ✅ · El evento de navegación del login no se marca como consumido
 
 **Archivos:** `ui/login/EstadoLogin.java`, `ui/login/LoginActivity.java`
 
@@ -185,7 +185,7 @@ Hoy no se manifiesta porque hay `finish()` inmediato después del `startActivity
 
 **Solución:** `Event<T>` con `getContentIfNotHandled()` o campo `consumido` + `onNavegacionConsumida()`. Ver [[UiState Inmutable y Flujo Unidireccional]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-31) — se optó por el campo `consumido` (no `Event<T>` genérico): `EstadoLogin` guarda `sesionConsumida` y expone `debeNavegar()`; `LoginViewModel.onNavegacionConsumida()` lo marca. `LoginActivity.render()` navega solo si `debeNavegar()` es cierto.
 
 ---
 
@@ -272,7 +272,7 @@ Se usa Retrofit 2.11.0 con llamadas bloqueantes dentro de un `ExecutorService`. 
 
 ---
 
-### P-012 · `SUPABASE_ANON_KEY` conserva el nombre de la llave legada
+### ~~P-012~~ ✅ · `SUPABASE_ANON_KEY` conserva el nombre de la llave legada
 
 **Archivos:** `app/build.gradle.kts`, `core/SupabaseClient.java`, `local.properties`
 
@@ -280,7 +280,7 @@ Supabase **deprecó las llaves `anon`/`service_role` a finales de 2026**; el ree
 
 **Solución:** renombrar a `SUPABASE_PUBLISHABLE_KEY`. Ver [[Supabase Auth REST - Login Android]].
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-31) — renombrada en `app/build.gradle.kts` (`buildConfigField`), `SupabaseClient.java` y la clave en `local.properties` (mismo valor, solo cambió el nombre). Verificado que no queda ninguna referencia a `SUPABASE_ANON_KEY` en el código.
 
 ---
 
@@ -326,7 +326,7 @@ Detectado al rehacer el layout del login: la pantalla quedó con **cero strings 
 
 ---
 
-### P-020 · `SupabaseAuthRepository` sin ningún test
+### ~~P-020~~ ✅ · `SupabaseAuthRepository` sin ningún test
 
 **Archivo:** `data/repository/SupabaseAuthRepository.java`
 
