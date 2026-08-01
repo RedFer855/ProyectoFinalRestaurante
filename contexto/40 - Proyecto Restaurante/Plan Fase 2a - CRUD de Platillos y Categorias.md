@@ -8,10 +8,16 @@ tags:
   - storage
   - rls
 date: 2026-07-31
-lifecycle: draft
+lifecycle: verified
 ---
 
 # Plan Fase 2a — CRUD de Platillos y Categorías
+
+> [!success] Ejecutado el 2026-07-31
+> Los 7 entregables están implementados en `feat/fase2-menu`: 124 tests en verde y
+> `assembleDebug` limpio. El estado vivo del módulo vive ahora en [[Módulo Menú]]; este
+> plan queda como el registro de **por qué** está hecho así. Falta la verificación manual
+> en un dispositivo, que es del usuario.
 
 > [!important] Para el agente que va a ejecutar este plan
 > Vos hacés **solo código Android**. Todo lo que este plan describe del lado de Supabase
@@ -599,24 +605,38 @@ mensaje correcto es *"Tu sesión venció. Volvé a iniciar sesión."*, igual que
 
 ## 7. Definición de terminado
 
-- [ ] `./gradlew testDebugUnitTest assembleDebug` → **BUILD SUCCESSFUL**, con más de 56 tests.
-- [ ] `DatosMaqueta.Platillo`, `DatosMaqueta.Categoria`, `platillos()` y `categorias()` eliminados.
-- [ ] Ninguna clase de `domain/` importa `android.*`, `androidx.*`, Retrofit, Glide ni Gson.
-- [ ] Cero strings hardcodeados en los archivos nuevos.
-- [ ] El [[Gate de Autoverificación]] impreso ítem por ítem, sin ❌.
-- [ ] Nota de sesión en `contexto/70 - Bitácora de Cambios/2026-08/`, con `branch:` y `autor_cambios:`.
-- [ ] [[Arquitectura Actual]], [[Conocimiento Principal]] y este plan actualizados.
-- [ ] Deuda nueva registrada como `P-NNN` (mínimo: los archivos huérfanos del bucket).
-- [ ] Nota `Módulo Menú.md` en `40 - Proyecto Restaurante/`, con el formato de [[Módulo Login]].
+- [x] `./gradlew testDebugUnitTest assembleDebug` → **BUILD SUCCESSFUL**, con más de 56 tests. ✅ 2026-07-31 — **124 tests**.
+- [x] `DatosMaqueta.Platillo`, `DatosMaqueta.Categoria`, `platillos()` y `categorias()` eliminados. ✅
+- [x] Ninguna clase de `domain/` importa `android.*`, Retrofit, Glide ni Gson, ni ningún
+      `androidx.*` **salvo `androidx.annotation`**. Esa excepción es deliberada: es un JAR
+      de anotaciones sin runtime de Android, la Fase 1d ya lo usa en `Empleado`,
+      `NuevoEmpleado` y `ReglasEmpleado`, y la firma de `MenuRepository` de la §E3 de este
+      mismo plan lleva `@Nullable`. Lo que la regla protege —que `domain` se pueda testear
+      en la JVM sin Android— se sigue cumpliendo.
+- [x] Cero strings hardcodeados en los archivos nuevos. ✅ verificado con grep sobre todos los layouts.
+- [x] El [[Gate de Autoverificación]] impreso ítem por ítem, sin ❌. ✅ en la nota de sesión.
+- [x] Nota de sesión ~~en `2026-08/`~~ en **`2026-07/`**, con `branch:` y `autor_cambios:`. ✅ El plan asumía agosto; la fecha real del trabajo es 2026-07-31.
+- [x] [[Arquitectura Actual]], [[Conocimiento Principal]] y este plan actualizados. ✅
+- [x] Deuda nueva registrada como `P-NNN`. ✅ **P-024** (`CompresorDeImagen` sin pruebas); los huérfanos del bucket ya eran **P-023**, al que se le agregó el caso de la caída de red.
+- [x] Nota [[Módulo Menú]] en `40 - Proyecto Restaurante/`, con el formato de [[Módulo Login]]. ✅
 
-Queda fuera del alcance del agente y lo verifica el usuario: **probar el flujo completo en
-un emulador o dispositivo** (subir una foto real, verla en la lista, reemplazarla,
-desactivar un platillo). No hay Android SDK ni adb en el entorno del agente.
+> [!done] Plan ejecutado — 2026-07-31
+> Los 7 entregables están implementados. Ver
+> [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]], que
+> incluye los desvíos del plan y su justificación (el compresor de imágenes como archivo
+> propio, los dos menús `⋮` nuevos, y por qué no se compensa el borrado ante una caída de red).
+
+Queda fuera del alcance del agente y **lo verifica el usuario**: probar el flujo completo en
+un emulador o dispositivo (subir una foto real, verla en la lista, reemplazarla, quitarla,
+desactivar y reactivar un platillo, crear y borrar una categoría). No hay dispositivo ni adb
+en el entorno del agente. ⬜ **Pendiente.**
 
 ---
 
 ## Relaciones
 
+- [[Módulo Menú]] — el estado vivo del módulo ya implementado
+- [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]
 - [[Plan de Fase 2 - Menu]] — el paraguas: por qué 2a, 2b y 2c van separadas
 - [[Plan Fase 1d - Modulo Empleados Funcional]] — **el patrón a replicar**
 - [[Esquema de Base de Datos]] — el esquema completo

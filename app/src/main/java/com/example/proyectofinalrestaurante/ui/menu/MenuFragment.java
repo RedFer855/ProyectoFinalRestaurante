@@ -11,34 +11,46 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.Categoria;
+import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
+import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
+import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 /**
- * Módulo Menú (Plan Fase 1c, Entregable 4). La misma pantalla para los tres roles:
- * todos ven el catálogo, pero solo {@code admin} ve el botón de agregar y el menú ⋮.
+ * Módulo Menú conectado a Supabase (Plan Fase 2a, E6).
+ *
+ * <p>La misma pantalla para los tres roles: todos ven el catálogo, pero solo {@code admin}
+ * ve el botón de agregar, el de categorías y el ⋮ de cada platillo. Eso es experiencia de
+ * usuario, no seguridad: quien impide que un mesero cambie un precio es la policy RLS de
+ * Postgres, que sigue valiendo aunque alguien modifique el APK.</p>
  */
-public class MenuFragment extends Fragment {
+public class MenuFragment extends Fragment
+        implements FormularioPlatilloDialog.AlGuardar, CategoriasDialog.AlOperar {
 
+    private MenuViewModel viewModel;
     private PlatilloAdapter adapter;
+    private ChipGroup grupoCategorias;
     private TextView vacio;
-    private String filtroCategoria = null;
-    private String textoBusqueda = "";
+    private View progreso;
+
+    /** Categorías con las que se pintaron los chips, para no rearmarlos en cada estado. */
+    private List<Categoria> categoriasPintadas;
 
     @Nullable
     @Override
@@ -51,53 +63,43 @@ public class MenuFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         vacio = view.findViewById(R.id.txt_menu_vacio);
+        progreso = view.findViewById(R.id.progress_menu);
+        grupoCategorias = view.findViewById(R.id.grupo_categorias);
+
+        viewModel = new ViewModelProvider(this, new MenuViewModelFactory())
+                .get(MenuViewModel.class);
 
         adapter = new PlatilloAdapter(this::alElegirAccion);
         RecyclerView lista = view.findViewById(R.id.lista_platillos);
         lista.setLayoutManager(new LinearLayoutManager(requireContext()));
         lista.setAdapter(adapter);
 
-        configurarFiltroCategorias(view.findViewById(R.id.grupo_categorias));
         configurarBusqueda(view.findViewById(R.id.txt_buscar_platillo));
 
         ExtendedFloatingActionButton fab = view.findViewById(R.id.fab_agregar_platillo);
         VistaPorPermiso.aplicar(fab, Modulo.MENU, Accion.CREAR);
-        fab.setOnClickListener(v -> avisarMaqueta());
+        fab.setOnClickListener(v -> abrirFormulario(null));
 
-        refrescar();
-    }
+        MaterialButton botonCategorias = view.findViewById(R.id.btn_categorias);
+        VistaPorPermiso.aplicar(botonCategorias, Modulo.MENU, Accion.CREAR);
+        botonCategorias.setOnClickListener(v -> abrirCategorias());
 
-    private void configurarFiltroCategorias(ChipGroup grupo) {
-        grupo.removeAllViews();
-        grupo.addView(crearChip(getString(R.string.filtro_todos), null, true));
-        for (DatosMaqueta.Categoria categoria : DatosMaqueta.categorias()) {
-            grupo.addView(crearChip(categoria.nombre, categoria.nombre, false));
+        viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
+
+        if (savedInstanceState == null) {
+            viewModel.cargar();
         }
-    }
-
-    private Chip crearChip(String etiqueta, @Nullable String valor, boolean seleccionado) {
-        Chip chip = new Chip(requireContext());
-        chip.setText(etiqueta);
-        chip.setCheckable(true);
-        chip.setChecked(seleccionado);
-        chip.setMinHeight(getResources().getDimensionPixelSize(R.dimen.altura_minima_tactil));
-        chip.setOnClickListener(v -> {
-            filtroCategoria = valor;
-            refrescar();
-        });
-        return chip;
     }
 
     private void configurarBusqueda(TextInputEditText campo) {
         campo.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                textoBusqueda = s.toString().trim().toLowerCase(Locale.ROOT);
-                refrescar();
+            public void onTextChanged(CharSequence s, int a, int b, int c) {
+                viewModel.buscar(s.toString());
             }
 
             @Override
@@ -106,29 +108,177 @@ public class MenuFragment extends Fragment {
         });
     }
 
-    private void refrescar() {
-        List<DatosMaqueta.Platillo> filtrados = new ArrayList<>();
-        for (DatosMaqueta.Platillo platillo : DatosMaqueta.platillos()) {
-            boolean coincideCategoria = filtroCategoria == null
-                    || filtroCategoria.equals(platillo.categoria);
-            boolean coincideBusqueda = textoBusqueda.isEmpty()
-                    || platillo.nombre.toLowerCase(Locale.ROOT).contains(textoBusqueda);
-            if (coincideCategoria && coincideBusqueda) {
-                filtrados.add(platillo);
+    // ------------------------------------------------------------------ render
+
+    private void render(EstadoMenu estado) {
+        progreso.setVisibility(estado.isCargando() ? View.VISIBLE : View.GONE);
+        adapter.submitList(estado.getPlatillos());
+        pintarChips(estado);
+
+        if (estado.getError() != null) {
+            vacio.setVisibility(View.VISIBLE);
+            vacio.setText(estado.getError());
+            mostrarReintentar(estado.getError());
+        } else if (estado.isVacio()) {
+            vacio.setVisibility(View.VISIBLE);
+            vacio.setText(estado.isVacioPorFiltro()
+                    ? R.string.menu_vacio : R.string.menu_sin_platillos);
+        } else {
+            vacio.setVisibility(View.GONE);
+        }
+
+        String exito = estado.getMensajeExito();
+        if (exito != null) {
+            Snackbar.make(requireView(), exito, Snackbar.LENGTH_SHORT).show();
+            // Se marca como consumido para que no vuelva a aparecer al rotar (P-013).
+            viewModel.onMensajeConsumido();
+        }
+    }
+
+    /**
+     * Los chips se rearman solo cuando las categorías cambian de verdad.
+     *
+     * <p>El estado {@code cargando} llega sin listas, y repintar en cada operación haría
+     * que los chips desaparecieran y volvieran a aparecer: no se toca nada si la lista
+     * viene vacía por eso.</p>
+     */
+    private void pintarChips(EstadoMenu estado) {
+        List<Categoria> categorias = estado.getCategorias();
+        if (categorias.isEmpty() || mismasCategorias(categorias)) {
+            marcarChipSeleccionado(estado.getFiltroCategoria());
+            return;
+        }
+
+        grupoCategorias.removeAllViews();
+        grupoCategorias.addView(crearChip(getString(R.string.filtro_todos), EstadoMenu.SIN_FILTRO));
+        for (Categoria categoria : categorias) {
+            grupoCategorias.addView(
+                    crearChip(categoria.getDescripcion(), categoria.getIdCategoria()));
+        }
+        categoriasPintadas = categorias;
+        marcarChipSeleccionado(estado.getFiltroCategoria());
+    }
+
+    private boolean mismasCategorias(List<Categoria> categorias) {
+        if (categoriasPintadas == null || categoriasPintadas.size() != categorias.size()) {
+            return false;
+        }
+        for (int i = 0; i < categorias.size(); i++) {
+            Categoria pintada = categoriasPintadas.get(i);
+            Categoria actual = categorias.get(i);
+            if (pintada.getIdCategoria() != actual.getIdCategoria()
+                    || !pintada.getDescripcion().equals(actual.getDescripcion())) {
+                return false;
             }
         }
-        adapter.submitList(filtrados);
-        vacio.setVisibility(filtrados.isEmpty() ? View.VISIBLE : View.GONE);
+        return true;
     }
 
-    private void alElegirAccion(DatosMaqueta.Platillo platillo, int accionId) {
-        avisarMaqueta();
+    private Chip crearChip(String etiqueta, int idCategoria) {
+        Chip chip = new Chip(requireContext());
+        chip.setText(etiqueta);
+        chip.setCheckable(true);
+        chip.setTag(idCategoria);
+        chip.setMinHeight(getResources().getDimensionPixelSize(R.dimen.altura_minima_tactil));
+        chip.setOnClickListener(v -> viewModel.filtrarPorCategoria(idCategoria));
+        return chip;
     }
 
-    private void avisarMaqueta() {
-        View raiz = getView();
-        if (raiz != null) {
-            Snackbar.make(raiz, R.string.maqueta_sin_funcion, Snackbar.LENGTH_SHORT).show();
+    /** Deja marcado el chip del filtro vigente — así sobrevive a una rotación. */
+    private void marcarChipSeleccionado(int idCategoria) {
+        for (int i = 0; i < grupoCategorias.getChildCount(); i++) {
+            View hijo = grupoCategorias.getChildAt(i);
+            if (hijo instanceof Chip) {
+                ((Chip) hijo).setChecked(Integer.valueOf(idCategoria).equals(hijo.getTag()));
+            }
         }
+    }
+
+    private void mostrarReintentar(String mensaje) {
+        Snackbar.make(requireView(), mensaje, Snackbar.LENGTH_LONG)
+                .setAction(R.string.empleado_reintentar, v -> viewModel.cargar())
+                .show();
+    }
+
+    // ------------------------------------------------------------------ acciones
+
+    private void alElegirAccion(Platillo platillo, int accionId) {
+        if (accionId == R.id.accion_editar_platillo) {
+            abrirFormulario(platillo);
+        } else if (accionId == R.id.accion_activar_desactivar_platillo) {
+            viewModel.cambiarEstadoPlatillo(platillo, !platillo.isActivo());
+        }
+    }
+
+    private void abrirFormulario(@Nullable Platillo platillo) {
+        List<Categoria> categorias = viewModel.getTodasLasCategorias();
+        if (categorias.isEmpty()) {
+            // Sin categorías no se puede crear un platillo: id_categoria es obligatorio.
+            Snackbar.make(requireView(), R.string.menu_sin_categorias_aviso,
+                    Snackbar.LENGTH_LONG).show();
+            return;
+        }
+        FormularioPlatilloDialog dialogo = platillo == null
+                ? FormularioPlatilloDialog.paraCrear(categorias)
+                : FormularioPlatilloDialog.paraEditar(platillo, categorias);
+        dialogo.setAlGuardar(this);
+        dialogo.show(getChildFragmentManager(), FormularioPlatilloDialog.TAG);
+    }
+
+    private void abrirCategorias() {
+        CategoriasDialog dialogo = CategoriasDialog.crear(viewModel.getTodasLasCategorias());
+        dialogo.setAlOperar(this);
+        dialogo.show(getChildFragmentManager(), CategoriasDialog.TAG);
+    }
+
+    // ------------------------------------------------------------------ callbacks
+
+    /**
+     * El Fragment vive más que su vista (por ejemplo en la pila de navegación): conservar
+     * referencias a vistas destruidas las mantiene en memoria sin necesidad.
+     */
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        vacio = null;
+        progreso = null;
+        grupoCategorias = null;
+        adapter = null;
+        categoriasPintadas = null;
+    }
+
+    @Override
+    public void onCrear(NuevoPlatillo nuevo, @Nullable ImagenPlatillo imagen) {
+        viewModel.crearPlatillo(nuevo, imagen);
+    }
+
+    @Override
+    public void onEditar(Platillo editado, @Nullable ImagenPlatillo imagenNueva) {
+        viewModel.actualizarPlatillo(editado, imagenNueva);
+    }
+
+    @Override
+    public void onQuitarFoto(Platillo platillo) {
+        viewModel.quitarImagen(platillo);
+    }
+
+    @Override
+    public void onCrearCategoria(String descripcion) {
+        viewModel.crearCategoria(descripcion);
+    }
+
+    @Override
+    public void onRenombrarCategoria(int idCategoria, String descripcion) {
+        viewModel.renombrarCategoria(idCategoria, descripcion);
+    }
+
+    @Override
+    public void onCambiarEstadoCategoria(int idCategoria, boolean activo) {
+        viewModel.cambiarEstadoCategoria(idCategoria, activo);
+    }
+
+    @Override
+    public void onBorrarCategoria(int idCategoria) {
+        viewModel.borrarCategoria(idCategoria);
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opciones (⋮) de una categoría. "Borrar" solo se muestra si la categoría no tiene ningún
+  platillo: el trigger trg_categoria_no_borrar_con_platillos lo rechazaría igual, y ofrecer
+  un botón que siempre falla es peor que no ofrecerlo.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/accion_renombrar_categoria"
+        android:title="@string/menu_categoria_renombrar" />
+    <item
+        android:id="@+id/accion_activar_desactivar_categoria"
+        android:title="@string/accion_desactivar" />
+    <item
+        android:id="@+id/accion_borrar_categoria"
+        android:title="@string/menu_categoria_borrar" />
+</menu>

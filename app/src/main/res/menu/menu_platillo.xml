@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opciones (⋮) de un platillo. No existe "Eliminar": un trigger del servidor rechaza el
+  DELETE porque borrar un platillo rompería el historial de pedidos. Se desactiva, que lo
+  saca de la carta pero conserva lo ya vendido.
+
+  El título de la segunda opción lo cambia el adapter entre "Desactivar" y "Reactivar"
+  según el estado del platillo, y las dos se ocultan con VistaPorPermiso si el rol no puede.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/accion_editar_platillo"
+        android:title="@string/accion_editar" />
+    <item
+        android:id="@+id/accion_activar_desactivar_platillo"
+        android:title="@string/accion_desactivar" />
+</menu>

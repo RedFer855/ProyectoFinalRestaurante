@@ -77,29 +77,8 @@ public final class DatosMaqueta {
 
     // ---------------------------------------------------------------- modelos
 
-    public static final class Platillo {
-        public final String nombre;
-        public final String descripcion;
-        public final double precio;
-        public final String categoria;
-
-        public Platillo(String nombre, String descripcion, double precio, String categoria) {
-            this.nombre = nombre;
-            this.descripcion = descripcion;
-            this.precio = precio;
-            this.categoria = categoria;
-        }
-    }
-
-    public static final class Categoria {
-        public final String nombre;
-        public final int cantidadPlatillos;
-
-        public Categoria(String nombre, int cantidadPlatillos) {
-            this.nombre = nombre;
-            this.cantidadPlatillos = cantidadPlatillos;
-        }
-    }
+    // Platillo y Categoria vivían acá hasta la Fase 2a. Ahora el Menú lee de Supabase y
+    // sus modelos reales están en domain/model — igual que pasó con Empleado en la 1d.
 
     public static final class Pedido {
         public final int numero;
@@ -198,25 +177,6 @@ public final class DatosMaqueta {
     }
 
     // ---------------------------------------------------------------- datos
-
-    public static List<Categoria> categorias() {
-        return Arrays.asList(
-                new Categoria("Entradas", 6),
-                new Categoria("Platos fuertes", 12),
-                new Categoria("Bebidas", 9),
-                new Categoria("Postres", 5));
-    }
-
-    public static List<Platillo> platillos() {
-        return Arrays.asList(
-                new Platillo("Baleada sencilla", "Tortilla de harina, frijoles, mantequilla y queso", 35.00, "Entradas"),
-                new Platillo("Sopa de caracol", "Caracol, leche de coco, yuca y plátano verde", 190.00, "Platos fuertes"),
-                new Platillo("Pollo con tajadas", "Pechuga a la plancha, tajadas de plátano y repollo", 145.00, "Platos fuertes"),
-                new Platillo("Pinchos de res", "Res marinada, chimol y tortillas", 165.00, "Platos fuertes"),
-                new Platillo("Refresco de tamarindo", "Jarra de un litro", 45.00, "Bebidas"),
-                new Platillo("Horchata", "Vaso de 16 onzas", 30.00, "Bebidas"),
-                new Platillo("Tres leches", "Porción individual", 65.00, "Postres"));
-    }
 
     public static List<Pedido> pedidos() {
         return Arrays.asList(

@@ -50,6 +50,45 @@
     <string name="menu_buscar_platillo">Buscar platillo</string>
     <string name="menu_agregar_platillo">Agregar platillo</string>
     <string name="menu_vacio">No hay platillos que coincidan con la búsqueda.</string>
+    <string name="menu_sin_platillos">Todavía no hay platillos en el menú.</string>
+    <string name="menu_sin_categoria">Sin categoría</string>
+    <string name="menu_sin_categorias_aviso">Primero creá una categoría: todo platillo tiene que pertenecer a una.</string>
+    <string name="menu_platillo_desactivado">Desactivado</string>
+    <string name="menu_cd_foto_platillo">Foto del platillo</string>
+    <string name="menu_cd_foto_de">Foto de %1$s</string>
+    <string name="menu_cd_previsualizacion">Previsualización de la foto elegida</string>
+
+    <!-- Formulario de platillo -->
+    <string name="menu_titulo_nuevo_platillo">Nuevo platillo</string>
+    <string name="menu_titulo_editar_platillo">Editar platillo</string>
+    <string name="menu_platillo_nombre">Nombre</string>
+    <string name="menu_platillo_descripcion">Descripción</string>
+    <string name="menu_platillo_precio">Precio en lempiras</string>
+    <string name="menu_platillo_categoria">Categoría</string>
+    <string name="menu_elegir_foto">Elegir foto</string>
+    <string name="menu_quitar_foto">Quitar foto</string>
+    <string name="menu_error_nombre">El nombre es obligatorio.</string>
+    <string name="menu_error_precio">El precio tiene que ser mayor que cero.</string>
+    <string name="menu_error_categoria">Elegí una categoría.</string>
+    <string name="menu_error_leer_foto">No se pudo leer esa foto. Probá con otra.</string>
+    <string name="menu_error_foto_pesada">La foto no se puede subir: tiene que pesar menos de 2 MB.</string>
+
+    <!-- Gestión de categorías -->
+    <string name="menu_categorias">Categorías</string>
+    <string name="menu_titulo_categorias">Categorías del menú</string>
+    <string name="menu_categoria_nueva">Nombre de la categoría</string>
+    <string name="menu_categoria_agregar">Agregar</string>
+    <string name="menu_categoria_cerrar">Cerrar</string>
+    <string name="menu_categoria_renombrar">Renombrar</string>
+    <string name="menu_categoria_borrar">Borrar</string>
+    <string name="menu_categoria_desactivada">Desactivada</string>
+    <string name="menu_categoria_confirmar_borrado">¿Borrar la categoría «%1$s»? No se puede deshacer.</string>
+    <string name="menu_error_categoria_vacia">Escribí un nombre para la categoría.</string>
+    <string name="menu_error_categoria_repetida">Ya existe una categoría con ese nombre.</string>
+    <plurals name="menu_conteo_platillos">
+        <item quantity="one">%1$d platillo</item>
+        <item quantity="other">%1$d platillos</item>
+    </plurals>
 
     <string name="pedidos_nuevo">Nuevo pedido</string>
     <string name="pedidos_numero">Pedido #%1$d</string>

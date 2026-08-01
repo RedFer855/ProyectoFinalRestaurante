@@ -394,6 +394,12 @@ archivo **antes** de tocar la fila, y al reemplazar una foto usa siempre una rut
    borrando el objeto**, pero si ese `DELETE` también falla, el archivo queda.
 2. Se reemplaza la foto de un platillo: la vieja se borra en un tercer paso que puede
    fallar sin que el usuario se entere.
+3. **Agregado al implementarlo (2026-07-31):** si el insert se corta por red
+   (`IOException`) en vez de ser rechazado por el servidor, la implementación **no
+   compensa a propósito** — sin respuesta no se sabe si la fila entró, y borrar la foto de
+   un platillo que sí se creó deja una imagen rota y visible al usuario. Se prefiere el
+   archivo huérfano, que es invisible. Ver
+   [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]].
 
 No hay recolector de basura del bucket ni un inventario que cruce `storage.objects`
 contra `platillo.ruta_imagen`.
@@ -407,6 +413,44 @@ sigue siendo servible por su URL indefinidamente.
 documentado. Requiere acceso a Supabase, así que **no es trabajo del agente de código**.
 
 **Estado:** `[ ] Pendiente — al cerrar la Fase 2`
+
+---
+
+### P-024 · `CompresorDeImagen` sin pruebas: no se puede testear en la JVM
+
+**Archivo:** `ui/menu/CompresorDeImagen.java` (creado 2026-07-31, Fase 2a).
+
+Es la pieza que convierte la foto que eligió el usuario en los bytes que se suben: mide con
+`inJustDecodeBounds`, calcula `inSampleSize`, rota según `ExifInterface.TAG_ORIENTATION` y
+comprime a JPEG. Toda esa lógica depende de `BitmapFactory` y `Bitmap`, que en los unit
+tests de la JVM son *stubs* que lanzan `RuntimeException("Stub!")`. Resultado: **el resto
+del módulo Menú tiene 68 tests y esta clase tiene cero**.
+
+Lo que queda sin cubrir no es trivial:
+
+- que `inSampleSize` deje efectivamente el lado largo en ~1024 px y no en 2048 o en 512;
+- que una foto con `ORIENTATION_ROTATE_90` salga derecha (el caso que hace que las fotos de
+  cámara aparezcan acostadas);
+- que el resultado entre en los 2 MB del bucket para una foto de 12 MP real.
+
+**Riesgo:** medio. Un error acá no rompe el build ni lanza una excepción: sube una foto
+acostada, o gigante, o pixelada. Se descubre mirando la app, que es justo lo que las
+pruebas deberían evitar.
+
+**Solución:** una de dos, y la elección tiene su costo.
+
+1. **Robolectric** — corre en `testDebugUnitTest` con implementaciones reales de
+   `BitmapFactory`. Es una dependencia nueva y pesada (~40 MB de artefactos de Android
+   emulados) para cubrir una sola clase.
+2. **Test instrumentado** en `androidTest/`, con imágenes de prueba en `assets/`. Sin
+   dependencia nueva, pero **el proyecto todavía no tiene harness de tests instrumentados
+   corriendo** y necesita un emulador o dispositivo en el pipeline.
+
+La 2 es más honesta (prueba el `BitmapFactory` de verdad, no una emulación) y encaja con
+que la verificación funcional del proyecto ya depende de un dispositivo. Decidirlo cuando
+se arme el harness de instrumentación, no antes.
+
+**Estado:** `[ ] Pendiente`
 
 ---
 
@@ -437,6 +481,7 @@ documentado. Requiere acceso a Supabase, así que **no es trabajo del agente de 
 | ~~P-020~~ | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 | P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
+| P-024 | `CompresorDeImagen` sin pruebas (necesita Robolectric o instrumentación) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
 
 ---
 

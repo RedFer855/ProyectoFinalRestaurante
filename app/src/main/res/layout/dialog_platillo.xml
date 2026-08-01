@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Formulario de alta/edición de un platillo (Fase 2a). El mismo diálogo para las dos
+  operaciones: al editar solo cambia que los campos vienen llenos y que aparece la opción
+  de quitar la foto que ya tiene.
+-->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/espaciado_pantalla"
+        android:paddingTop="@dimen/espaciado_campo">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_platillo_nombre"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/menu_platillo_nombre">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/txt_platillo_nombre"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:hint="@string/menu_platillo_descripcion">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/txt_platillo_descripcion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapSentences|textMultiLine"
+                android:maxLines="3" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_platillo_precio"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:hint="@string/menu_platillo_precio">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/txt_platillo_precio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/til_platillo_categoria"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:hint="@string/menu_platillo_categoria">
+
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                android:id="@+id/txt_platillo_categoria"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                tools:text="Platos fuertes" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/img_platillo_previsualizacion"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/foto_platillo_formulario"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:background="@color/brand_surface_variant"
+            android:contentDescription="@string/menu_cd_previsualizacion"
+            android:padding="@dimen/espaciado_seccion"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_platillo_sin_foto"
+            app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_elegir_foto"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="@dimen/altura_minima_tactil"
+                android:text="@string/menu_elegir_foto" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_quitar_foto"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/espaciado_minimo"
+                android:layout_weight="1"
+                android:minHeight="@dimen/altura_minima_tactil"
+                android:text="@string/menu_quitar_foto"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/txt_platillo_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_campo"
+            android:accessibilityLiveRegion="polite"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorError"
+            android:visibility="gone"
+            tools:text="El precio tiene que ser mayor que cero"
+            tools:visibility="visible" />
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

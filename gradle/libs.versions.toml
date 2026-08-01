@@ -12,6 +12,9 @@ retrofit = "2.11.0"
 lifecycle = "2.8.7"
 desugarJdkLibs = "2.1.4"
 coreTesting = "2.2.0"
+# 4.16.0 es la ultima estable en Maven Central (5.0.0 sigue en release candidate).
+glide = "4.16.0"
+exifinterface = "1.4.2"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -28,6 +31,8 @@ retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-
 lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "lifecycle" }
 lifecycle-livedata = { group = "androidx.lifecycle", name = "lifecycle-livedata", version.ref = "lifecycle" }
 desugar-jdk-libs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugarJdkLibs" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+exifinterface = { group = "androidx.exifinterface", name = "exifinterface", version.ref = "exifinterface" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

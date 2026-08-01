@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Menú conectado a Supabase (Fase 2a). La misma pantalla para los tres roles: todos ven el
+  catálogo, pero solo admin ve el botón de agregar, el de categorías y el menú ⋮ de cada
+  platillo. Quien impide de verdad que un mesero cambie un precio es la RLS de Postgres.
+-->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -10,23 +15,42 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_buscar_platillo"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="@dimen/espaciado_pantalla"
             android:layout_marginTop="@dimen/espaciado_campo"
-            android:hint="@string/menu_buscar_platillo">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_buscar_platillo"
-                android:layout_width="match_parent"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_buscar_platillo"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:hint="@string/menu_buscar_platillo">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txt_buscar_platillo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_categorias"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/espaciado_minimo"
+                android:minHeight="@dimen/altura_minima_tactil"
+                android:text="@string/menu_categorias"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <HorizontalScrollView
             android:layout_width="match_parent"
@@ -50,7 +74,7 @@
             android:clipToPadding="false"
             android:paddingHorizontal="@dimen/espaciado_pantalla"
             android:paddingTop="@dimen/espaciado_campo"
-            android:paddingBottom="88dp"
+            android:paddingBottom="@dimen/espaciado_lista_bajo_fab"
             tools:itemCount="4"
             tools:listitem="@layout/item_platillo" />
 
@@ -66,6 +90,15 @@
         android:text="@string/menu_vacio"
         android:textAppearance="?attr/textAppearanceBodyMedium"
         android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <com.google.android.material.progressindicator.CircularProgressIndicator
+        android:id="@+id/progress_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
         android:visibility="gone"
         tools:visibility="visible" />
 

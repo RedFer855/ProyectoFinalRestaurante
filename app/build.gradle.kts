@@ -62,6 +62,11 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
+    // Carga y cache de las fotos de los platillos. Sin el annotationProcessor de Glide:
+    // con Glide.with(...) alcanza y se evita un procesador de anotaciones en el build.
+    implementation(libs.glide)
+    // Rota la foto segun su EXIF antes de subirla; si no, las de camara salen acostadas.
+    implementation(libs.exifinterface)
     testImplementation(libs.junit)
     testImplementation(libs.core.testing)
     androidTestImplementation(libs.espresso.core)

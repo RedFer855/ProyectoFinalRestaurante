@@ -7,4 +7,11 @@
     <dimen name="espaciado_seccion">32dp</dimen>
     <!-- Mínimo táctil recomendado por Material/Accesibilidad — ver contexto/50 - Referencia/Accesibilidad Android.md -->
     <dimen name="altura_minima_tactil">48dp</dimen>
+    <!-- Miniatura de la foto en la lista del menú (Fase 2a). -->
+    <dimen name="foto_platillo_lista">72dp</dimen>
+    <!-- Previsualización de la foto dentro del formulario de platillo. -->
+    <dimen name="foto_platillo_formulario">160dp</dimen>
+    <dimen name="radio_esquina_tarjeta">12dp</dimen>
+    <!-- Deja respirar el último ítem de la lista por debajo del FAB. -->
+    <dimen name="espaciado_lista_bajo_fab">88dp</dimen>
 </resources>

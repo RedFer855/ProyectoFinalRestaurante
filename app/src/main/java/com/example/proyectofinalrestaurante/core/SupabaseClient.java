@@ -3,18 +3,18 @@ package com.example.proyectofinalrestaurante.core;
 import com.example.proyectofinalrestaurante.BuildConfig;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseAuthApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseEmpleadoApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabaseMenuApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabaseStorageApi;
 
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.Response;
+import okhttp3.RequestBody;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
-
-import java.io.IOException;
 
 /**
  * Singleton del cliente HTTP hacia Supabase (equivalente a ServicioConexión en Bimbo).
@@ -25,6 +25,8 @@ public final class SupabaseClient {
     private static volatile SupabaseAuthApi authApi;
     private static volatile SupabasePerfilApi perfilApi;
     private static volatile SupabaseEmpleadoApi empleadoApi;
+    private static volatile SupabaseMenuApi menuApi;
+    private static volatile SupabaseStorageApi storageApi;
 
     private SupabaseClient() {
     }
@@ -62,6 +64,28 @@ public final class SupabaseClient {
         return empleadoApi;
     }
 
+    public static SupabaseMenuApi getMenuApi() {
+        if (menuApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (menuApi == null) {
+                    menuApi = buildRetrofit().create(SupabaseMenuApi.class);
+                }
+            }
+        }
+        return menuApi;
+    }
+
+    public static SupabaseStorageApi getStorageApi() {
+        if (storageApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (storageApi == null) {
+                    storageApi = buildRetrofit().create(SupabaseStorageApi.class);
+                }
+            }
+        }
+        return storageApi;
+    }
+
     private static Retrofit buildRetrofit() {
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(15, TimeUnit.SECONDS)
@@ -81,13 +105,30 @@ public final class SupabaseClient {
     }
 
     private static Interceptor apiKeyInterceptor() {
-        return chain -> {
-            Request original = chain.request();
-            Request withApiKey = original.newBuilder()
-                    .header("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
-                    .header("Content-Type", "application/json")
-                    .build();
-            return chain.proceed(withApiKey);
-        };
+        return chain -> chain.proceed(conCabeceras(chain.request()));
+    }
+
+    /**
+     * Agrega la apikey a toda peticion y el Content-Type JSON solo cuando la peticion no
+     * trae un cuerpo con su propio tipo.
+     *
+     * <p>Header.header(...) reemplaza el valor anterior: forzar "application/json" en todas
+     * las peticiones le pondria ese tipo tambien al cuerpo binario de una subida a Storage,
+     * y el servidor la rechazaria. Los cuerpos que Retrofit arma con Gson ya declaran su
+     * propio Content-Type, asi que el valor por defecto solo hace falta para las peticiones
+     * sin cuerpo o con un cuerpo sin tipo.
+     *
+     * <p>Visible dentro del paquete para poder probarla sin levantar un servidor.
+     */
+    static Request conCabeceras(Request original) {
+        Request.Builder builder = original.newBuilder()
+                .header("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY);
+
+        RequestBody cuerpo = original.body();
+        if (cuerpo == null || cuerpo.contentType() == null) {
+            builder.header("Content-Type", "application/json");
+        }
+
+        return builder.build();
     }
 }

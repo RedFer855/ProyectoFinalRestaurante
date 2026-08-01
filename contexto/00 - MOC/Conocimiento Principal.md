@@ -34,7 +34,7 @@ Respuesta: My Cat
 | **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020); quedan 3 ítems que solo se cierran con acceso a Supabase o a un dispositivo — ver [[Deuda Técnica - Pendientes]] |
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
-| **Fase 2a — Menú (CRUD + Storage)** | 🟡 Planificada. Rama `feat/fase2-menu` creada; **Supabase ya está listo**, falta todo el código — ver [[Plan Fase 2a - CRUD de Platillos y Categorias]] |
+| **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. 124 tests en verde. Falta la prueba en dispositivo — ver [[Módulo Menú]] |
 | Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, va en la sub-fase **2b** |
 | Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
@@ -45,10 +45,11 @@ Respuesta: My Cat
 
 ## Próximos pasos
 
-1. **Vos:** probar login + Empleados en un emulador/dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas en el dashboard de Supabase (Authentication → Policies). Con eso cerrado, se mergea `feat/fase1-login` a `master`.
-2. **Fase 2a — Menú**: el servidor ya está preparado (columnas, vistas, triggers, RLS y el bucket `platillos` de Storage). Lo que sigue es **solo código Android**: el plan ejecutable está en [[Plan Fase 2a - CRUD de Platillos y Categorias]].
-3. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
-4. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
+1. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
+2. **Vos:** probar login + Empleados en un emulador/dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas en el dashboard de Supabase (Authentication → Policies). Con eso cerrado, se mergea `feat/fase1-login` a `master`.
+3. **Fase 2b — offline-first**: Room + outbox + `SyncWorker` (**P-014**). Es la deuda más cara que dejó la 2a: hoy todo el Menú lee y escribe contra la red. Ver [[Plan de Fase 2 - Menu]].
+4. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
+5. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
 ---
 
@@ -93,6 +94,7 @@ Respuesta: My Cat
 
 ### Módulos documentados
 - [[Módulo Login]] — primer módulo, patrón de referencia para los siguientes
+- [[Módulo Menú]] — CRUD de platillos y categorías con fotos en Storage (Fase 2a)
 
 ---
 
@@ -127,4 +129,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]]
+Sesión más reciente: [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]

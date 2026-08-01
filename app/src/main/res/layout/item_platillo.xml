@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fila de un platillo del menú (Fase 2a). Un platillo desactivado no se esconde: se atenúa
+  y se le pone la etiqueta "Desactivado", porque el admin tiene que poder reactivarlo.
+-->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -6,7 +10,7 @@
     android:layout_height="wrap_content"
     android:layout_marginBottom="@dimen/espaciado_minimo"
     app:cardBackgroundColor="@color/brand_surface_card"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="@dimen/radio_esquina_tarjeta"
     app:cardElevation="0dp"
     app:strokeColor="@color/brand_outline"
     app:strokeWidth="1dp">
@@ -16,6 +20,18 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="@dimen/espaciado_campo">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/img_platillo"
+            android:layout_width="@dimen/foto_platillo_lista"
+            android:layout_height="@dimen/foto_platillo_lista"
+            android:layout_marginEnd="@dimen/espaciado_campo"
+            android:background="@color/brand_surface_variant"
+            android:contentDescription="@string/menu_cd_foto_platillo"
+            android:padding="@dimen/espaciado_campo"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_platillo_sin_foto"
+            app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -35,10 +51,20 @@
                 android:id="@+id/txt_categoria_platillo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
                 android:textAppearance="?attr/textAppearanceLabelMedium"
                 android:textColor="?attr/colorPrimary"
                 tools:text="Platos fuertes" />
+
+            <TextView
+                android:id="@+id/txt_estado_platillo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/espaciado_minimo"
+                android:text="@string/menu_platillo_desactivado"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorError"
+                android:visibility="gone"
+                tools:visibility="visible" />
 
             <TextView
                 android:id="@+id/txt_descripcion_platillo"

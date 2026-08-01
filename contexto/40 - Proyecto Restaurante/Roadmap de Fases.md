@@ -48,7 +48,7 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 |---|---|---|---|
 | 1 | `feat/fase1-login` | Login contra Supabase Auth (REST/Retrofit), arquitectura por capas base | 🟡 Funcional, con deuda catalogada |
 | **0** | `fix/fase0-estandar` | **Remediación de la brecha contra el estándar** | ⬜ **Siguiente** |
-| 2 | `feat/fase2-menu` | Menú, partida en **2a** (CRUD de platillos/categorías + Storage), **2b** (Room + outbox) y **2c** (P-017/P-011) | 🟡 2a planificada — ver [[Plan de Fase 2 - Menu]] |
+| 2 | `feat/fase2-menu` | Menú, partida en **2a** (CRUD de platillos/categorías + Storage), **2b** (Room + outbox) y **2c** (P-017/P-011) | 🟢 **2a implementada** 2026-07-31 (falta probarla en dispositivo) — ver [[Módulo Menú]]; 2b y 2c pendientes, ver [[Plan de Fase 2 - Menu]] |
 | 3 | `feat/fase3-pedidos` | Creación y seguimiento de pedidos | ⬜ No iniciado |
 | 4 | `feat/fase4-mesas` | Gestión de mesas (libre/ocupada/reservada) | ⬜ No iniciado |
 | 5 | `feat/fase5-usuarios-roles` | Roles (mesero, cocina, admin) y permisos | ⬜ No iniciado |
@@ -64,7 +64,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 |---|---|---|
 | **Offline-first** (Room + outbox) | Fase **2b** — la 2a se escribe contra la red a propósito, acotando el daño a la capa `data` del Menú. El razonamiento y el costo aceptado están en [[Plan de Fase 2 - Menu]] | P-014 |
 | **Single-Activity + Navigation Component** | Antes de Fase 3 — con pocas pantallas que convertir | P-015 |
-| **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature | P-017 |
+| **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature. **Ya se pasó el umbral**: desde la 2a hay tres features (`login`, `empleados`, `menu`) y sigue layer-first | P-017 |
 | **`applicationId` real** | Antes de publicar — después de publicar es irreversible | P-018 |
 | **Multi-módulo** | Antes de Fase 3, si el proyecto va a llegar a 5 features | — |
 
