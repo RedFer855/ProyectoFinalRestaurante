@@ -42,6 +42,15 @@ public final class EmpleadoDto {
     @SerializedName("activo")
     private boolean activo;
 
+    /**
+     * Marca de agua del sync delta. El servidor la calcula como el máximo entre
+     * {@code empleados.actualizado_en} y {@code perfiles.actualizado_en}: un empleado
+     * "cambia" tanto si se editan sus datos como si se le cambia el rol o el estado, y esos
+     * viven en tablas distintas.
+     */
+    @SerializedName("actualizado_en")
+    private String actualizadoEn;
+
     public int getIdEmpleado() {
         return idEmpleado;
     }
@@ -84,5 +93,9 @@ public final class EmpleadoDto {
 
     public boolean isActivo() {
         return activo;
+    }
+
+    public String getActualizadoEn() {
+        return actualizadoEn;
     }
 }

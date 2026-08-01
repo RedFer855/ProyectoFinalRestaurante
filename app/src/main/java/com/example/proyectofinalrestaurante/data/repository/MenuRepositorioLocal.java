@@ -16,7 +16,7 @@ import com.example.proyectofinalrestaurante.data.local.mapper.CategoriaMapper;
 import com.example.proyectofinalrestaurante.data.local.mapper.PlatilloMapper;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
-import com.example.proyectofinalrestaurante.data.sync.MenuSyncScheduler;
+import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
 import com.example.proyectofinalrestaurante.data.sync.PayloadOperacion;
 import com.example.proyectofinalrestaurante.domain.ReglasMenu;
@@ -41,7 +41,7 @@ import java.util.UUID;
  *
  * <p>La UI <b>nunca</b> habla con la red desde 2b: lee por {@link LiveData} desde Room (que
  * nunca falla) y las escrituras son optimistas — se escriben en la base, se encola la
- * operación en el {@link Outbox} y se dispara el {@link MenuSyncScheduler}; el
+ * operación en el {@link Outbox} y se dispara el {@link SyncScheduler}; el
  * {@code SyncWorker} la sube en segundo plano cuando haya red (Plan Fase 2b, §4.2).</p>
  *
  * <p>Implementa {@link ObservadorSincronizacion} para que el worker le avise el estado
@@ -105,7 +105,7 @@ public final class MenuRepositorioLocal implements MenuRepository, ObservadorSin
 
     @Override
     public void sincronizar() {
-        MenuSyncScheduler.solicitar(contexto);
+        SyncScheduler.solicitar(contexto);
     }
 
     @Override

@@ -79,6 +79,21 @@
                     android:layout_height="wrap_content"
                     android:clickable="false"
                     tools:text="Activo" />
+
+                <!--
+                  Regla 8 de Offline-First: el usuario siempre tiene que poder ver si un
+                  cambio ya llegó al servidor. Sin esto queda la duda de "¿se guardó o no?",
+                  que es justo lo que la escritura optimista puede provocar.
+                -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_sync_empleado"
+                    style="@style/Widget.Material3.Chip.Assist"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:clickable="false"
+                    android:text="@string/sync_pendiente"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </com.google.android.material.chip.ChipGroup>
         </LinearLayout>
 

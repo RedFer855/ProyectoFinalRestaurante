@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectofinalrestaurante.core.SyncApplication;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 import com.example.proyectofinalrestaurante.data.repository.MenuRepositorioLocal;
 
 import java.util.concurrent.Executors;
@@ -34,10 +35,11 @@ public class MenuViewModelFactory implements ViewModelProvider.Factory {
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         SyncApplication app = (SyncApplication) aplicacion;
-        Outbox outbox = new Outbox(app.baseDeDatos().operacionPendienteDao());
+        Outbox outbox = new Outbox(app.baseDeDatos().operacionPendienteDao(),
+                TipoOperacion.Modulo.MENU);
         MenuRepositorioLocal repositorio = new MenuRepositorioLocal(
                 app.baseDeDatos(), outbox, app.getFilesDir(), app);
-        SyncApplication.setObservadorSincronizacion(repositorio);
+        SyncApplication.registrarObservador(TipoOperacion.Modulo.MENU, repositorio);
         return (T) new MenuViewModel(repositorio, Executors.newSingleThreadExecutor());
     }
 }

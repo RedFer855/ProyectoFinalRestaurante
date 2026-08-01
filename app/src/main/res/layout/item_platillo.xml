@@ -99,7 +99,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/espaciado_minimo"
-            android:text="@string/menu_sync_pendiente"
+            android:text="@string/sync_pendiente"
             android:textAppearance="?attr/textAppearanceLabelSmall"
             android:textColor="?attr/colorOnSurfaceVariant"
             android:visibility="gone"

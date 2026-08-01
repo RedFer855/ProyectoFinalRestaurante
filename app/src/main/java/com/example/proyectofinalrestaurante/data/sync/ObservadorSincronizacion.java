@@ -7,7 +7,7 @@ import androidx.annotation.Nullable;
  * {@code ultimoError}) a través de {@code EstadoSincronizacion} (Plan Fase 2b, §4.5). La
  * implementación concreta la expone el repositorio del Menú; el worker le avisa acá.
  *
- * <p>Separado a propósito: el {@link MenuSyncWorker} no debe depender del repositorio ni de
+ * <p>Separado a propósito: el {@link SyncWorker} no debe depender del repositorio ni de
  * la UI, y el repositorio no debe saber de WorkManager.</p>
  */
 public interface ObservadorSincronizacion {

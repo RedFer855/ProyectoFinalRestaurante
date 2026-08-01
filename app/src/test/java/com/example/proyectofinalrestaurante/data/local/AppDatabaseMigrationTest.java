@@ -1,5 +1,6 @@
 package com.example.proyectofinalrestaurante.data.local;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -61,19 +62,48 @@ public class AppDatabaseMigrationTest {
     }
 
     @Test
-    public void esquemaVersion1_coincideConLasEntidadesActuales() throws IOException {
+    public void migracion1a2_validaContraLasEntidadesActuales() throws IOException {
         MigrationTestHelper helper = helper();
         SQLiteConnection base = helper.createDatabase(1);
         base.close();
 
-        // Sin migraciones (v1 es la primera): runMigrationsAndValidate reabre la base
-        // creada desde el JSON y valida su esquema contra las entidades compiladas.
-        // Si el JSON quedó desactualizado, esto lanza IllegalStateException.
-        List<Migration> sinMigraciones = Collections.emptyList();
-        SQLiteConnection validada = helper.runMigrationsAndValidate(1, sinMigraciones);
+        // runMigrationsAndValidate corre la migración y después compara el esquema
+        // resultante contra el JSON de la v2. Si la migración escrita a mano no deja la
+        // base exactamente como Room espera —una columna de menos, un índice con otro
+        // nombre— esto lanza IllegalStateException. Es lo que hace que
+        // fallbackToDestructiveMigration() no haga falta nunca.
+        List<Migration> migraciones = Collections.singletonList(Migraciones.DE_1_A_2);
+        SQLiteConnection validada = helper.runMigrationsAndValidate(2, migraciones);
 
         assertNotNull(validada);
+        assertTrue(tablaExiste(validada, "empleados"));
         validada.close();
+    }
+
+    @Test
+    public void migracion1a2_conservaLasOperacionesPendientesYLasMarcaDelMenu() throws IOException {
+        MigrationTestHelper helper = helper();
+        SQLiteConnection base = helper.createDatabase(1);
+        // Una operación encolada por la v1, cuando el Menú era el único que encolaba.
+        try (SQLiteStatement insercion = base.prepare("INSERT INTO operaciones_pendientes "
+                + "(tipo, id_local, payload_json, intentos, creado_en) "
+                + "VALUES ('CREAR_PLATILLO', 4, '{}', 0, 123)")) {
+            insercion.step();
+        }
+        base.close();
+
+        SQLiteConnection migrada = helper.runMigrationsAndValidate(
+                2, Collections.singletonList(Migraciones.DE_1_A_2));
+
+        // Lo que el usuario todavía no subió no se puede perder en una migración, y su
+        // módulo tiene que quedar bien: en la v1 solo el Menú encolaba.
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT modulo, tipo FROM operaciones_pendientes WHERE id_local = 4")) {
+            assertTrue("la operación pendiente se perdió en la migración", sentencia.step());
+            assertEquals("MENU", sentencia.getText(0));
+            assertEquals("CREAR_PLATILLO", sentencia.getText(1));
+        }
+        migrada.close();
     }
 
     /**

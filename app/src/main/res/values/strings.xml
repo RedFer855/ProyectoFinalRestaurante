@@ -91,9 +91,9 @@
     </plurals>
 
     <!-- Indicador global de sincronización (Plan Fase 2b, §4.5). -->
-    <string name="menu_sync_en_proceso">Sincronizando cambios…</string>
-    <string name="menu_sync_pendiente">Sin subir</string>
-    <plurals name="menu_sync_cambios_sin_subir">
+    <string name="sync_en_proceso">Sincronizando cambios…</string>
+    <string name="sync_pendiente">Sin subir</string>
+    <plurals name="sync_cambios_sin_subir">
         <item quantity="one">%1$d cambio sin subir</item>
         <item quantity="other">%1$d cambios sin subir</item>
     </plurals>
@@ -115,7 +115,8 @@
 
     <string name="empleados_buscar">Buscar empleado</string>
     <string name="empleados_agregar">Agregar empleado</string>
-    <string name="empleados_vacio">No hay empleados que coincidan con la búsqueda.</string>
+    <string name="empleados_vacio">Todavía no hay empleados registrados.</string>
+    <string name="empleados_sin_coincidencias">No hay empleados que coincidan con la búsqueda.</string>
     <string name="empleados_activo">Activo</string>
     <string name="empleados_inactivo">Inactivo</string>
     <string name="accion_cambiar_rol">Cambiar rol</string>

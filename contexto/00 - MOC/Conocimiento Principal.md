@@ -35,9 +35,9 @@ Respuesta: My Cat
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
 | **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
-| **Fase 2b — Offline-first (Room + outbox)** | 🟢 **Implementada** (2026-08-01). El Menú es local-first: Room + outbox + `SyncWorker`, y la Parte A del servidor cerrada. **195 tests** en verde. **P-014** queda parcial: Empleados sigue contra la red — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+| **Fase 2b — Offline-first (Room + outbox)** | 🟢 **Implementada** (2026-08-01). Menú **y** Empleados local-first: Room v2 + outbox particionado + `SyncWorker` único. **217 tests** en verde. **P-014 cerrado** — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
 | **Fase 2c — Mesas** · **3b — Clientes** | 🟡 **Planificadas** (2026-08-01). Nacen offline-first sobre 2b — ver [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]] |
-| Usuarios y roles | 🟢 Adelantado — se hizo en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, Empleados) |
+| Usuarios y roles | 🟢 Adelantado (Fase 1c/1d) y migrado a offline-first el 2026-08-01 — ver [[Módulo Empleados]] |
 | Pedidos (Fase 4), Reportes (Fase 6) | ⬜ No iniciado |
 
 > [!warning] `feat/fase1-login`: queda 1 ítem para poder mergear a `master`
@@ -49,8 +49,8 @@ Respuesta: My Cat
 
 1. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
 2. **Vos:** verificar **P-004** (edge-to-edge e insets del login) en un teléfono físico — es lo único que falta para mergear `feat/fase1-login` a `master`. El login/Empleados en emulador y la política de contraseñas (S-2) ya están cerrados.
-3. **Fase 2b — offline-first**: Room + outbox + `SyncWorker` (**P-014**), ya planificada. Es la deuda más cara que dejó la 2a y **bloquea 2c y 2d** — ver [[Plan Fase 2b - Offline-First con Room y Outbox]].
-4. **Fases 2c y 2d — Mesas y Clientes**, planificadas y listas para ejecutar **después** de 2b. Cada plan está partido en **Parte A (servidor)** y **Parte B (código)**: el agente sin acceso a Supabase hace solo la B. Ver [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]].
+3. **Vos:** probar el flujo **offline** en un dispositivo: editar un empleado o un platillo en modo avión, ver el aviso "Sin subir", recuperar la red y confirmar que sube solo.
+4. **Fases 2c y 2d — Mesas y Clientes**, planificadas y listas para ejecutar: **2b ya está**, así que nacen sobre su infraestructura. Cada plan está partido en **Parte A (servidor)** y **Parte B (código)**: el agente sin acceso a Supabase hace solo la B. Ver [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]].
 5. **Un agente con acceso a Supabase** tiene que documentar el DDL real de `mesa` y `clientes` en [[Esquema de Base de Datos]]: es el paso 0 de la Parte A de 2c y 2d, y hoy es un hueco de la bóveda.
 6. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
 7. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
@@ -103,6 +103,7 @@ Respuesta: My Cat
 ### Módulos documentados
 - [[Módulo Login]] — primer módulo, patrón de referencia para los siguientes
 - [[Módulo Menú]] — CRUD de platillos y categorías con fotos en Storage (Fase 2a)
+- [[Módulo Empleados]] — CRUD local-first; el alta exige conexión por la cuenta de acceso
 
 ---
 
@@ -137,4 +138,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]]
+Sesión más reciente: [[Sesión 2026-08-01 - Empleados offline-first y cierre de P-014]]

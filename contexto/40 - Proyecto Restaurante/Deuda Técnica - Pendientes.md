@@ -73,7 +73,7 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 
 ---
 
-### P-014 · Sin arquitectura offline-first (ni Room, ni WorkManager, ni outbox)
+### ~~P-014~~ ✅ · Sin arquitectura offline-first (ni Room, ni WorkManager, ni outbox)
 
 **Alcance:** todo el proyecto.
 
@@ -83,19 +83,33 @@ El requisito no funcional #1 es que la app sea usable sin red — un restaurante
 
 **Solución:** implementar Room + `SyncWorker` + tabla `operaciones_pendientes` **en la Fase 2 (Menú)**, no después. Ver [[Offline-First con Room y Outbox]].
 
-**Estado:** `[~] Parcial` (2026-08-01) — **la infraestructura existe y el Menú la usa**; el resto del proyecto no.
+**Estado:** `[x] Resuelto` (2026-08-01) — **todo módulo con datos propios es local-first**.
 
-Lo que ya está, de la Fase 2b (ver [[Plan Fase 2b - Offline-First con Room y Outbox]] y [[Módulo Menú]]):
-
-| Pieza | Dónde |
+| Módulo | Estado |
 |---|---|
-| Base local (Room 2.8.4) | `data/local/` — `AppDatabase`, DAOs, entidades y mappers |
-| Cola de salida | `data/outbox/` — `Outbox`, `TipoOperacion`, `ClasificadorDeError` |
-| Sincronización diferida | `data/sync/` — `MenuSyncWorker` (WorkManager), `MenuSyncScheduler`, `SincronizadorMenu` |
-| Sync delta | `actualizado_en` + índices `ix_platillo_actualizado_en` / `ix_categoria_actualizado_en` (2026-08-01) |
-| La UI observa Room, no la red | `MenuRepositorioLocal` devuelve `LiveData`; `MenuRemoto` quedó detrás del sincronizador |
+| Menú (Fase 2b) | 🟢 Room + outbox + delta. `MenuRepositorioLocal` |
+| Empleados | 🟢 Room + outbox + delta. `EmpleadoRepositorioLocal` |
+| Login | ➖ N/A — autenticar **exige** red por definición. Lo que le falta es persistir la sesión, que es **P-009**, no cachearla |
 
-**Lo que falta para cerrarlo del todo:** `SupabaseAuthRepository` y `SupabaseEmpleadoRepository` **siguen yendo directo a la red** y fallan sin conexión. Empleados es el candidato natural a migrar — ya existe toda la infraestructura, así que es replicar el patrón, no inventarlo. El login es un caso aparte: autenticar **exige** red por definición; lo que le falta ahí es persistir la sesión (**P-009**), no cachearla.
+Infraestructura compartida: `data/local` (Room 2.8.4, esquema v2), `data/outbox`
+(particionado por módulo) y `data/sync` con un **`SyncWorker` único** que corre los dos
+sincronizadores — la regla 3 de [[Offline-First con Room y Outbox]] exige que no haya dos
+workers compitiendo por la misma cola.
+
+> [!warning] La excepción declarada: el alta de empleado exige conexión
+> Crear un empleado llama a la Edge Function que le da de alta su cuenta en Supabase Auth
+> con una contraseña temporal. Encolarla obligaría a **guardar esa contraseña en el
+> dispositivo** —contra **P-009**, que pide cifrar hasta el token de sesión— y a reintentar
+> un `POST` **no idempotente que crea cuentas**, justo lo que [[Offline-First con Room y Outbox]]
+> prohíbe sin *idempotency key*.
+>
+> Es la única operación del módulo que puede fallar por red, y la app lo dice con todas las
+> letras en vez de fingir que se guardó. Todo lo demás —listar, editar datos, cambiar rol,
+> activar/desactivar— funciona sin internet.
+
+**Lo que este ítem deja al siguiente módulo:** Pedidos y Mesas **nacen** sobre esta
+infraestructura. Agregar un módulo hoy es una entidad, un DAO, un mapper, un sincronizador y
+sumarlo a la lista del `SyncWorker` — no volver a diseñar nada.
 
 ---
 
@@ -530,7 +544,7 @@ más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
 | P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[~]` Parcial 2026-07-29 | idem |
 | ~~P-012~~ | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-013~~ | Evento de navegación sin marcar consumido | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
-| P-014 | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[~]` **Parcial** 2026-08-01 — el Menú ya es local-first; Empleados sigue contra la red | [[Sesión 2026-08-01 - Offline-first del Menú (Fase 2b E6-E8) y suite de tests al día]] |
+| ~~P-014~~ | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[x]` **Resuelto** 2026-08-01 — Menú y Empleados local-first | [[Sesión 2026-08-01 - Empleados offline-first y cierre de P-014]] |
 | P-015 | `Activity` + `findViewById` en vez de Fragment/ViewBinding | 🟡 | `[ ]` Pendiente | idem |
 | P-016 | `Result` con `String` en vez de `AppException` | 🟡 | `[ ]` Pendiente | idem |
 | P-017 | Paquetes layer-first en vez de feature-first | 🟢 | `[ ]` Pendiente | idem |

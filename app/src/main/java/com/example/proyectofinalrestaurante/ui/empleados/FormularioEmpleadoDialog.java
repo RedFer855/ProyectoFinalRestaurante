@@ -20,6 +20,7 @@ import com.example.proyectofinalrestaurante.domain.RequisitoContrasenia;
 import com.example.proyectofinalrestaurante.domain.ResultadoValidacion;
 import com.example.proyectofinalrestaurante.domain.ValidadorContrasenia;
 import com.example.proyectofinalrestaurante.domain.model.Empleado;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.NuevoEmpleado;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
@@ -215,10 +216,13 @@ public class FormularioEmpleadoDialog extends DialogFragment {
 
         if (esEdicion()) {
             Bundle args = requireArguments();
+            // El estado de sincronización no lo decide el formulario: lo pone el repositorio
+            // al escribir (PENDIENTE) y el sincronizador al subir. Acá va el que tenía.
             alGuardar.onEditar(new Empleado(
                     args.getInt(ARG_EMPLEADO_ID), nombres, apellidos, identidad,
                     telefono.isEmpty() ? null : telefono, correo,
-                    0, "", args.getString(ARG_AUTH), args.getString(ARG_ROL), true));
+                    0, "", args.getString(ARG_AUTH), args.getString(ARG_ROL), true,
+                    EstadoSync.SINCRONIZADO));
             dismiss();
             return;
         }

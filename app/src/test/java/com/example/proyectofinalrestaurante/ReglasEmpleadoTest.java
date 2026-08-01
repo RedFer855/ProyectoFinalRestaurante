@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import com.example.proyectofinalrestaurante.domain.Permisos;
 import com.example.proyectofinalrestaurante.domain.ReglasEmpleado;
 import com.example.proyectofinalrestaurante.domain.model.Empleado;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 
 import org.junit.Test;
 
@@ -21,7 +22,7 @@ public class ReglasEmpleadoTest {
 
     private static Empleado empleado(String idAuth, String rol) {
         return new Empleado(1, "Nombre", "Apellido", "0000", "9999", "a@b.hn",
-                1, "napellido", idAuth, rol, true);
+                1, "napellido", idAuth, rol, true, EstadoSync.SINCRONIZADO);
     }
 
     private static final Empleado OTRO_ADMIN = empleado(UUID_OTRO_ADMIN, Permisos.ROL_ADMIN);

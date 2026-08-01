@@ -10,6 +10,7 @@ import androidx.room.Room;
 
 import com.example.proyectofinalrestaurante.data.local.dao.OperacionPendienteDao;
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
+import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +31,9 @@ import java.util.List;
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 35)
 public class OperacionPendienteDaoTest {
+
+    /** Todas las operaciones de esta suite son del Menú; la partición se prueba en OutboxTest. */
+    private static final String MODULO = TipoOperacion.Modulo.MENU;
 
     @Rule
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
@@ -68,7 +72,7 @@ public class OperacionPendienteDaoTest {
         dao.encolar(unaOperacion("CREAR_PLATILLO", 2, "b", null));
         dao.encolar(unaOperacion("CREAR_PLATILLO", 3, "c", null));
 
-        List<OperacionPendienteEntity> primeras = dao.primeras(2);
+        List<OperacionPendienteEntity> primeras = dao.primeras(MODULO, 2);
 
         assertEquals(2, primeras.size());
         assertEquals("a", primeras.get(0).getPayloadJson());
@@ -81,7 +85,7 @@ public class OperacionPendienteDaoTest {
         dao.encolar(unaOperacion("CREAR_PLATILLO", 2, "b", null));
         dao.encolar(unaOperacion("ACTUALIZAR_PLATILLO", 1, "a2", null));
 
-        List<OperacionPendienteEntity> deFila = dao.deFila(1);
+        List<OperacionPendienteEntity> deFila = dao.deFila(MODULO, 1);
 
         assertEquals(2, deFila.size());
         assertEquals("a", deFila.get(0).getPayloadJson());
@@ -91,11 +95,11 @@ public class OperacionPendienteDaoTest {
     @Test
     public void eliminar_sacaLaOperacionDeLaCola() {
         long id = dao.encolar(unaOperacion("CREAR_PLATILLO", 1, "a", null));
-        assertEquals(1, dao.contar());
+        assertEquals(1, dao.contar(MODULO));
 
         dao.eliminar(id);
 
-        assertEquals(0, dao.contar());
+        assertEquals(0, dao.contar(MODULO));
         assertNull(dao.porId(id));
     }
 
@@ -118,17 +122,18 @@ public class OperacionPendienteDaoTest {
 
         dao.borrar(dao.porId(id));
 
-        assertEquals(0, dao.contar());
+        assertEquals(0, dao.contar(MODULO));
     }
 
     @Test
     public void contar_vaciaEmpiezaEnCero() {
-        assertTrue(dao.contar() == 0);
+        assertTrue(dao.contar(MODULO) == 0);
     }
 
     private static OperacionPendienteEntity unaOperacion(String tipo, long idLocal,
                                                          String payloadJson, String rutaImagen) {
         OperacionPendienteEntity operacion = new OperacionPendienteEntity();
+        operacion.setModulo(MODULO);
         operacion.setTipo(tipo);
         operacion.setIdLocal(idLocal);
         operacion.setPayloadJson(payloadJson);

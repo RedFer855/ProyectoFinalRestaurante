@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.core.SesionActual;
@@ -42,6 +43,8 @@ public class EmpleadosFragment extends Fragment implements FormularioEmpleadoDia
     private EmpleadoAdapter adapter;
     private TextView vacio;
     private View progreso;
+    private TextView estadoSync;
+    private SwipeRefreshLayout refresco;
 
     @Nullable
     @Override
@@ -55,9 +58,15 @@ public class EmpleadosFragment extends Fragment implements FormularioEmpleadoDia
         super.onViewCreated(view, savedInstanceState);
         vacio = view.findViewById(R.id.txt_empleados_vacio);
         progreso = view.findViewById(R.id.progress_empleados);
+        estadoSync = view.findViewById(R.id.txt_estado_sync_empleados);
+        refresco = view.findViewById(R.id.refresco_empleados);
 
-        viewModel = new ViewModelProvider(this, new EmpleadosViewModelFactory())
+        viewModel = new ViewModelProvider(this,
+                new EmpleadosViewModelFactory(requireActivity().getApplication()))
                 .get(EmpleadosViewModel.class);
+
+        // "Bajar para sincronizar": dispara el drenado del outbox + delta.
+        refresco.setOnRefreshListener(() -> viewModel.sincronizar());
 
         Sesion sesion = SesionActual.obtener();
         adapter = new EmpleadoAdapter(this::alElegirAccion,
@@ -89,25 +98,27 @@ public class EmpleadosFragment extends Fragment implements FormularioEmpleadoDia
         fab.setOnClickListener(v -> abrirFormulario(null));
 
         viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
-
-        if (savedInstanceState == null) {
-            viewModel.cargar();
-        }
     }
 
     private void render(EstadoEmpleados estado) {
         progreso.setVisibility(estado.isCargando() ? View.VISIBLE : View.GONE);
         adapter.submitList(estado.getEmpleados());
+        actualizarIndicadorSync(estado);
 
-        if (estado.getError() != null) {
+        // La lista sale de Room, así que un error nunca la vacía: es un aviso puntual de una
+        // operación (el alta sin conexión), no un estado de pantalla.
+        if (estado.isVacio()) {
             vacio.setVisibility(View.VISIBLE);
-            vacio.setText(estado.getError());
-            mostrarReintentar(estado.getError());
-        } else if (estado.isVacio()) {
-            vacio.setVisibility(View.VISIBLE);
-            vacio.setText(R.string.empleados_vacio);
+            vacio.setText(estado.isVacioPorFiltro()
+                    ? R.string.empleados_sin_coincidencias : R.string.empleados_vacio);
         } else {
             vacio.setVisibility(View.GONE);
+        }
+
+        String error = estado.getError();
+        if (error != null) {
+            Snackbar.make(requireView(), error, Snackbar.LENGTH_LONG).show();
+            viewModel.onErrorConsumido();
         }
 
         String exito = estado.getMensajeExito();
@@ -118,10 +129,33 @@ public class EmpleadosFragment extends Fragment implements FormularioEmpleadoDia
         }
     }
 
-    private void mostrarReintentar(String mensaje) {
-        Snackbar.make(requireView(), mensaje, Snackbar.LENGTH_LONG)
-                .setAction(R.string.empleado_reintentar, v -> viewModel.cargar())
-                .show();
+    /**
+     * Indicador global de sincronización: el spinner del SwipeRefreshLayout refleja
+     * {@code sincronizando}, y el banner informa cuándo hay cambios locales todavía sin subir
+     * o un error permanente de la última pasada.
+     */
+    private void actualizarIndicadorSync(EstadoEmpleados estado) {
+        refresco.setRefreshing(estado.isSincronizando());
+        String mensaje = mensajeDeSync(estado);
+        estadoSync.setVisibility(mensaje == null ? View.GONE : View.VISIBLE);
+        if (mensaje != null) {
+            estadoSync.setText(mensaje);
+        }
+    }
+
+    @Nullable
+    private String mensajeDeSync(EstadoEmpleados estado) {
+        if (estado.getUltimoErrorSync() != null) {
+            return estado.getUltimoErrorSync();
+        }
+        if (estado.isSincronizando()) {
+            return getString(R.string.sync_en_proceso);
+        }
+        if (estado.getCambiosSinSubir() > 0) {
+            return getResources().getQuantityString(R.plurals.sync_cambios_sin_subir,
+                    estado.getCambiosSinSubir(), estado.getCambiosSinSubir());
+        }
+        return null;
     }
 
     private void alElegirAccion(Empleado empleado, int accionId) {

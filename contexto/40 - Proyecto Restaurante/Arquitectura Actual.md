@@ -72,7 +72,7 @@ graph TD
 | `domain.repository` | `AuthRepository`, `EmpleadoRepository`, `MenuRepository` | — |
 | `domain` (raíz) | `Result<T>`, `Permisos`, `Modulo`, `Accion`, `RequisitoContrasenia`, `ResultadoValidacion`, `ValidadorContrasenia`, `ValidadorPlatillo`, `ReglasEmpleado`, `ReglasMenu`, `VisibilidadMenu` | — |
 | `data.remote` | `SupabaseAuthApi`, `SupabasePerfilApi`, `SupabaseEmpleadoApi`, `SupabaseMenuApi` (PostgREST), `SupabaseStorageApi` (bucket `platillos`), DTOs | `core` |
-| `data.repository` | `SupabaseAuthRepository`, `SupabaseEmpleadoRepository`, `SupabaseMenuRepository` | `domain`, `data.remote` |
+| `data.repository` | `SupabaseAuthRepository`, `EmpleadoRepositorioLocal` + `EmpleadoRemoto`, `MenuRepositorioLocal` + `MenuRemoto` | `domain`, `data.remote`, `data.local` |
 | `core` | `SupabaseClient` (Retrofit singleton; expone auth/perfil/empleado/menu/storage), `SesionActual` (sesión en memoria) | — |
 
 ---
@@ -117,7 +117,7 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | Regla de negocio en dominio | `ValidadorContrasenia`, `ValidadorPlatillo`, `VisibilidadMenu`, `Permisos`, `ReglasEmpleado`, `ReglasMenu` | ✅ Java puro, testeable con JUnit |
 | Interceptor (Decorator) | `core.SupabaseClient` — `apikey` siempre; `Content-Type` JSON solo si el cuerpo no trae el suyo | ✅ Corregido en Fase 2a: forzarlo rompía las subidas binarias a Storage |
 | Carga de imágenes | Glide 4.16.0 en `PlatilloAdapter` y `FormularioPlatilloDialog` | ✅ Fase 2a; ruta UUID nueva por reemplazo para no pelear con el caché |
-| [[Offline-First con Room y Outbox]] | `data/local` (Room), `data/outbox`, `data/sync` (WorkManager) — **solo el Menú** | 🟡 **Parcial** (Fase 2b, 2026-08-01): el Menú es local-first; Empleados y el login siguen contra la red (**P-014**) |
+| [[Offline-First con Room y Outbox]] | `data/local` (Room v2), `data/outbox` (particionado por módulo), `data/sync` (`SyncWorker` único) | ✅ **Implementado** (2026-08-01): Menú **y** Empleados son local-first. **P-014 cerrado** |
 | [[Base Repository con manejo de errores]] | — | ⬜ Documentado, no extraído (**P-001**) |
 | DI con Hilt | — | ⬜ DI manual (**P-002**) |
 | ViewBinding | — | ⬜ `findViewById` (**P-015**) |
@@ -130,10 +130,10 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 |---|---|---|
 | [[Módulo Login]] | 🟡 Funcional con deuda | `LoginActivity`, `LoginViewModel`, `SupabaseAuthRepository` |
 | Recuperación de contraseña | 🟢 Funcional (Fase 1b) — falta verificación manual | `ui/recuperacion/*`, `ValidadorContrasenia` |
-| [[Módulo Menú]] | 🟢 **Funcional** (Fase 2a, 2026-07-31) — CRUD real de platillos y categorías, fotos en el bucket `platillos` de Storage. Falta la prueba en dispositivo | `ui/menu/*`, `SupabaseMenuRepository`, `SupabaseStorageApi` |
+| [[Módulo Menú]] | 🟢 **Funcional y local-first** (Fase 2a + 2b) — CRUD de platillos y categorías, fotos en Storage, Room + outbox. Falta la prueba en dispositivo | `ui/menu/*`, `MenuRepositorioLocal`, `SincronizadorMenu`, `SupabaseStorageApi` |
 | Pedidos | ⬜ No iniciado | — |
 | Mesas | ⬜ No iniciado | — |
-| Empleados / Usuarios / Roles | 🟢 **Funcional** (Fase 1d) — CRUD real contra Supabase, alta vía Edge Function | `ui/empleados/*`, `SupabaseEmpleadoRepository`, `supabase/functions/crear-empleado/` |
+| [[Módulo Empleados]] | 🟢 **Funcional y local-first** (Fase 1d + offline-first 2026-08-01) — Room + outbox; el alta exige conexión porque crea la cuenta de acceso | `ui/empleados/*`, `EmpleadoRepositorioLocal`, `SincronizadorEmpleados`, `supabase/functions/crear-empleado/` |
 | Reportes | ⬜ No iniciado | — |
 
 Ver [[Roadmap de Fases]].
@@ -144,8 +144,8 @@ Ver [[Roadmap de Fases]].
 
 1. ~~🔴 `minSdk = 37`~~ — ✅ resuelto el 2026-07-31 (**P-003**), ahora `minSdk = 24` (~96.6% de dispositivos). Falta la prueba en un teléfono físico real.
 2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
-3. 🔴 **Sin arquitectura offline** (**P-014**) — programada para la sub-fase **2b**; la 2a se escribe contra la red a propósito, con el costo documentado en [[Plan de Fase 2 - Menu]].
-4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **124 tests** propios entre ViewModels, repositorios y dominio (56 tras la Fase 0, +68 en la Fase 2a). Con la **Fase 2b** (2026-08-01) la suite creció a **195 tests** agregando DAOs con Robolectric, outbox, clasificador de errores y la migración (`MigrationTestHelper` con `AndroidSQLiteDriver`). `CompresorDeImagen` sigue sin cobertura (**P-024**).
+3. ~~🔴 **Sin arquitectura offline**~~ — ✅ resuelto el 2026-08-01 (**P-014**): Menú y Empleados son local-first sobre Room + outbox + `SyncWorker` único. El login queda fuera por definición (autenticar exige red); lo suyo es **P-009**.
+4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **124 tests** propios entre ViewModels, repositorios y dominio (56 tras la Fase 0, +68 en la Fase 2a). Con la **Fase 2b** (2026-08-01) la suite creció a **217 tests** agregando DAOs con Robolectric, outbox particionado, clasificador de errores, los dos sincronizadores y la migración v1→v2 (`MigrationTestHelper` con `AndroidSQLiteDriver`). `CompresorDeImagen` sigue sin cobertura (**P-024**).
 5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**); la constante se renombró a `SUPABASE_PUBLISHABLE_KEY` el 2026-07-31 (**P-012** resuelto). `perfiles` con RLS y usuarios reales cargados.
 6. ⚠️ `applicationId` sigue en `com.example.*` — Play lo rechaza y es irreversible tras publicar (**P-018**).
 
@@ -155,7 +155,7 @@ Ver [[Roadmap de Fases]].
 
 1. **Verificar en dispositivo** el Menú de la Fase 2a: subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
 2. **Cerrar la Fase 1**: solo falta verificar **P-004** en un teléfono físico. El login + Empleados en emulador y la política de contraseñas del dashboard (**S-2**) los cerró el usuario el 2026-08-01. Con P-004 se mergea `feat/fase1-login` a `master`.
-3. **Fase 2b** — Room + outbox + `SyncWorker` (**P-014**), que es la deuda más cara que dejó la 2a: hoy todo el Menú lee y escribe contra la red.
+3. **P-009** — persistir y refrescar el token. Es el próximo cuello de botella real del offline: sin sesión guardada, al reabrir la app hay que loguearse y el `SyncWorker` no drena la cola.
 4. Extraer `BaseRepository` + `AppException` (**P-001**/**P-016**): ya hay **tres** repositorios con el mismo `mensajeDeError()` copiado.
 5. Decidir feature-first vs layer-first — ya existen tres features (`login`, `empleados`, `menu`), que era el umbral que fijaba [[Propuesta de División de Arquitectura]] (**P-017**).
 

@@ -39,7 +39,7 @@ import java.util.Locale;
  * token de sesión entra por {@code MenuRemoto}, así que el sincronizador es testeable con
  * fakes (Plan Fase 2b, §5.3: el worker no debe depender de {@code SesionActual}).</p>
  */
-public final class SincronizadorMenu {
+public final class SincronizadorMenu implements Sincronizador {
 
     static final int MAX_INTENTOS = 3;
     static final int LOTE = 50;
@@ -70,7 +70,13 @@ public final class SincronizadorMenu {
 
     // ------------------------------------------------------------------ orquestación
 
+    @Override
+    public String modulo() {
+        return TipoOperacion.Modulo.MENU;
+    }
+
     /** Una pasada completa: drenar y bajar. Devuelve el resultado para el worker. */
+    @Override
     public ResultadoSync sincronizar() {
         ResultadoSync drenado = drenarOutbox();
         if (drenado.esTransitorio()) {

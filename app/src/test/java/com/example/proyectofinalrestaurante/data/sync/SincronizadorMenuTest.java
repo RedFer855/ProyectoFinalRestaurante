@@ -9,7 +9,7 @@ import androidx.lifecycle.LiveData;
 
 import com.example.proyectofinalrestaurante.data.FakeCall;
 import com.example.proyectofinalrestaurante.data.local.dao.CategoriaDao;
-import com.example.proyectofinalrestaurante.data.local.dao.OperacionPendienteDao;
+import com.example.proyectofinalrestaurante.data.FakeOperacionPendienteDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PlatilloDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
 import com.example.proyectofinalrestaurante.data.local.entity.CategoriaEntity;
@@ -67,9 +67,9 @@ public class SincronizadorMenuTest {
 
     private final FakePlatilloDao platillos = new FakePlatilloDao();
     private final FakeCategoriaDao categorias = new FakeCategoriaDao();
-    private final FakeOperacionDao operaciones = new FakeOperacionDao();
+    private final FakeOperacionPendienteDao operaciones = new FakeOperacionPendienteDao();
     private final FakeSincronizacionDao sincronizacion = new FakeSincronizacionDao();
-    private final Outbox outbox = new Outbox(operaciones);
+    private final Outbox outbox = new Outbox(operaciones, TipoOperacion.Modulo.MENU);
     private final FakeMenuApi api = new FakeMenuApi();
     private final FakeStorageApi storage = new FakeStorageApi();
 
@@ -527,83 +527,6 @@ public class SincronizadorMenuTest {
             marcas.put(marca.getTabla(), marca);
         }
     }
-
-    private static final class FakeOperacionDao implements OperacionPendienteDao {
-
-        final List<OperacionPendienteEntity> operaciones = new ArrayList<>();
-        long siguienteId = 1;
-
-        OperacionPendienteEntity registrar(OperacionPendienteEntity operacion) {
-            operacion.setId(siguienteId++);
-            operaciones.add(operacion);
-            return operacion;
-        }
-
-        @Override
-        public long encolar(OperacionPendienteEntity operacion) {
-            return registrar(operacion).getId();
-        }
-
-        @Override
-        public List<OperacionPendienteEntity> primeras(int limite) {
-            List<OperacionPendienteEntity> resultado = new ArrayList<>();
-            for (OperacionPendienteEntity op : operaciones) {
-                if (resultado.size() == limite) {
-                    break;
-                }
-                resultado.add(op);
-            }
-            return resultado;
-        }
-
-        @Override
-        public OperacionPendienteEntity porId(long id) {
-            for (OperacionPendienteEntity op : operaciones) {
-                if (op.getId() == id) {
-                    return op;
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public List<OperacionPendienteEntity> deFila(long idLocal) {
-            List<OperacionPendienteEntity> resultado = new ArrayList<>();
-            for (OperacionPendienteEntity op : operaciones) {
-                if (op.getIdLocal() == idLocal) {
-                    resultado.add(op);
-                }
-            }
-            return resultado;
-        }
-
-        @Override
-        public void actualizar(OperacionPendienteEntity operacion) {
-            for (int i = 0; i < operaciones.size(); i++) {
-                if (operaciones.get(i).getId() == operacion.getId()) {
-                    operaciones.set(i, operacion);
-                    return;
-                }
-            }
-        }
-
-        @Override
-        public void eliminar(long id) {
-            operaciones.removeIf(op -> op.getId() == id);
-        }
-
-        @Override
-        public int contar() {
-            return operaciones.size();
-        }
-
-        @Override
-        public void borrar(OperacionPendienteEntity operacion) {
-            eliminar(operacion.getId());
-        }
-    }
-
-    // ------------------------------------------------------------------ fakes de API
 
     private static final class FakeMenuApi implements SupabaseMenuApi {
 

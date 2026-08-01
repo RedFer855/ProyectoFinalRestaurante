@@ -9,6 +9,10 @@ import androidx.annotation.Nullable;
  * (`empleados`), su usuario del sistema (`usuarios`) y su perfil de acceso
  * (`perfiles`, que es de donde salen el rol y si está activo). Del lado del servidor
  * esa unión la resuelve la vista `vista_empleados`.</p>
+ *
+ * <p>{@code estadoSync} lo agregó la migración a offline-first: la UI necesita distinguir
+ * un empleado ya subido de uno con cambios locales pendientes o con un error de
+ * sincronización. Es {@code domain} puro — un enum, no una dependencia de Room.</p>
  */
 public final class Empleado {
 
@@ -24,10 +28,12 @@ public final class Empleado {
     private final String idAuthUser;
     private final String rol;
     private final boolean activo;
+    private final EstadoSync estadoSync;
 
     public Empleado(int idEmpleado, String nombres, String apellidos, String identidad,
                     @Nullable String telefono, String correo, int idUsuario,
-                    String apodoUsuario, String idAuthUser, String rol, boolean activo) {
+                    String apodoUsuario, String idAuthUser, String rol, boolean activo,
+                    EstadoSync estadoSync) {
         this.idEmpleado = idEmpleado;
         this.nombres = nombres;
         this.apellidos = apellidos;
@@ -39,6 +45,7 @@ public final class Empleado {
         this.idAuthUser = idAuthUser;
         this.rol = rol;
         this.activo = activo;
+        this.estadoSync = estadoSync;
     }
 
     public int getIdEmpleado() {
@@ -84,6 +91,10 @@ public final class Empleado {
 
     public boolean isActivo() {
         return activo;
+    }
+
+    public EstadoSync getEstadoSync() {
+        return estadoSync;
     }
 
     public String nombreCompleto() {

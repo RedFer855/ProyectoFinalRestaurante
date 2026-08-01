@@ -33,17 +33,40 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lista_empleados"
+        <!--
+          Banner del estado de sincronización: solo aparece cuando hay algo que decir
+          (sincronizando, cambios sin subir, o un error permanente de la última pasada).
+        -->
+        <TextView
+            android:id="@+id/txt_estado_sync_empleados"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="2 cambios sin subir"
+            tools:visibility="visible" />
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/refresco_empleados"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingHorizontal="@dimen/espaciado_pantalla"
-            android:paddingTop="@dimen/espaciado_campo"
-            android:paddingBottom="88dp"
-            tools:itemCount="4"
-            tools:listitem="@layout/item_empleado" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lista_empleados"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/espaciado_pantalla"
+                android:paddingTop="@dimen/espaciado_campo"
+                android:paddingBottom="@dimen/espaciado_lista_bajo_fab"
+                tools:itemCount="4"
+                tools:listitem="@layout/item_empleado" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 

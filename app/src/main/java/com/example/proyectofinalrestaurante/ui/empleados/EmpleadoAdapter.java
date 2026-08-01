@@ -18,6 +18,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.ReglasEmpleado;
 import com.example.proyectofinalrestaurante.domain.model.Empleado;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.google.android.material.chip.Chip;
 
 /**
@@ -55,6 +56,7 @@ public class EmpleadoAdapter extends ListAdapter<Empleado, EmpleadoAdapter.Holde
                 @Override
                 public boolean areContentsTheSame(@NonNull Empleado a, @NonNull Empleado b) {
                     return a.isActivo() == b.isActivo()
+                            && a.getEstadoSync() == b.getEstadoSync()
                             && a.getRol().equals(b.getRol())
                             && a.nombreCompleto().equals(b.nombreCompleto())
                             && a.getCorreo().equals(b.getCorreo());
@@ -82,6 +84,7 @@ public class EmpleadoAdapter extends ListAdapter<Empleado, EmpleadoAdapter.Holde
         private final TextView identidad;
         private final Chip rol;
         private final Chip estado;
+        private final Chip sincronizacion;
         private final ImageButton opciones;
 
         Holder(@NonNull View itemView) {
@@ -92,6 +95,7 @@ public class EmpleadoAdapter extends ListAdapter<Empleado, EmpleadoAdapter.Holde
             identidad = itemView.findViewById(R.id.txt_identidad_empleado);
             rol = itemView.findViewById(R.id.chip_rol_empleado);
             estado = itemView.findViewById(R.id.chip_estado_empleado);
+            sincronizacion = itemView.findViewById(R.id.chip_sync_empleado);
             opciones = itemView.findViewById(R.id.btn_opciones_empleado);
         }
 
@@ -110,6 +114,12 @@ public class EmpleadoAdapter extends ListAdapter<Empleado, EmpleadoAdapter.Holde
             estado.setChipBackgroundColor(ColorStateList.valueOf(
                     ContextCompat.getColor(itemView.getContext(), colorEstado)));
             estado.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.white));
+
+            // Regla 8 de Offline-First: el usuario nunca queda con la duda de si su cambio
+            // llegó al servidor.
+            sincronizacion.setVisibility(
+                    empleado.getEstadoSync() != EstadoSync.SINCRONIZADO
+                            ? View.VISIBLE : View.GONE);
 
             boolean puedeEditar = ReglasEmpleado.puedeEditar(rolActor, idAuthActor, empleado);
             boolean puedeCambiarRol = ReglasEmpleado.puedeCambiarRol(rolActor, idAuthActor, empleado);

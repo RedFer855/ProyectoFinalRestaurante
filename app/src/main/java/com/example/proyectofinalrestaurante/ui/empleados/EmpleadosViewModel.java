@@ -1,139 +1,206 @@
 package com.example.proyectofinalrestaurante.ui.empleados;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.ViewModel;
 
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.Empleado;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.NuevoEmpleado;
 import com.example.proyectofinalrestaurante.domain.repository.EmpleadoRepository;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 
 /**
- * ViewModel del módulo Empleados (Plan Fase 1d, E4).
+ * ViewModel del módulo Empleados (Plan Fase 1d, E4; reescrito para offline-first).
  *
- * <p>El {@link ExecutorService} se inyecta por constructor — no se crea acá dentro,
- * para no replicar la deuda <b>P-005</b> del login.</p>
+ * <p>El {@link ExecutorService} se inyecta por constructor — no se crea acá dentro, para no
+ * replicar la deuda <b>P-005</b> del login.</p>
  *
- * <p>El filtro de búsqueda vive en el ViewModel y no en el Fragment: la lista completa
- * es del ViewModel, así el texto buscado sobrevive a una rotación de pantalla.</p>
+ * <p>La fuente de datos es Room: el repositorio expone dos {@link LiveData} que este
+ * ViewModel fusiona en un único {@link EstadoEmpleados}. Ya no existe {@code cargar()}: la
+ * lista llega sola y se mantiene al día por el {@code SyncWorker}. Las escrituras son
+ * optimistas y corren en el executor.</p>
+ *
+ * <p>El filtro de búsqueda vive acá y no en el Fragment: así el texto buscado sobrevive a
+ * una rotación de pantalla.</p>
  */
 public class EmpleadosViewModel extends ViewModel {
 
+    private static final String EMPLEADO_CREADO = "Empleado creado. Ya puede iniciar sesión.";
+    private static final String DATOS_ACTUALIZADOS = "Datos actualizados.";
+    private static final String EMPLEADO_ACTIVADO = "Empleado activado.";
+    private static final String EMPLEADO_DESACTIVADO = "Empleado desactivado.";
+
     private final EmpleadoRepository repositorio;
     private final ExecutorService executor;
-    private final MutableLiveData<EstadoEmpleados> estado =
-            new MutableLiveData<>(EstadoEmpleados.inicial());
+    private final MediatorLiveData<EstadoEmpleados> estado = new MediatorLiveData<>();
 
-    /** Lista completa recibida del servidor; lo publicado es esto ya filtrado. */
-    private final List<Empleado> todos = new ArrayList<>();
+    /** Última lista emitida por Room, por referencia: nunca se muta acá. */
+    private List<Empleado> empleadosActuales = Collections.emptyList();
     private String textoBusqueda = "";
+    private boolean sincronizando = false;
+    @Nullable private String ultimoErrorSync = null;
+    /** Error puntual de una operación (el alta sin conexión); se limpia al recalcular. */
+    @Nullable private String errorDeOperacion = null;
+    @Nullable private String mensajeExito = null;
 
     public EmpleadosViewModel(@NonNull EmpleadoRepository repositorio,
                               @NonNull ExecutorService executor) {
         this.repositorio = repositorio;
         this.executor = executor;
+        estado.addSource(repositorio.observarEmpleados(), this::cuandoLleganEmpleados);
+        estado.addSource(repositorio.getEstadoSincronizacion(), this::cuandoCambiaSincronizacion);
+        estado.setValue(EstadoEmpleados.cargando());
     }
 
     public LiveData<EstadoEmpleados> getEstado() {
         return estado;
     }
 
-    public void cargar() {
-        estado.setValue(EstadoEmpleados.cargando());
-        executor.execute(() -> {
-            Result<List<Empleado>> resultado = repositorio.listar();
-            if (resultado.isSuccess()) {
-                todos.clear();
-                todos.addAll(resultado.getValue());
-                estado.postValue(EstadoEmpleados.conDatos(filtrados()));
-            } else {
-                estado.postValue(EstadoEmpleados.error(resultado.getError()));
-            }
-        });
+    /** Lista completa, sin filtrar: la usan los diálogos y las reglas de negocio. */
+    public List<Empleado> getTodosLosEmpleados() {
+        return new ArrayList<>(empleadosActuales);
     }
+
+    /** Pide al repositorio que drene el outbox y baje el delta. */
+    public void sincronizar() {
+        repositorio.sincronizar();
+    }
+
+    // ------------------------------------------------------------------ fuentes de datos
+
+    private void cuandoLleganEmpleados(List<Empleado> empleados) {
+        empleadosActuales = empleados;
+        recalcular();
+    }
+
+    private void cuandoCambiaSincronizacion(EstadoSincronizacion estadoSync) {
+        sincronizando = estadoSync.isSincronizando();
+        ultimoErrorSync = estadoSync.getUltimoError();
+        recalcular();
+    }
+
+    // ------------------------------------------------------------------ filtro
 
     public void filtrar(String texto) {
         textoBusqueda = texto == null ? "" : texto.trim().toLowerCase(Locale.ROOT);
-        estado.setValue(EstadoEmpleados.conDatos(filtrados()));
+        recalcular();
     }
 
+    // ------------------------------------------------------------------ operaciones
+
+    /**
+     * Alta. <b>Es la única operación que necesita conexión</b> (crea la cuenta de acceso), así
+     * que es también la única que puede publicar un error de red en el estado.
+     */
     public void crear(NuevoEmpleado nuevo) {
         estado.setValue(EstadoEmpleados.cargando());
         executor.execute(() -> {
-            Result<Empleado> resultado = repositorio.crear(nuevo);
+            Result<Integer> resultado = repositorio.crear(nuevo);
             if (resultado.isSuccess()) {
-                recargarCon("Empleado creado. Ya puede iniciar sesión.");
+                publicarExito(EMPLEADO_CREADO);
             } else {
-                estado.postValue(EstadoEmpleados.error(resultado.getError()));
+                publicarError(resultado.getError());
             }
         });
     }
 
     public void actualizarDatos(Empleado empleado) {
-        estado.setValue(EstadoEmpleados.cargando());
         executor.execute(() -> ejecutar(
-                repositorio.actualizarDatos(empleado), "Datos actualizados."));
+                repositorio.actualizarDatos(empleado), DATOS_ACTUALIZADOS));
     }
 
     public void cambiarRol(Empleado empleado, String nuevoRol) {
-        estado.setValue(EstadoEmpleados.cargando());
         executor.execute(() -> ejecutar(
-                repositorio.cambiarRol(empleado.getIdAuthUser(), nuevoRol),
+                repositorio.cambiarRol(empleado.getIdEmpleado(), nuevoRol),
                 "Rol cambiado a " + nuevoRol + "."));
     }
 
     public void cambiarEstado(Empleado empleado, boolean activo) {
-        estado.setValue(EstadoEmpleados.cargando());
         executor.execute(() -> ejecutar(
-                repositorio.cambiarEstado(empleado.getIdAuthUser(), activo),
-                activo ? "Empleado activado." : "Empleado desactivado."));
+                repositorio.cambiarEstado(empleado.getIdEmpleado(), activo),
+                activo ? EMPLEADO_ACTIVADO : EMPLEADO_DESACTIVADO));
     }
 
     /** Marca el aviso como mostrado para que no se repita al rotar la pantalla. */
     public void onMensajeConsumido() {
+        mensajeExito = null;
         EstadoEmpleados actual = estado.getValue();
         if (actual != null && actual.getMensajeExito() != null) {
             estado.setValue(actual.sinMensaje());
         }
     }
 
-    private void ejecutar(Result<Void> resultado, String mensajeExito) {
+    /** Marca el error puntual como mostrado. */
+    public void onErrorConsumido() {
+        errorDeOperacion = null;
+        recalcular();
+    }
+
+    private void ejecutar(Result<Void> resultado, String mensajeExitoso) {
         if (resultado.isSuccess()) {
-            recargarCon(mensajeExito);
+            publicarExito(mensajeExitoso);
         } else {
-            estado.postValue(EstadoEmpleados.error(resultado.getError()));
+            publicarError(resultado.getError());
         }
     }
 
-    /**
-     * Tras una operación exitosa se vuelve a leer del servidor en vez de retocar la
-     * lista en memoria: así lo que se ve es lo que la base realmente aceptó — incluidos
-     * los cambios que aplican triggers del lado del servidor.
-     */
-    private void recargarCon(String mensajeExito) {
-        Result<List<Empleado>> relectura = repositorio.listar();
-        if (relectura.isSuccess()) {
-            todos.clear();
-            todos.addAll(relectura.getValue());
-            estado.postValue(EstadoEmpleados.conDatos(filtrados()).conMensaje(mensajeExito));
-        } else {
-            estado.postValue(EstadoEmpleados.error(relectura.getError()));
+    private void publicarExito(String mensaje) {
+        mensajeExito = mensaje;
+        errorDeOperacion = null;
+        estado.postValue(construirEstado());
+    }
+
+    private void publicarError(String mensaje) {
+        errorDeOperacion = mensaje;
+        estado.postValue(construirEstado());
+    }
+
+    // ------------------------------------------------------------------ estado
+
+    private void recalcular() {
+        estado.setValue(construirEstado());
+    }
+
+    private EstadoEmpleados construirEstado() {
+        EstadoEmpleados nuevo = EstadoEmpleados.conDatos(filtrados(), textoBusqueda,
+                sincronizando, contarCambiosSinSubir(), ultimoErrorSync,
+                empleadosActuales.size());
+        if (errorDeOperacion != null) {
+            nuevo = nuevo.conError(errorDeOperacion);
         }
+        if (mensajeExito != null) {
+            nuevo = nuevo.conMensaje(mensajeExito);
+        }
+        return nuevo;
+    }
+
+    /** Se deriva de las filas, no se guarda: una bandera aparte podría contradecirlas. */
+    private int contarCambiosSinSubir() {
+        int cuenta = 0;
+        for (Empleado empleado : empleadosActuales) {
+            if (empleado.getEstadoSync() != EstadoSync.SINCRONIZADO) {
+                cuenta++;
+            }
+        }
+        return cuenta;
     }
 
     private List<Empleado> filtrados() {
         if (textoBusqueda.isEmpty()) {
-            return new ArrayList<>(todos);
+            return new ArrayList<>(empleadosActuales);
         }
         List<Empleado> resultado = new ArrayList<>();
-        for (Empleado e : todos) {
+        for (Empleado e : empleadosActuales) {
             if (coincide(e)) {
                 resultado.add(e);
             }
@@ -142,10 +209,12 @@ public class EmpleadosViewModel extends ViewModel {
     }
 
     private boolean coincide(Empleado e) {
-        return e.nombreCompleto().toLowerCase(Locale.ROOT).contains(textoBusqueda)
-                || e.getIdentidad().toLowerCase(Locale.ROOT).contains(textoBusqueda)
-                || e.getCorreo().toLowerCase(Locale.ROOT).contains(textoBusqueda)
-                || e.getRol().toLowerCase(Locale.ROOT).contains(textoBusqueda);
+        return contiene(e.nombreCompleto()) || contiene(e.getIdentidad())
+                || contiene(e.getCorreo()) || contiene(e.getRol());
+    }
+
+    private boolean contiene(@Nullable String valor) {
+        return valor != null && valor.toLowerCase(Locale.ROOT).contains(textoBusqueda);
     }
 
     @Override

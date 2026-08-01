@@ -28,6 +28,22 @@ public interface SupabaseEmpleadoApi {
     @GET("rest/v1/vista_empleados?select=*&order=id_empleado")
     Call<List<EmpleadoDto>> listar(@Header("Authorization") String bearerToken);
 
+    /**
+     * Sync delta (Plan Fase 2b, §4.3): solo las filas modificadas después de la marca de
+     * agua, paginadas por {@code actualizado_en}. Retrofit codifica los valores, así que el
+     * {@code +} del offset del timestamp viaja como {@code %2B} y PostgREST lo decodifica.
+     *
+     * <p>La marca de la vista es el máximo entre {@code empleados.actualizado_en} y
+     * {@code perfiles.actualizado_en}: un cambio de rol o de estado también la mueve.</p>
+     */
+    @GET("rest/v1/vista_empleados")
+    Call<List<EmpleadoDto>> listarDesde(
+            @Header("Authorization") String bearerToken,
+            @Query("select") String select,
+            @Query("actualizado_en") String actualizadoEnMayorQue,
+            @Query("order") String orden,
+            @Query("limit") int limite);
+
     @POST("functions/v1/crear-empleado")
     Call<CrearEmpleadoResponseDto> crear(
             @Header("Authorization") String bearerToken,

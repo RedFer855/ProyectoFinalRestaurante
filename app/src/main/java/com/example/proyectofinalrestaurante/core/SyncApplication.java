@@ -12,23 +12,33 @@ import androidx.work.WorkerFactory;
 import androidx.work.WorkerParameters;
 
 import com.example.proyectofinalrestaurante.data.local.AppDatabase;
+import com.example.proyectofinalrestaurante.data.local.Migraciones;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.repository.EmpleadoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MenuRemoto;
-import com.example.proyectofinalrestaurante.data.sync.MenuSyncWorker;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
+import com.example.proyectofinalrestaurante.data.sync.Sincronizador;
+import com.example.proyectofinalrestaurante.data.sync.SincronizadorEmpleados;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMenu;
+import com.example.proyectofinalrestaurante.data.sync.SyncWorker;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
- * Application = composition root del Menú (Plan Fase 2b, E5/E6).
+ * Application = composition root de la app (Plan Fase 2b, E5/E6).
  *
  * <p>Implementa {@link Configuration.Provider} para que WorkManager use la
- * {@link WorkerFactory} propia: es la única forma de construir {@link MenuSyncWorker} con el
- * {@link SincronizadorMenu} real (DAOs de Room + {@link MenuRemoto} con el token de la
- * sesión) sin recurrir a un constructor vacío ni a singletons escondidos.</p>
+ * {@link WorkerFactory} propia: es la única forma de construir {@link SyncWorker} con los
+ * sincronizadores reales (DAOs de Room + los clientes remotos con el token de la sesión) sin
+ * recurrir a un constructor vacío ni a singletons escondidos.</p>
  *
- * <p>La base queda acá como singleton del proceso, accesible por el repositorio del Menú
- * (E6) cuando lo construya el ViewModelFactory.</p>
+ * <p>La base queda acá como singleton del proceso, accesible por los repositorios cuando los
+ * construya cada ViewModelFactory.</p>
  */
 public final class SyncApplication extends Application implements Configuration.Provider {
 
@@ -37,14 +47,42 @@ public final class SyncApplication extends Application implements Configuration.
     private AppDatabase baseDeDatos;
 
     /**
-     * Quién avisa a la UI del estado de la sincronización. Por defecto no hace nada; el
-     * repositorio del Menú (E6) lo reemplaza con el que alimenta {@code EstadoSincronizacion}.
+     * Quién avisa a la UI del estado de la sincronización, <b>por módulo</b>.
+     *
+     * <p>Es un mapa y no un solo observador porque hay dos repositorios local-first (Menú y
+     * Empleados) y cada uno alimenta su propio {@code EstadoSincronizacion}. La clave por
+     * módulo además evita el duplicado obvio: cada rotación de pantalla reconstruye el
+     * repositorio y vuelve a registrarse, y con una lista se irían acumulando observadores
+     * muertos.</p>
      */
-    private static volatile ObservadorSincronizacion observadorSincronizacion =
-            ObservadorSincronizacion.NINGUNO;
+    private static final Map<String, ObservadorSincronizacion> OBSERVADORES =
+            new ConcurrentHashMap<>();
 
-    public static void setObservadorSincronizacion(ObservadorSincronizacion observador) {
-        observadorSincronizacion = observador;
+    public static void registrarObservador(String modulo, ObservadorSincronizacion observador) {
+        OBSERVADORES.put(modulo, observador);
+    }
+
+    /** Avisa a todos los módulos registrados. Si no hay ninguno, no hace nada. */
+    private static ObservadorSincronizacion observadorDeTodos() {
+        return new ObservadorSincronizacion() {
+            @Override
+            public void alIniciar() {
+                for (ObservadorSincronizacion observador : instantanea()) {
+                    observador.alIniciar();
+                }
+            }
+
+            @Override
+            public void alTerminar(@Nullable String ultimoError) {
+                for (ObservadorSincronizacion observador : instantanea()) {
+                    observador.alTerminar(ultimoError);
+                }
+            }
+
+            private Collection<ObservadorSincronizacion> instantanea() {
+                return OBSERVADORES.values();
+            }
+        };
     }
 
     @NonNull
@@ -59,7 +97,11 @@ public final class SyncApplication extends Application implements Configuration.
         if (baseDeDatos == null) {
             synchronized (this) {
                 if (baseDeDatos == null) {
-                    baseDeDatos = Room.databaseBuilder(this, AppDatabase.class, NOMBRE_BASE).build();
+                    baseDeDatos = Room.databaseBuilder(this, AppDatabase.class, NOMBRE_BASE)
+                            // Migración explícita: fallbackToDestructiveMigration() borraría
+                            // los cambios que el usuario todavía no subió.
+                            .addMigrations(Migraciones.DE_1_A_2)
+                            .build();
                 }
             }
         }
@@ -79,18 +121,26 @@ public final class SyncApplication extends Application implements Configuration.
         public ListenableWorker createWorker(@NonNull Context contexto,
                                              @NonNull String nombreClase,
                                              @NonNull WorkerParameters parametros) {
-            if (!MenuSyncWorker.class.getName().equals(nombreClase)) {
+            if (!SyncWorker.class.getName().equals(nombreClase)) {
                 return null;
             }
             AppDatabase base = aplicacion.baseDeDatos();
-            MenuRemoto remoto = new MenuRemoto(SupabaseClient.getMenuApi(),
+
+            MenuRemoto menuRemoto = new MenuRemoto(SupabaseClient.getMenuApi(),
                     SupabaseClient.getStorageApi(), SyncApplication::tokenDeLaSesion);
-            SincronizadorMenu sincronizador = new SincronizadorMenu(remoto,
-                    new Outbox(base.operacionPendienteDao()),
+            Sincronizador menu = new SincronizadorMenu(menuRemoto,
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MENU),
                     base.platilloDao(), base.categoriaDao(), base.sincronizacionDao(),
                     contexto.getFilesDir());
-            return new MenuSyncWorker(contexto, parametros, sincronizador,
-                    SyncApplication::tokenDeLaSesion, observadorSincronizacion);
+
+            EmpleadoRemoto empleadoRemoto = new EmpleadoRemoto(
+                    SupabaseClient.getEmpleadoApi(), SyncApplication::tokenDeLaSesion);
+            Sincronizador empleados = new SincronizadorEmpleados(empleadoRemoto,
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.EMPLEADOS),
+                    base.empleadoDao(), base.sincronizacionDao());
+
+            return new SyncWorker(contexto, parametros, Arrays.asList(menu, empleados),
+                    SyncApplication::tokenDeLaSesion, observadorDeTodos());
         }
     }
 

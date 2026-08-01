@@ -5,14 +5,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import com.example.proyectofinalrestaurante.data.local.dao.OperacionPendienteDao;
+import com.example.proyectofinalrestaurante.data.FakeOperacionPendienteDao;
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
+
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * El outbox (Plan Fase 2b, §4.4): encolar en FIFO, sacar por fila, marcar éxito,
@@ -28,7 +27,7 @@ public class OutboxTest {
     @Before
     public void crearOutbox() {
         dao = new FakeOperacionPendienteDao();
-        outbox = new Outbox(dao);
+        outbox = new Outbox(dao, TipoOperacion.Modulo.MENU);
     }
 
     @Test
@@ -146,73 +145,56 @@ public class OutboxTest {
         assertNull(outbox.deFila(1).get(0).getRutaImagenLocal());
     }
 
-    /** Fake en memoria con la semántica exacta del DAO: id autoincremental y FIFO por id. */
-    private static final class FakeOperacionPendienteDao implements OperacionPendienteDao {
+    // ------------------------------------------------------------------ partición por módulo
 
-        private final List<OperacionPendienteEntity> filas = new ArrayList<>();
-        private long siguienteId = 1;
+    @Test
+    public void encolar_marcaElModuloDeLaInstancia() {
+        Outbox deEmpleados = new Outbox(dao, TipoOperacion.Modulo.EMPLEADOS);
 
-        @Override
-        public long encolar(OperacionPendienteEntity operacion) {
-            operacion.setId(siguienteId++);
-            filas.add(operacion);
-            return operacion.getId();
-        }
+        long id = deEmpleados.encolar(TipoOperacion.CAMBIAR_ROL_EMPLEADO, 3, null, null);
 
-        @Override
-        public List<OperacionPendienteEntity> primeras(int limite) {
-            return new ArrayList<>(filas.subList(0, Math.min(limite, filas.size())));
-        }
+        assertEquals(TipoOperacion.Modulo.EMPLEADOS, dao.porId(id).getModulo());
+    }
 
-        @Override
-        public OperacionPendienteEntity porId(long id) {
-            for (OperacionPendienteEntity fila : filas) {
-                if (fila.getId() == id) {
-                    return fila;
-                }
-            }
-            return null;
-        }
+    @Test
+    public void primeras_noDevuelveOperacionesDeOtroModulo() {
+        Outbox deEmpleados = new Outbox(dao, TipoOperacion.Modulo.EMPLEADOS);
+        outbox.encolar(TipoOperacion.CREAR_PLATILLO, 1, null, null);
+        deEmpleados.encolar(TipoOperacion.CAMBIAR_ROL_EMPLEADO, 1, null, null);
 
-        @Override
-        public List<OperacionPendienteEntity> deFila(long idLocal) {
-            List<OperacionPendienteEntity> resultado = new ArrayList<>();
-            for (OperacionPendienteEntity fila : filas) {
-                if (fila.getIdLocal() == idLocal) {
-                    resultado.add(fila);
-                }
-            }
-            return resultado;
-        }
+        // Si el Menú viera esta operación, su `default` la descartaría por "tipo
+        // desconocido" y el cambio de rol se perdería en silencio.
+        List<OperacionPendienteEntity> delMenu = outbox.primeras(10);
+        assertEquals(1, delMenu.size());
+        assertEquals(TipoOperacion.CREAR_PLATILLO, delMenu.get(0).getTipo());
 
-        @Override
-        public void actualizar(OperacionPendienteEntity operacion) {
-            for (int i = 0; i < filas.size(); i++) {
-                if (filas.get(i).getId() == operacion.getId()) {
-                    filas.set(i, operacion);
-                    return;
-                }
-            }
-        }
+        List<OperacionPendienteEntity> deEmpl = deEmpleados.primeras(10);
+        assertEquals(1, deEmpl.size());
+        assertEquals(TipoOperacion.CAMBIAR_ROL_EMPLEADO, deEmpl.get(0).getTipo());
+    }
 
-        @Override
-        public void eliminar(long id) {
-            for (int i = 0; i < filas.size(); i++) {
-                if (filas.get(i).getId() == id) {
-                    filas.remove(i);
-                    return;
-                }
-            }
-        }
+    @Test
+    public void deFila_noConfundeElPlatillo3ConElEmpleado3() {
+        Outbox deEmpleados = new Outbox(dao, TipoOperacion.Modulo.EMPLEADOS);
+        outbox.encolar(TipoOperacion.ACTUALIZAR_PLATILLO, 3, null, null);
+        deEmpleados.encolar(TipoOperacion.ACTUALIZAR_EMPLEADO, 3, null, null);
 
-        @Override
-        public int contar() {
-            return filas.size();
-        }
+        // `id_local` es la PK de la tabla local de cada módulo: el 3 existe en las dos.
+        assertEquals(1, outbox.deFila(3).size());
+        assertEquals(TipoOperacion.ACTUALIZAR_PLATILLO, outbox.deFila(3).get(0).getTipo());
+        assertEquals(1, deEmpleados.deFila(3).size());
+        assertEquals(TipoOperacion.ACTUALIZAR_EMPLEADO, deEmpleados.deFila(3).get(0).getTipo());
+    }
 
-        @Override
-        public void borrar(OperacionPendienteEntity operacion) {
-            filas.remove(operacion);
-        }
+    @Test
+    public void contar_soloCuentaLoDelPropioModulo() {
+        Outbox deEmpleados = new Outbox(dao, TipoOperacion.Modulo.EMPLEADOS);
+        outbox.encolar(TipoOperacion.CREAR_PLATILLO, 1, null, null);
+        outbox.encolar(TipoOperacion.CREAR_PLATILLO, 2, null, null);
+        deEmpleados.encolar(TipoOperacion.CAMBIAR_ESTADO_EMPLEADO, 1, null, null);
+
+        assertEquals(2, outbox.contar());
+        assertEquals(1, deEmpleados.contar());
+        assertEquals(3, dao.contarTodas());
     }
 }

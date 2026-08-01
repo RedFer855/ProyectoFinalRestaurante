@@ -162,10 +162,10 @@ public class MenuFragment extends Fragment
             return estado.getUltimoErrorSync();
         }
         if (estado.isSincronizando()) {
-            return getString(R.string.menu_sync_en_proceso);
+            return getString(R.string.sync_en_proceso);
         }
         if (estado.getCambiosSinSubir() > 0) {
-            return getResources().getQuantityString(R.plurals.menu_sync_cambios_sin_subir,
+            return getResources().getQuantityString(R.plurals.sync_cambios_sin_subir,
                     estado.getCambiosSinSubir(), estado.getCambiosSinSubir());
         }
         return null;
