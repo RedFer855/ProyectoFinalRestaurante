@@ -35,8 +35,10 @@ Respuesta: My Cat
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
 | **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
-| Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, va en la sub-fase **2b** |
-| Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
+| **Fase 2b — Offline-first (Room + outbox)** | 🟡 **Planificada** (2026-08-01). Cierra **P-014** y es **prerrequisito** de la Fase 3 — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+| **Fase 3a — Mesas** · **3b — Clientes** | 🟡 **Planificadas** (2026-08-01). Nacen offline-first sobre 2b — ver [[Plan Fase 3a - CRUD de Mesas]] y [[Plan Fase 3b - CRUD de Clientes]] |
+| Usuarios y roles | 🟢 Adelantado — se hizo en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, Empleados) |
+| Pedidos (Fase 4), Reportes (Fase 6) | ⬜ No iniciado |
 
 > [!warning] `feat/fase1-login`: queda 1 ítem para poder mergear a `master`
 > ~~Probar el login/Empleados en un emulador o dispositivo~~ ✅ y ~~configurar la política de contraseñas del servidor (S-2)~~ ✅ — los cerró el usuario el 2026-08-01. **Falta solo verificar P-004** (edge-to-edge e insets del login) en un teléfono físico. Ver [[Deuda Técnica - Pendientes]].
@@ -47,15 +49,18 @@ Respuesta: My Cat
 
 1. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
 2. **Vos:** verificar **P-004** (edge-to-edge e insets del login) en un teléfono físico — es lo único que falta para mergear `feat/fase1-login` a `master`. El login/Empleados en emulador y la política de contraseñas (S-2) ya están cerrados.
-3. **Fase 2b — offline-first**: Room + outbox + `SyncWorker` (**P-014**). Es la deuda más cara que dejó la 2a: hoy todo el Menú lee y escribe contra la red. Ver [[Plan de Fase 2 - Menu]].
-4. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
-5. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
+3. **Fase 2b — offline-first**: Room + outbox + `SyncWorker` (**P-014**), ya planificada. Es la deuda más cara que dejó la 2a y **bloquea la Fase 3** — ver [[Plan Fase 2b - Offline-First con Room y Outbox]].
+4. **Fase 3 — Mesas y Clientes**, planificadas y listas para ejecutar **después** de 2b. Cada plan está partido en **Parte A (servidor)** y **Parte B (código)**: el agente sin acceso a Supabase hace solo la B. Ver [[Plan Fase 3a - CRUD de Mesas]] y [[Plan Fase 3b - CRUD de Clientes]].
+5. **Un agente con acceso a Supabase** tiene que documentar el DDL real de `mesa` y `clientes` en [[Esquema de Base de Datos]]: es el paso 0 de la Parte A de la Fase 3 y hoy es un hueco de la bóveda.
+6. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
+7. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
 ---
 
 ## Navegación rápida
 
 ### Estándar y proceso
+- [[Protocolo de Ejecución de un Plan]] — **lo primero que lee un agente al que le asignan un plan**: Parte A/Parte B, reglas de oro, qué hacer sin acceso a Supabase
 - [[Estándar de Ingeniería Android]] — **el contrato de ingeniería del proyecto**
 - [[Gate de Autoverificación]] — cuándo una entrega está terminada
 - [[Lista Negra de APIs Android]] — qué está prohibido y por qué
@@ -70,6 +75,9 @@ Respuesta: My Cat
 - [[Plan Fase 1d - Modulo Empleados Funcional]] — **primer módulo real**: Edge Function, triggers y CRUD contra la base
 - [[Plan de Fase 2 - Menu]] — por qué la Fase 2 va partida en 2a / 2b / 2c
 - [[Plan Fase 2a - CRUD de Platillos y Categorias]] — **plan ejecutable**: CRUD del Menú + fotos en Supabase Storage
+- [[Plan Fase 2b - Offline-First con Room y Outbox]] — **plan ejecutable**: Room + outbox + `SyncWorker`, cierra P-014
+- [[Plan Fase 3a - CRUD de Mesas]] — **plan ejecutable**: catálogo `estado_mesa` + RPC `cambiar_estado_mesa`
+- [[Plan Fase 3b - CRUD de Clientes]] — **plan ejecutable**: RPC `buscar_o_crear_cliente` e identidad normalizada
 - [[Guía de Diseño Visual]] — paleta, tipografía y componentes ("barato de renderizar, caro de ver")
 - [[Esquema de Base de Datos]] — **14 tablas** en Supabase, RLS y conflicto `usuarios` vs `perfiles`
 - [[Plan de Conexión con Supabase]] — **4 propuestas** para conectar el login a un backend real

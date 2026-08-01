@@ -32,9 +32,14 @@ entrega produce un cambio imposible de revisar y con dos fuentes de fallo mezcla
 
 | Sub-fase | Contenido | Estado |
 |---|---|---|
-| **2a** | CRUD de **platillos y categorías** contra Supabase + foto en **Storage** | 🟡 Planificada — ver [[Plan Fase 2a - CRUD de Platillos y Categorias]] |
-| **2b** | **Room + outbox + `SyncWorker`**: el Menú pasa a offline-first (**P-014**) | ⬜ No planificada |
+| **2a** | CRUD de **platillos y categorías** contra Supabase + foto en **Storage** | 🟢 **Implementada** 2026-07-31 — ver [[Módulo Menú]] |
+| **2b** | **Room + outbox + `SyncWorker`**: el Menú pasa a offline-first (**P-014**) | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
 | **2c** | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
+
+> [!warning] 2b dejó de ser "la deuda del Menú" y pasó a ser un prerrequisito
+> [[Plan Fase 3a - CRUD de Mesas]] y [[Plan Fase 3b - CRUD de Clientes]] **nacen** sobre la
+> infraestructura de 2b en vez de repetir el patrón contra-la-red de 2a. Eso convierte a 2b
+> en bloqueante de la Fase 3: no es opcional ni postergable sin multiplicar P-014 por tres.
 
 ---
 
