@@ -69,4 +69,15 @@ public final class ActualizarPlatilloDto {
         return new ActualizarPlatilloDto(nombre, descripcion == null ? "" : descripcion,
                 precio, idCategoria, rutaImagen, null);
     }
+
+    /**
+     * Estado completo de la fila: se usa en el outbox (Fase 2b), donde un
+     * {@code ACTUALIZAR} debe poder llevarse también el estado, no solo los datos.
+     */
+    public static ActualizarPlatilloDto conTodo(String nombre, String descripcion,
+                                                double precio, int idCategoria,
+                                                String rutaImagen, int idEstado) {
+        return new ActualizarPlatilloDto(nombre, descripcion == null ? "" : descripcion,
+                precio, idCategoria, rutaImagen, idEstado);
+    }
 }

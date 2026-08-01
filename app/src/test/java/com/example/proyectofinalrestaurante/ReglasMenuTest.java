@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.example.proyectofinalrestaurante.domain.ReglasMenu;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
 
@@ -21,11 +22,13 @@ import java.util.List;
 public class ReglasMenuTest {
 
     private static Categoria categoria(int id, String descripcion, int cantidadPlatillos) {
-        return new Categoria(id, descripcion, true, cantidadPlatillos, cantidadPlatillos);
+        return new Categoria(id, id, descripcion, true, cantidadPlatillos, cantidadPlatillos,
+                EstadoSync.SINCRONIZADO);
     }
 
     private static Platillo platillo(int id, String nombre) {
-        return new Platillo(id, nombre, null, 35.0, 1, "Entradas", null, true);
+        return new Platillo(id, id, nombre, null, 35.0, 1, "Entradas", null, true,
+                EstadoSync.SINCRONIZADO);
     }
 
     // ------------------------------------------------------------------ borrado
@@ -44,7 +47,8 @@ public class ReglasMenuTest {
     public void categoriaSoloConPlatillosDesactivados_tampocoSePuedeBorrar() {
         // El trigger cuenta filas, no activos: una categoría con un platillo desactivado
         // sigue teniendo un platillo.
-        Categoria conDesactivados = new Categoria(1, "Entradas", true, 2, 0);
+        Categoria conDesactivados = new Categoria(1, 1, "Entradas", true, 2, 0,
+                EstadoSync.SINCRONIZADO);
         assertFalse(ReglasMenu.puedeBorrarse(conDesactivados));
     }
 

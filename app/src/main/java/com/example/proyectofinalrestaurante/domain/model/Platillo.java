@@ -3,22 +3,25 @@ package com.example.proyectofinalrestaurante.domain.model;
 import androidx.annotation.Nullable;
 
 /**
- * Platillo del menú (Plan Fase 2a). Inmutable.
+ * Platillo del menú (Plan Fase 2a; rediseñado en 2b para offline-first). Inmutable.
  *
- * <p>Corresponde a una fila de la vista {@code public.vista_platillos}, que ya trae el
- * nombre de la categoría resuelto. La app <b>lee</b> de esa vista y <b>escribe</b> en la
- * tabla {@code platillo}.</p>
+ * <p>Desde la Fase 2b la identidad local es {@code idLocal} (la PK de Room); el
+ * {@code id_platillo} del servidor es {@code idServidor}, que viene {@code null} mientras
+ * la fila no se haya subido. Las referencias locales (la categoría de un platillo, los ids
+ * que viajan por la UI) usan siempre {@code idLocal}. Sin esa separación, un platillo
+ * creado sin red no tendría a qué apuntar. Ver Plan Fase 2b, §5.5.</p>
  *
- * <p>{@code rutaImagen} es la ruta dentro del bucket ({@code a3f9….jpg}), <b>nunca</b> la
- * URL completa: si mañana cambia el proyecto, el dominio o el nombre del bucket, las URLs
- * guardadas apuntarían a la nada. La URL pública la arma {@code ui} a partir de esta ruta.</p>
+ * <p>{@code idCategoria} es la categoría <b>local</b> a la que pertenece el platillo.
+ * {@code rutaImagen} es la ruta dentro del bucket ({@code a3f9….jpg}), nunca la URL
+ * completa; la URL pública la arma {@code ui} a partir de esta ruta.</p>
  *
  * <p>Un platillo nunca se borra, se desactiva ({@code activo == false}): borrarlo rompería
  * el historial de pedidos, y un trigger del servidor rechaza el {@code DELETE}.</p>
  */
 public final class Platillo {
 
-    private final int idPlatillo;
+    private final int idLocal;
+    @Nullable private final Integer idServidor;
     private final String nombre;
     @Nullable private final String descripcion;
     private final double precio;
@@ -27,11 +30,14 @@ public final class Platillo {
     @Nullable private final String nombreCategoria;
     @Nullable private final String rutaImagen;
     private final boolean activo;
+    private final EstadoSync estadoSync;
 
-    public Platillo(int idPlatillo, String nombre, @Nullable String descripcion, double precio,
-                    int idCategoria, @Nullable String nombreCategoria,
-                    @Nullable String rutaImagen, boolean activo) {
-        this.idPlatillo = idPlatillo;
+    public Platillo(int idLocal, @Nullable Integer idServidor, String nombre,
+                    @Nullable String descripcion, double precio, int idCategoria,
+                    @Nullable String nombreCategoria, @Nullable String rutaImagen,
+                    boolean activo, EstadoSync estadoSync) {
+        this.idLocal = idLocal;
+        this.idServidor = idServidor;
         this.nombre = nombre;
         this.descripcion = descripcion;
         this.precio = precio;
@@ -39,10 +45,16 @@ public final class Platillo {
         this.nombreCategoria = nombreCategoria;
         this.rutaImagen = rutaImagen;
         this.activo = activo;
+        this.estadoSync = estadoSync;
     }
 
-    public int getIdPlatillo() {
-        return idPlatillo;
+    public int getIdLocal() {
+        return idLocal;
+    }
+
+    @Nullable
+    public Integer getIdServidor() {
+        return idServidor;
     }
 
     public String getNombre() {
@@ -74,6 +86,10 @@ public final class Platillo {
 
     public boolean isActivo() {
         return activo;
+    }
+
+    public EstadoSync getEstadoSync() {
+        return estadoSync;
     }
 
     public boolean tieneImagen() {

@@ -6,9 +6,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
@@ -23,7 +27,15 @@ import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.TimeUnit;
 
-/** Tests de {@link MenuViewModel} (Plan Fase 2a, E7). */
+/**
+ * Tests de {@link MenuViewModel} (Plan Fase 2b, E6/E8): la UI ya no lee de la red sino de
+ * Room, así que el test alimenta las tres {@link LiveData} del contrato (platillos,
+ * categorías y estado de sincronización) y verifica el estado fusionado.
+ *
+ * <p>El repositorio es un fake sin Room ni Retrofit. Como {@code MediatorLiveData} solo
+ * emite cuando tiene un observador activo, cada test activa la cadena observando el estado
+ * una vez — ese es el equivalente del viejo {@code cargar()}, que ya no existe.</p>
+ */
 public class MenuViewModelTest {
 
     @Rule
@@ -32,9 +44,14 @@ public class MenuViewModelTest {
     private static final int ID_ENTRADAS = 1;
     private static final int ID_BEBIDAS = 3;
 
-    private static Platillo platillo(int id, String nombre, int idCategoria) {
-        return new Platillo(id, nombre, "Descripción de " + nombre, 35.0, idCategoria,
-                "Categoría " + idCategoria, null, true);
+    private static Platillo platillo(int idLocal, String nombre, int idCategoria) {
+        return new Platillo(idLocal, idLocal, nombre, "Descripción de " + nombre, 35.0,
+                idCategoria, "Categoría " + idCategoria, null, true, EstadoSync.SINCRONIZADO);
+    }
+
+    private static Categoria categoria(int idLocal, String descripcion) {
+        return new Categoria(idLocal, idLocal, descripcion, true, 2, 2,
+                EstadoSync.SINCRONIZADO);
     }
 
     private static List<Platillo> catalogo() {
@@ -46,22 +63,24 @@ public class MenuViewModelTest {
 
     private static List<Categoria> categorias() {
         return Arrays.asList(
-                new Categoria(ID_ENTRADAS, "Entradas", true, 2, 2),
-                new Categoria(ID_BEBIDAS, "Bebidas", true, 1, 1));
+                categoria(ID_ENTRADAS, "Entradas"),
+                categoria(ID_BEBIDAS, "Bebidas"));
     }
 
+    /** Activa la cadena LiveData observando el estado; sin esto, las fuentes no emiten. */
     private MenuViewModel viewModelCon(FakeMenuRepository repositorio) {
-        return new MenuViewModel(repositorio, new ExecutorServiceSincrono());
+        MenuViewModel viewModel = new MenuViewModel(repositorio, new ExecutorServiceSincrono());
+        viewModel.getEstado().observeForever(ignorado -> { });
+        return viewModel;
     }
 
-    // ------------------------------------------------------------------ carga
+    // ------------------------------------------------------------------ datos iniciales
 
     @Test
-    public void cargar_exitoso_publicaPlatillosYCategorias() {
+    public void alActivarLasFuentes_muestraPlatillosYCategorias() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
-        MenuViewModel viewModel = viewModelCon(repositorio);
 
-        viewModel.cargar();
+        MenuViewModel viewModel = viewModelCon(repositorio);
 
         EstadoMenu estado = viewModel.getEstado().getValue();
         assertFalse(estado.isCargando());
@@ -72,12 +91,11 @@ public class MenuViewModelTest {
     }
 
     @Test
-    public void cargar_sinPlatillos_quedaVacioPeroNoPorFiltro() {
+    public void sinPlatillos_quedaVacioPeroNoPorFiltro() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
-        repositorio.platillos = Result.ok(new ArrayList<>());
-        MenuViewModel viewModel = viewModelCon(repositorio);
+        repositorio.platillos.setValue(new ArrayList<>());
 
-        viewModel.cargar();
+        MenuViewModel viewModel = viewModelCon(repositorio);
 
         EstadoMenu estado = viewModel.getEstado().getValue();
         assertTrue(estado.isVacio());
@@ -86,29 +104,66 @@ public class MenuViewModelTest {
     }
 
     @Test
-    public void cargar_errorDeRed_publicaElError() {
+    public void errorDeSincronizacion_terminaEnElEstado() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
-        repositorio.platillos = Result.fail("Sin conexión al servidor. Intentá de nuevo.");
+        repositorio.sincronizacion.setValue(
+                new EstadoSincronizacion(false, "2 cambios no se pudieron subir"));
+
         MenuViewModel viewModel = viewModelCon(repositorio);
 
-        viewModel.cargar();
-
-        EstadoMenu estado = viewModel.getEstado().getValue();
-        assertEquals("Sin conexión al servidor. Intentá de nuevo.", estado.getError());
-        assertTrue(estado.getPlatillos().isEmpty());
+        assertEquals("2 cambios no se pudieron subir",
+                viewModel.getEstado().getValue().getUltimoErrorSync());
     }
 
     @Test
-    public void cargar_siFallanLasCategorias_tambienEsError() {
+    public void mientrasSincroniza_elIndicadorEstaEncendido() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
-        repositorio.categorias = Result.fail("No se pudieron cargar las categorías.");
+        repositorio.sincronizacion.setValue(new EstadoSincronizacion(true, null));
+
         MenuViewModel viewModel = viewModelCon(repositorio);
 
-        viewModel.cargar();
+        assertTrue(viewModel.getEstado().getValue().isSincronizando());
+    }
 
-        // La pantalla necesita las dos listas: sin categorías no hay chips ni formulario.
-        assertEquals("No se pudieron cargar las categorías.",
-                viewModel.getEstado().getValue().getError());
+    @Test
+    public void cambiosSinSubir_cuentaFilasQueNoEstanSincronizadas() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        List<Platillo> conPendientes = Arrays.asList(
+                platillo(1, "Baleada sencilla", ID_ENTRADAS),
+                platilloConEstado(2, "Sopa de caracol", ID_ENTRADAS, EstadoSync.PENDIENTE),
+                platilloConEstado(3, "Refresco de tamarindo", ID_BEBIDAS, EstadoSync.ERROR));
+        List<Categoria> conCategoriaPendiente = Arrays.asList(
+                categoria(ID_ENTRADAS, "Entradas"),
+                categoriaConEstado(ID_BEBIDAS, "Bebidas", EstadoSync.PENDIENTE));
+        repositorio.platillos.setValue(conPendientes);
+        repositorio.categorias.setValue(conCategoriaPendiente);
+
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        // 2 platillos + 1 categoría sin subir; el conteo se deriva, no se guarda.
+        assertEquals(3, viewModel.getEstado().getValue().getCambiosSinSubir());
+    }
+
+    private static Platillo platilloConEstado(int idLocal, String nombre, int idCategoria,
+                                              EstadoSync estadoSync) {
+        return new Platillo(idLocal, idLocal, nombre, "Descripción de " + nombre, 35.0,
+                idCategoria, "Categoría " + idCategoria, null, true, estadoSync);
+    }
+
+    private static Categoria categoriaConEstado(int idLocal, String descripcion,
+                                                EstadoSync estadoSync) {
+        return new Categoria(idLocal, idLocal, descripcion, true, 2, 2, estadoSync);
+    }
+
+    @Test
+    public void todosLosPlatillos_esCopiaCompletaSinFiltrar() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+        viewModel.filtrarPorCategoria(ID_BEBIDAS);
+
+        // El formulario y el chequeo de duplicados necesitan el catálogo entero.
+        assertEquals(3, viewModel.getTodosLosPlatillos().size());
+        assertEquals(1, viewModel.getEstado().getValue().getPlatillos().size());
     }
 
     // ------------------------------------------------------------------ filtros
@@ -117,7 +172,6 @@ public class MenuViewModelTest {
     public void filtrarPorCategoria_dejaSoloLosDeEsaCategoria() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
 
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
 
@@ -131,7 +185,6 @@ public class MenuViewModelTest {
     public void filtrarPorTodos_vuelveATraerElCatalogoCompleto() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
 
         viewModel.filtrarPorCategoria(EstadoMenu.SIN_FILTRO);
@@ -143,7 +196,6 @@ public class MenuViewModelTest {
     public void buscar_ignoraMayusculasYBuscaTambienEnLaDescripcion() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
 
         viewModel.buscar("  BALEADA ");
 
@@ -154,7 +206,6 @@ public class MenuViewModelTest {
     public void buscar_sinCoincidencias_quedaVacioPorFiltro() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
 
         viewModel.buscar("pizza");
 
@@ -167,7 +218,6 @@ public class MenuViewModelTest {
     public void filtroYBusquedaSeCombinan() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
 
         viewModel.filtrarPorCategoria(ID_ENTRADAS);
         viewModel.buscar("sopa");
@@ -178,15 +228,14 @@ public class MenuViewModelTest {
     }
 
     @Test
-    public void elFiltroSobreviveAUnaRecarga() {
+    public void elFiltroSobreviveAUnaOperacion() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
         viewModel.buscar("refresco");
 
-        // Una operación exitosa relee del servidor; el filtro no puede perderse en el medio.
-        viewModel.cambiarEstadoPlatillo(platillo(1, "Baleada sencilla", ID_ENTRADAS), false);
+        // Una operación exitosa no puede resetear el filtro con el que se está mirando.
+        viewModel.cambiarEstadoPlatillo(3, false);
 
         EstadoMenu estado = viewModel.getEstado().getValue();
         assertEquals(ID_BEBIDAS, estado.getFiltroCategoria());
@@ -197,7 +246,7 @@ public class MenuViewModelTest {
     // ------------------------------------------------------------------ operaciones
 
     @Test
-    public void crearPlatillo_exitoso_dejaMensajeDeUnSoloDisparo() {
+    public void crearPlatillo_exitoso_anunciaYMantieneElMensajeDeUnSoloDisparo() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
 
@@ -205,6 +254,7 @@ public class MenuViewModelTest {
 
         assertEquals("Platillo agregado al menú.",
                 viewModel.getEstado().getValue().getMensajeExito());
+        assertEquals("Pinchos", repositorio.ultimoNuevo.getNombre());
 
         viewModel.onMensajeConsumido();
 
@@ -213,12 +263,13 @@ public class MenuViewModelTest {
     }
 
     @Test
-    public void crearPlatillo_rechazado_publicaElErrorDelServidor() {
+    public void crearPlatillo_rechazado_publicaElError() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         repositorio.resultadoCrearPlatillo = Result.fail("Ya existe un platillo con ese nombre");
         MenuViewModel viewModel = viewModelCon(repositorio);
 
-        viewModel.crearPlatillo(new NuevoPlatillo("Baleada sencilla", null, 35.0, ID_ENTRADAS), null);
+        viewModel.crearPlatillo(new NuevoPlatillo("Baleada sencilla", null, 35.0, ID_ENTRADAS),
+                null);
 
         assertEquals("Ya existe un platillo con ese nombre",
                 viewModel.getEstado().getValue().getError());
@@ -228,11 +279,11 @@ public class MenuViewModelTest {
     public void actualizarPlatillo_siLoMueveAOtraCategoria_sueltaElFiltroQueLoEsconderia() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_ENTRADAS);
 
         // La baleada estaba en Entradas y el usuario la manda a Bebidas.
-        viewModel.actualizarPlatillo(platillo(1, "Baleada sencilla", ID_BEBIDAS), null);
+        viewModel.actualizarPlatillo(1,
+                new NuevoPlatillo("Baleada sencilla", null, 35.0, ID_BEBIDAS), null);
 
         // Con el filtro en Entradas, el platillo recién guardado desaparecía de la pantalla
         // y se leía como que el cambio no se había aplicado.
@@ -245,11 +296,11 @@ public class MenuViewModelTest {
     public void actualizarPlatillo_siSigueEnLaCategoriaDelFiltro_loConserva() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
 
         // Solo cambia el nombre: el platillo sigue visible, así que el filtro no estorba.
-        viewModel.actualizarPlatillo(platillo(4, "Refresco de tamarindo XL", ID_BEBIDAS), null);
+        viewModel.actualizarPlatillo(3,
+                new NuevoPlatillo("Refresco de tamarindo XL", null, 35.0, ID_BEBIDAS), null);
 
         assertEquals(ID_BEBIDAS, viewModel.getEstado().getValue().getFiltroCategoria());
     }
@@ -258,7 +309,6 @@ public class MenuViewModelTest {
     public void crearPlatillo_enOtraCategoria_sueltaElFiltroQueLoEsconderia() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
 
         viewModel.crearPlatillo(new NuevoPlatillo("Pinchos", null, 165.0, ID_ENTRADAS), null);
@@ -272,7 +322,6 @@ public class MenuViewModelTest {
     public void borrarCategoria_siEraLaDelFiltro_vuelveATodos() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
         viewModel.filtrarPorCategoria(ID_BEBIDAS);
 
         viewModel.borrarCategoria(ID_BEBIDAS);
@@ -284,75 +333,120 @@ public class MenuViewModelTest {
     }
 
     @Test
-    public void cambiarEstadoPlatillo_relee_noRetocaLaListaEnMemoria() {
+    public void cambiarEstadoPlatillo_pasaElIdLocalYElEstadoAlRepositorio() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
-        viewModel.cargar();
-        int lecturasIniciales = repositorio.vecesQueSeLeyo;
 
-        viewModel.cambiarEstadoPlatillo(platillo(1, "Baleada sencilla", ID_ENTRADAS), false);
+        viewModel.cambiarEstadoPlatillo(3, false);
 
-        // Lo que se ve tiene que ser lo que la base aceptó, con triggers incluidos.
-        assertEquals(lecturasIniciales + 1, repositorio.vecesQueSeLeyo);
+        assertEquals(3, repositorio.ultimoIdPlatillo);
+        assertFalse(repositorio.ultimoActivo);
+        assertEquals("Platillo desactivado.",
+                viewModel.getEstado().getValue().getMensajeExito());
     }
 
-    /** Fake de {@link MenuRepository}: sin red, sin Retrofit — solo lo que el test necesita. */
+    @Test
+    public void quitarImagen_pasaElIdLocalYAnuncia() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        viewModel.quitarImagen(3);
+
+        assertEquals(3, repositorio.ultimoIdSinImagen);
+        assertEquals("Foto quitada.", viewModel.getEstado().getValue().getMensajeExito());
+    }
+
+    @Test
+    public void sincronizar_pideAlRepositorio() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        viewModel.sincronizar();
+
+        assertEquals(1, repositorio.vecesSincronizo);
+    }
+
+    /** Fake de {@link MenuRepository}: LiveData en memoria, escrituras que solo anotan. */
     private static final class FakeMenuRepository implements MenuRepository {
 
-        Result<List<Platillo>> platillos = Result.ok(catalogo());
-        Result<List<Categoria>> categorias = Result.ok(categorias());
-        Result<Platillo> resultadoCrearPlatillo = Result.ok(platillo(9, "Nuevo", ID_ENTRADAS));
+        final MutableLiveData<List<Platillo>> platillos = new MutableLiveData<>(catalogo());
+        final MutableLiveData<List<Categoria>> categorias = new MutableLiveData<>(categorias());
+        final MutableLiveData<EstadoSincronizacion> sincronizacion =
+                new MutableLiveData<>(new EstadoSincronizacion(false, null));
+
+        Result<Long> resultadoCrearPlatillo = Result.ok(9L);
         Result<Void> resultadoOperacion = Result.ok(null);
-        int vecesQueSeLeyo = 0;
+
+        int vecesSincronizo = 0;
+        int ultimoIdPlatillo;
+        int ultimoIdSinImagen;
+        boolean ultimoActivo;
+        NuevoPlatillo ultimoNuevo;
 
         @Override
-        public Result<List<Platillo>> listarPlatillos() {
-            vecesQueSeLeyo++;
+        public LiveData<List<Platillo>> observarPlatillos() {
             return platillos;
         }
 
         @Override
-        public Result<List<Categoria>> listarCategorias() {
+        public LiveData<List<Categoria>> observarCategorias() {
             return categorias;
         }
 
         @Override
-        public Result<Platillo> crearPlatillo(NuevoPlatillo nuevo, ImagenPlatillo imagen) {
+        public LiveData<EstadoSincronizacion> getEstadoSincronizacion() {
+            return sincronizacion;
+        }
+
+        @Override
+        public void sincronizar() {
+            vecesSincronizo++;
+        }
+
+        @Override
+        public Result<Long> crearPlatillo(NuevoPlatillo nuevo, ImagenPlatillo imagen) {
+            ultimoNuevo = nuevo;
             return resultadoCrearPlatillo;
         }
 
         @Override
-        public Result<Void> actualizarPlatillo(Platillo platillo, ImagenPlatillo imagenNueva) {
+        public Result<Void> actualizarPlatillo(int idLocal, NuevoPlatillo datos,
+                                               ImagenPlatillo imagenNueva) {
+            ultimoIdPlatillo = idLocal;
+            ultimoNuevo = datos;
             return resultadoOperacion;
         }
 
         @Override
-        public Result<Void> quitarImagen(Platillo platillo) {
+        public Result<Void> quitarImagen(int idLocal) {
+            ultimoIdSinImagen = idLocal;
             return resultadoOperacion;
         }
 
         @Override
-        public Result<Void> cambiarEstadoPlatillo(int idPlatillo, boolean activo) {
+        public Result<Void> cambiarEstadoPlatillo(int idLocal, boolean activo) {
+            ultimoIdPlatillo = idLocal;
+            ultimoActivo = activo;
             return resultadoOperacion;
         }
 
         @Override
-        public Result<Categoria> crearCategoria(String descripcion) {
-            return Result.ok(new Categoria(9, descripcion, true, 0, 0));
+        public Result<Long> crearCategoria(String descripcion) {
+            return Result.ok(9L);
         }
 
         @Override
-        public Result<Void> renombrarCategoria(int idCategoria, String descripcion) {
+        public Result<Void> renombrarCategoria(int idLocal, String descripcion) {
             return resultadoOperacion;
         }
 
         @Override
-        public Result<Void> cambiarEstadoCategoria(int idCategoria, boolean activo) {
+        public Result<Void> cambiarEstadoCategoria(int idLocal, boolean activo) {
             return resultadoOperacion;
         }
 
         @Override
-        public Result<Void> borrarCategoria(int idCategoria) {
+        public Result<Void> borrarCategoria(int idLocal) {
             return resultadoOperacion;
         }
     }

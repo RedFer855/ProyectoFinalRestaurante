@@ -1,9 +1,11 @@
 package com.example.proyectofinalrestaurante.domain.repository;
 
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
 
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
 import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
@@ -14,50 +16,58 @@ import java.util.List;
  * Contrato del módulo Menú (Domain Layer). {@code data} lo implementa; es la única cara
  * que {@code ui} ve del menú.
  *
- * <p>Todo va directo por PostgREST y lo autoriza la RLS: a diferencia de Empleados, acá
- * no hace falta ninguna Edge Function porque no se crean cuentas de acceso.</p>
+ * <p>Desde la Fase 2b (offline-first) las <b>lecturas</b> son {@link LiveData} sobre Room:
+ * nunca fallan y siempre reflejan lo que hay en disco al instante. Las <b>escrituras</b> son
+ * optimistas — escriben en Room, encolan en el outbox y devuelven {@code Result} aunque no
+ * haya red; la subida al servidor la hace en segundo plano el {@code SyncWorker}. Ver
+ * [[Plan Fase 2b - Offline-First con Room y Outbox]].</p>
  *
- * <p>Las fotos viven en el bucket {@code platillos} de Storage, que es un sistema
- * <b>distinto</b> de la base. Las operaciones que tocan los dos (crear con foto, cambiar
- * la foto, quitarla) se orquestan del lado de {@code data} para que {@code ui} no tenga
- * que saber que hay dos sistemas que pueden desincronizarse.</p>
+ * <p>Los ids que la UI le pasa a las escrituras son siempre <b>locales</b>
+ * ({@code idLocal}); el mapeo a {@code id_servidor} vive en {@code data}.</p>
  */
 public interface MenuRepository {
 
-    Result<List<Platillo>> listarPlatillos();
+    LiveData<List<Platillo>> observarPlatillos();
 
-    Result<List<Categoria>> listarCategorias();
+    LiveData<List<Categoria>> observarCategorias();
 
-    /**
-     * Crea el platillo y, si viene imagen, la sube primero.
-     *
-     * <p>Si el insert falla después de haber subido la foto, la implementación borra el
-     * archivo recién subido: sin esa compensación, cada error dejaría basura permanente
-     * en el bucket.</p>
-     */
-    Result<Platillo> crearPlatillo(NuevoPlatillo nuevo, @Nullable ImagenPlatillo imagen);
+    /** Sincronizando en este momento y, si algo se cayó de forma permanente, el error. */
+    LiveData<EstadoSincronizacion> getEstadoSincronizacion();
 
     /**
-     * Guarda los datos del platillo y, si viene {@code imagenNueva}, la reemplaza.
-     *
-     * <p>La foto nueva se sube en una ruta nueva y la vieja se borra al final. Así, si algo
-     * se cae en el medio, sobra un archivo (barato, invisible) en vez de faltar la foto de
-     * un platillo que sí existe (visible para el usuario).</p>
+     * Pide una sincronización (drenar el outbox y bajar el delta). No bloquea: dispara el
+     * trabajo único de {@code SyncWorker}, que ya corre con constraint de red.
      */
-    Result<Void> actualizarPlatillo(Platillo platillo, @Nullable ImagenPlatillo imagenNueva);
+    void sincronizar();
 
-    /** Deja el platillo sin foto: limpia la ruta en la fila y borra el archivo. */
-    Result<Void> quitarImagen(Platillo platillo);
+    /**
+     * Crea el platillo en Room y encola su subida. Si viene imagen, se guarda como archivo
+     * local y se sube cuando drene el outbox.
+     *
+     * @return el {@code idLocal} de la fila creada
+     */
+    Result<Long> crearPlatillo(NuevoPlatillo nuevo, @Nullable ImagenPlatillo imagen);
+
+    /**
+     * Actualiza los datos de un platillo existente. Si el platillo todavía no se subió
+     * ({@code idServidor == null}), la edición se pliega al {@code CREAR} pendiente en vez
+     * de encolar una actualización que no tendría a qué apuntar (Plan Fase 2b, §5.5).
+     */
+    Result<Void> actualizarPlatillo(int idLocal, NuevoPlatillo datos,
+                                    @Nullable ImagenPlatillo imagenNueva);
+
+    /** Deja el platillo sin foto: limpia la ruta local y encola la operación. */
+    Result<Void> quitarImagen(int idLocal);
 
     /** Activa o desactiva. Un platillo nunca se borra: rompería el historial de pedidos. */
-    Result<Void> cambiarEstadoPlatillo(int idPlatillo, boolean activo);
+    Result<Void> cambiarEstadoPlatillo(int idLocal, boolean activo);
 
-    Result<Categoria> crearCategoria(String descripcion);
+    Result<Long> crearCategoria(String descripcion);
 
-    Result<Void> renombrarCategoria(int idCategoria, String descripcion);
+    Result<Void> renombrarCategoria(int idLocal, String descripcion);
 
-    Result<Void> cambiarEstadoCategoria(int idCategoria, boolean activo);
+    Result<Void> cambiarEstadoCategoria(int idLocal, boolean activo);
 
     /** Solo funciona si la categoría no tiene platillos; si los tiene, el servidor la rechaza. */
-    Result<Void> borrarCategoria(int idCategoria);
+    Result<Void> borrarCategoria(int idLocal);
 }

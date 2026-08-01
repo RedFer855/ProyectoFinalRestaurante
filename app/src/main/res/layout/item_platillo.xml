@@ -90,6 +90,23 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:text="L 240.00" />
 
+        <!--
+          Estado de sincronización de la fila (Plan Fase 2b, §4.5): "Sin subir" mientras el
+          platillo es local y todavía no llegó al servidor. Se oculta cuando ya sincronizó.
+        -->
+        <TextView
+            android:id="@+id/txt_sync_platillo"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:text="@string/menu_sync_pendiente"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/txt_precio_platillo"
+            tools:visibility="visible" />
+
         <TextView
             android:id="@+id/txt_categoria_platillo"
             android:layout_width="wrap_content"

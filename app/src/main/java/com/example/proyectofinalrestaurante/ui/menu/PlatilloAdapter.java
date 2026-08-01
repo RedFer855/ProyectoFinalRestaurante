@@ -15,6 +15,7 @@ import com.bumptech.glide.Glide;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.button.MaterialButton;
@@ -63,7 +64,7 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             new DiffUtil.ItemCallback<Platillo>() {
                 @Override
                 public boolean areItemsTheSame(@NonNull Platillo a, @NonNull Platillo b) {
-                    return a.getIdPlatillo() == b.getIdPlatillo();
+                    return a.getIdLocal() == b.getIdLocal();
                 }
 
                 @Override
@@ -71,6 +72,7 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
                     return a.getPrecio() == b.getPrecio()
                             && a.isActivo() == b.isActivo()
                             && a.getIdCategoria() == b.getIdCategoria()
+                            && a.getEstadoSync() == b.getEstadoSync()
                             && Objects.equals(a.getNombre(), b.getNombre())
                             && Objects.equals(a.getDescripcion(), b.getDescripcion())
                             && Objects.equals(a.getNombreCategoria(), b.getNombreCategoria())
@@ -97,6 +99,7 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
         private final TextView nombre;
         private final TextView categoria;
         private final TextView estado;
+        private final TextView sincronizacion;
         private final TextView descripcion;
         private final TextView precio;
         private final LinearLayout grupoAcciones;
@@ -109,6 +112,7 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             nombre = itemView.findViewById(R.id.txt_nombre_platillo);
             categoria = itemView.findViewById(R.id.txt_categoria_platillo);
             estado = itemView.findViewById(R.id.txt_estado_platillo);
+            sincronizacion = itemView.findViewById(R.id.txt_sync_platillo);
             descripcion = itemView.findViewById(R.id.txt_descripcion_platillo);
             precio = itemView.findViewById(R.id.txt_precio_platillo);
             grupoAcciones = itemView.findViewById(R.id.grupo_acciones_platillo);
@@ -123,6 +127,11 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
                     : platillo.getNombreCategoria());
             precio.setText(itemView.getContext()
                     .getString(R.string.formato_lempiras, platillo.getPrecio()));
+
+            // "Sin subir" mientras el platillo es local y no llegó al servidor (Plan Fase 2b).
+            sincronizacion.setVisibility(
+                    platillo.getEstadoSync() != EstadoSync.SINCRONIZADO
+                            ? View.VISIBLE : View.GONE);
 
             String textoDescripcion = platillo.getDescripcion();
             descripcion.setText(textoDescripcion);

@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
@@ -49,6 +50,8 @@ public class MenuFragment extends Fragment
     private ChipGroup grupoCategorias;
     private TextView vacio;
     private View progreso;
+    private TextView estadoSync;
+    private SwipeRefreshLayout refresco;
 
     /** Categorías con las que se pintaron los chips, para no rearmarlos en cada estado. */
     private List<Categoria> categoriasPintadas;
@@ -66,9 +69,15 @@ public class MenuFragment extends Fragment
         vacio = view.findViewById(R.id.txt_menu_vacio);
         progreso = view.findViewById(R.id.progress_menu);
         grupoCategorias = view.findViewById(R.id.grupo_categorias);
+        estadoSync = view.findViewById(R.id.txt_estado_sync);
+        refresco = view.findViewById(R.id.refresco_menu);
 
-        viewModel = new ViewModelProvider(this, new MenuViewModelFactory())
+        viewModel = new ViewModelProvider(this,
+                new MenuViewModelFactory(requireActivity().getApplication()))
                 .get(MenuViewModel.class);
+
+        // "Bajar para sincronizar": dispara el drenado del outbox + delta (Plan Fase 2b, §5.6).
+        refresco.setOnRefreshListener(() -> viewModel.sincronizar());
 
         adapter = new PlatilloAdapter(this);
         RecyclerView lista = view.findViewById(R.id.lista_platillos);
@@ -86,10 +95,6 @@ public class MenuFragment extends Fragment
         botonCategorias.setOnClickListener(v -> abrirCategorias());
 
         viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
-
-        if (savedInstanceState == null) {
-            viewModel.cargar();
-        }
     }
 
     private void configurarBusqueda(TextInputEditText campo) {
@@ -115,6 +120,7 @@ public class MenuFragment extends Fragment
         progreso.setVisibility(estado.isCargando() ? View.VISIBLE : View.GONE);
         adapter.submitList(estado.getPlatillos());
         pintarChips(estado);
+        actualizarIndicadorSync(estado);
 
         if (estado.getError() != null) {
             vacio.setVisibility(View.VISIBLE);
@@ -137,6 +143,35 @@ public class MenuFragment extends Fragment
     }
 
     /**
+     * Indicador global de sincronización (Plan Fase 2b, §4.5): el spinner del
+     * SwipeRefreshLayout refleja {@code sincronizando}, y el banner informa cuándo hay
+     * cambios locales todavía sin subir o un error permanente.
+     */
+    private void actualizarIndicadorSync(EstadoMenu estado) {
+        refresco.setRefreshing(estado.isSincronizando());
+        String mensaje = mensajeDeSync(estado);
+        estadoSync.setVisibility(mensaje == null ? View.GONE : View.VISIBLE);
+        if (mensaje != null) {
+            estadoSync.setText(mensaje);
+        }
+    }
+
+    @Nullable
+    private String mensajeDeSync(EstadoMenu estado) {
+        if (estado.getUltimoErrorSync() != null) {
+            return estado.getUltimoErrorSync();
+        }
+        if (estado.isSincronizando()) {
+            return getString(R.string.menu_sync_en_proceso);
+        }
+        if (estado.getCambiosSinSubir() > 0) {
+            return getResources().getQuantityString(R.plurals.menu_sync_cambios_sin_subir,
+                    estado.getCambiosSinSubir(), estado.getCambiosSinSubir());
+        }
+        return null;
+    }
+
+    /**
      * Los chips se rearman solo cuando las categorías cambian de verdad.
      *
      * <p>El estado {@code cargando} llega sin listas, y repintar en cada operación haría
@@ -154,7 +189,7 @@ public class MenuFragment extends Fragment
         grupoCategorias.addView(crearChip(getString(R.string.filtro_todos), EstadoMenu.SIN_FILTRO));
         for (Categoria categoria : categorias) {
             grupoCategorias.addView(
-                    crearChip(categoria.getDescripcion(), categoria.getIdCategoria()));
+                    crearChip(categoria.getDescripcion(), categoria.getIdLocal()));
         }
         categoriasPintadas = categorias;
         marcarChipSeleccionado(estado.getFiltroCategoria());
@@ -167,7 +202,7 @@ public class MenuFragment extends Fragment
         for (int i = 0; i < categorias.size(); i++) {
             Categoria pintada = categoriasPintadas.get(i);
             Categoria actual = categorias.get(i);
-            if (pintada.getIdCategoria() != actual.getIdCategoria()
+            if (pintada.getIdLocal() != actual.getIdLocal()
                     || !pintada.getDescripcion().equals(actual.getDescripcion())) {
                 return false;
             }
@@ -197,7 +232,7 @@ public class MenuFragment extends Fragment
 
     private void mostrarReintentar(String mensaje) {
         Snackbar.make(requireView(), mensaje, Snackbar.LENGTH_LONG)
-                .setAction(R.string.empleado_reintentar, v -> viewModel.cargar())
+                .setAction(R.string.empleado_reintentar, v -> viewModel.sincronizar())
                 .show();
     }
 
@@ -210,7 +245,7 @@ public class MenuFragment extends Fragment
 
     @Override
     public void onAlternarEstadoPlatillo(Platillo platillo) {
-        viewModel.cambiarEstadoPlatillo(platillo, !platillo.isActivo());
+        viewModel.cambiarEstadoPlatillo(platillo.getIdLocal(), !platillo.isActivo());
     }
 
     private void abrirFormulario(@Nullable Platillo platillo) {
@@ -246,6 +281,8 @@ public class MenuFragment extends Fragment
         vacio = null;
         progreso = null;
         grupoCategorias = null;
+        estadoSync = null;
+        refresco = null;
         adapter = null;
         categoriasPintadas = null;
     }
@@ -256,13 +293,13 @@ public class MenuFragment extends Fragment
     }
 
     @Override
-    public void onEditar(Platillo editado, @Nullable ImagenPlatillo imagenNueva) {
-        viewModel.actualizarPlatillo(editado, imagenNueva);
+    public void onEditar(int idLocal, NuevoPlatillo editado, @Nullable ImagenPlatillo imagenNueva) {
+        viewModel.actualizarPlatillo(idLocal, editado, imagenNueva);
     }
 
     @Override
-    public void onQuitarFoto(Platillo platillo) {
-        viewModel.quitarImagen(platillo);
+    public void onQuitarFoto(int idLocal) {
+        viewModel.quitarImagen(idLocal);
     }
 
     @Override

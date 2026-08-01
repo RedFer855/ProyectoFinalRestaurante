@@ -26,6 +26,10 @@ public final class CategoriaDto {
     @SerializedName("cantidad_platillos_activos")
     private int cantidadPlatillosActivos;
 
+    /** Marca de la fila en el servidor; es la que permite el sync delta (Fase 2b, §4.3). */
+    @SerializedName("actualizado_en")
+    private String actualizadoEn;
+
     public int getIdCategoria() {
         return idCategoria;
     }
@@ -44,5 +48,9 @@ public final class CategoriaDto {
 
     public int getCantidadPlatillosActivos() {
         return cantidadPlatillosActivos;
+    }
+
+    public String getActualizadoEn() {
+        return actualizadoEn;
     }
 }

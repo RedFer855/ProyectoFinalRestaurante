@@ -66,17 +66,41 @@
                 app:singleSelection="true" />
         </HorizontalScrollView>
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/lista_platillos"
+        <!--
+          Estado global de la sincronización (Plan Fase 2b, §4.5): "N cambios sin subir",
+          "Sincronizando cambios…" o el último error permanente. Se oculta entero cuando
+          no hay nada que informar.
+        -->
+        <TextView
+            android:id="@+id/txt_estado_sync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:gravity="center"
+            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Sincronizando cambios…"
+            tools:visibility="visible" />
+
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/refresco_menu"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:clipToPadding="false"
-            android:paddingHorizontal="@dimen/espaciado_pantalla"
-            android:paddingTop="@dimen/espaciado_campo"
-            android:paddingBottom="@dimen/espaciado_lista_bajo_fab"
-            tools:itemCount="4"
-            tools:listitem="@layout/item_platillo" />
+            android:layout_weight="1">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/lista_platillos"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/espaciado_pantalla"
+                android:paddingTop="@dimen/espaciado_campo"
+                android:paddingBottom="@dimen/espaciado_lista_bajo_fab"
+                tools:itemCount="4"
+                tools:listitem="@layout/item_platillo" />
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     </LinearLayout>
 

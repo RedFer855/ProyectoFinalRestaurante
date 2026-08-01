@@ -13,11 +13,7 @@ import com.example.proyectofinalrestaurante.data.remote.dto.CategoriaDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.CrearCategoriaDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.CrearPlatilloDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PlatilloDto;
-import com.example.proyectofinalrestaurante.domain.Result;
-import com.example.proyectofinalrestaurante.domain.model.Categoria;
 import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
-import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
-import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.google.gson.Gson;
 
 import org.junit.Test;
@@ -35,12 +31,14 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 /**
- * Tests de {@link SupabaseMenuRepository} (Plan Fase 2a, E7).
- *
- * <p>El caso importante es la compensación: si la foto se subió pero el insert falla,
- * el archivo tiene que borrarse. Sin eso, cada error deja basura permanente en el bucket.</p>
+ * Tests de {@link MenuRemoto} (Plan Fase 2b, E5/E6): la cara de red que usa el
+ * sincronizador para drenar el outbox y bajar el delta. Es el sucesor directo de
+ * {@code SupabaseMenuRepositoryTest} de 2a: conserva la cobertura de la compensación
+ * (si la foto se subió pero el paso siguiente falla, el archivo se borra) y adapta las
+ * lecturas al contrato nuevo, que devuelve DTOs y no mapea a dominio — ese mapeo vive en
+ * los mappers y se cubre en {@code SincronizadorMenuTest}.
  */
-public class SupabaseMenuRepositoryTest {
+public class MenuRemotoTest {
 
     private static final String JSON_PLATILLO =
             "{\"id_platillo\":1,\"nombre\":\"Baleada sencilla\",\"descripcion\":\"Con frijoles\","
@@ -49,12 +47,12 @@ public class SupabaseMenuRepositoryTest {
 
     private final Gson gson = new Gson();
 
-    private SupabaseMenuRepository repositorioCon(FakeMenuApi api, FakeStorageApi storage) {
-        return new SupabaseMenuRepository(api, storage, () -> "token-válido");
+    private static MenuRemoto remotoCon(FakeMenuApi api, FakeStorageApi storage) {
+        return new MenuRemoto(api, storage, () -> "token-válido");
     }
 
-    private static NuevoPlatillo nuevoPlatillo() {
-        return new NuevoPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1);
+    private static MenuRemoto remotoSinSesion(FakeMenuApi api) {
+        return new MenuRemoto(api, new FakeStorageApi(), () -> null);
     }
 
     private static ImagenPlatillo imagen() {
@@ -66,52 +64,51 @@ public class SupabaseMenuRepositoryTest {
                 "{\"message\":\"" + mensaje + "\"}"));
     }
 
-    // ------------------------------------------------------------------ lectura
+    // ------------------------------------------------------------------ lecturas
 
     @Test
     public void listarPlatillos_sinSesion_devuelveFalloSinLlamarALaRed() {
         FakeMenuApi api = new FakeMenuApi();
-        SupabaseMenuRepository repositorio =
-                new SupabaseMenuRepository(api, new FakeStorageApi(), () -> null);
 
-        Result<List<Platillo>> resultado = repositorio.listarPlatillos();
+        ResultadoRed<List<PlatilloDto>> resultado = remotoSinSesion(api).listarPlatillos();
 
-        assertFalse(resultado.isSuccess());
-        assertEquals("Tu sesión venció. Volvé a iniciar sesión.", resultado.getError());
+        assertFalse(resultado.isExitoso());
+        assertEquals("Tu sesión venció. Volvé a iniciar sesión.", resultado.getMensaje());
+        assertEquals(401, resultado.getCodigoHttp());
         assertEquals(0, api.llamadasListarPlatillos);
     }
 
     @Test
-    public void listarPlatillos_exitoso_mapeaLosDtoADominio() {
+    public void listarPlatillos_exitoso_devuelveLosDtoTalCual() {
         FakeMenuApi api = new FakeMenuApi();
         PlatilloDto[] dtos = gson.fromJson("[" + JSON_PLATILLO + "]", PlatilloDto[].class);
         api.respuestaListarPlatillos = FakeCall.deRespuesta(Response.success(List.of(dtos)));
 
-        Result<List<Platillo>> resultado = repositorioCon(api, new FakeStorageApi()).listarPlatillos();
+        ResultadoRed<List<PlatilloDto>> resultado =
+                remotoCon(api, new FakeStorageApi()).listarPlatillos();
 
-        assertTrue(resultado.isSuccess());
-        assertEquals(1, resultado.getValue().size());
-        Platillo platillo = resultado.getValue().get(0);
-        assertEquals("Baleada sencilla", platillo.getNombre());
-        assertEquals("Entradas", platillo.getNombreCategoria());
-        assertEquals(35.0, platillo.getPrecio(), 0.001);
-        assertTrue(platillo.isActivo());
-        assertFalse(platillo.tieneImagen());
+        assertTrue(resultado.isExitoso());
+        assertEquals(1, resultado.getValor().size());
+        // El remoto no mapea: entrega lo que vino. El mapeo a dominio lo hace el mapper
+        // cuando el sincronizador baja el delta (SincronizadorMenuTest).
+        assertEquals("Baleada sencilla", resultado.getValor().get(0).getNombre());
+        assertEquals(1, resultado.getValor().get(0).getIdCategoria());
+        assertEquals(1, resultado.getValor().get(0).getIdEstado());
     }
 
     @Test
-    public void listarPlatillos_platilloInactivo_seMapeaComoInactivo() {
+    public void listarPlatillos_platilloInactivo_conservaElIdEstado() {
         FakeMenuApi api = new FakeMenuApi();
-        // El estado se deriva de id_estado, no de la columna `activo` de la vista.
         PlatilloDto[] dtos = gson.fromJson(
                 "[{\"id_platillo\":2,\"nombre\":\"Sopa\",\"precio\":90.0,\"id_categoria\":2,\"id_estado\":2}]",
                 PlatilloDto[].class);
         api.respuestaListarPlatillos = FakeCall.deRespuesta(Response.success(List.of(dtos)));
 
-        Result<List<Platillo>> resultado = repositorioCon(api, new FakeStorageApi()).listarPlatillos();
+        ResultadoRed<List<PlatilloDto>> resultado =
+                remotoCon(api, new FakeStorageApi()).listarPlatillos();
 
-        assertTrue(resultado.isSuccess());
-        assertFalse(resultado.getValue().get(0).isActivo());
+        assertTrue(resultado.isExitoso());
+        assertEquals(2, resultado.getValor().get(0).getIdEstado());
     }
 
     @Test
@@ -119,14 +116,15 @@ public class SupabaseMenuRepositoryTest {
         FakeMenuApi api = new FakeMenuApi();
         api.respuestaListarPlatillos = FakeCall.deFallo(new IOException("timeout"));
 
-        Result<List<Platillo>> resultado = repositorioCon(api, new FakeStorageApi()).listarPlatillos();
+        ResultadoRed<List<PlatilloDto>> resultado =
+                remotoCon(api, new FakeStorageApi()).listarPlatillos();
 
-        assertFalse(resultado.isSuccess());
-        assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getError());
+        assertFalse(resultado.isExitoso());
+        assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getMensaje());
     }
 
     @Test
-    public void listarCategorias_exitoso_traeLosContadores() {
+    public void listarCategorias_exitoso_traeLasFilas() {
         FakeMenuApi api = new FakeMenuApi();
         CategoriaDto[] dtos = gson.fromJson(
                 "[{\"id_categoria\":1,\"descripcion\":\"Entradas\",\"id_estado\":1,"
@@ -134,26 +132,51 @@ public class SupabaseMenuRepositoryTest {
                 CategoriaDto[].class);
         api.respuestaListarCategorias = FakeCall.deRespuesta(Response.success(List.of(dtos)));
 
-        Result<List<Categoria>> resultado = repositorioCon(api, new FakeStorageApi()).listarCategorias();
+        ResultadoRed<List<CategoriaDto>> resultado =
+                remotoCon(api, new FakeStorageApi()).listarCategorias();
 
-        assertTrue(resultado.isSuccess());
-        assertEquals(3, resultado.getValue().get(0).getCantidadPlatillos());
-        assertEquals(2, resultado.getValue().get(0).getCantidadPlatillosActivos());
+        assertTrue(resultado.isExitoso());
+        assertEquals(3, resultado.getValor().get(0).getCantidadPlatillos());
+        assertEquals(2, resultado.getValor().get(0).getCantidadPlatillosActivos());
+    }
+
+    @Test
+    public void listarPlatillosDesde_sinMarca_noPoneFiltro() {
+        FakeMenuApi api = new FakeMenuApi();
+        api.respuestaListarPlatillosDesde = FakeCall.deRespuesta(Response.success(List.of()));
+
+        ResultadoRed<List<PlatilloDto>> resultado =
+                remotoCon(api, new FakeStorageApi()).listarPlatillosDesde(null);
+
+        assertTrue(resultado.isExitoso());
+        // Sin marca, la primera bajada pide la tabla entera: sin query actualizado_en.
+        assertEquals(null, api.ultimoFiltroDesdePlatillos);
+    }
+
+    @Test
+    public void listarPlatillosDesde_conMarca_armaElFiltroMayorQue() {
+        FakeMenuApi api = new FakeMenuApi();
+        api.respuestaListarPlatillosDesde = FakeCall.deRespuesta(Response.success(List.of()));
+
+        remotoCon(api, new FakeStorageApi()).listarPlatillosDesde("2026-01-01T10:00:00+00:00");
+
+        assertEquals("gt.2026-01-01T10:00:00+00:00", api.ultimoFiltroDesdePlatillos);
     }
 
     // ------------------------------------------------------------------ crear
 
     @Test
-    public void crearPlatillo_sinImagen_devuelveElPlatilloCreado() {
+    public void crearPlatillo_sinImagen_devuelveLaFilaCreada() {
         FakeMenuApi api = new FakeMenuApi();
         FakeStorageApi storage = new FakeStorageApi();
         PlatilloDto[] creado = gson.fromJson("[" + JSON_PLATILLO + "]", PlatilloDto[].class);
         api.respuestaCrearPlatillo = FakeCall.deRespuesta(Response.success(List.of(creado)));
 
-        Result<Platillo> resultado = repositorioCon(api, storage).crearPlatillo(nuevoPlatillo(), null);
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, storage)
+                .crearPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1, null);
 
-        assertTrue(resultado.isSuccess());
-        assertEquals(1, resultado.getValue().getIdPlatillo());
+        assertTrue(resultado.isExitoso());
+        assertEquals("Baleada sencilla", resultado.getValor().getNombre());
         assertTrue(storage.rutasSubidas.isEmpty());
     }
 
@@ -164,12 +187,17 @@ public class SupabaseMenuRepositoryTest {
         PlatilloDto[] creado = gson.fromJson("[" + JSON_PLATILLO + "]", PlatilloDto[].class);
         api.respuestaCrearPlatillo = FakeCall.deRespuesta(Response.success(List.of(creado)));
 
-        Result<Platillo> resultado = repositorioCon(api, storage).crearPlatillo(nuevoPlatillo(), imagen());
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, storage)
+                .crearPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1, imagen());
 
-        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.isExitoso());
         assertEquals(1, storage.rutasSubidas.size());
         assertTrue(storage.rutasSubidas.get(0).endsWith(".jpg"));
         assertEquals(ImagenPlatillo.MIME_JPEG, storage.tipoSubido);
+        // El POST lleva la ruta del archivo recién subido: sin eso el servidor no
+        // tendría cómo saber qué foto va con la fila.
+        String cuerpo = gson.toJson(api.ultimoCrearPlatillo);
+        assertTrue(cuerpo.contains(storage.rutasSubidas.get(0)));
         assertTrue(storage.rutasBorradas.isEmpty());
     }
 
@@ -179,10 +207,11 @@ public class SupabaseMenuRepositoryTest {
         FakeStorageApi storage = new FakeStorageApi();
         storage.respuestaSubir = FakeCall.deRespuesta(errorConMensaje(413, "Payload too large"));
 
-        Result<Platillo> resultado = repositorioCon(api, storage).crearPlatillo(nuevoPlatillo(), imagen());
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, storage)
+                .crearPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1, imagen());
 
-        assertFalse(resultado.isSuccess());
-        assertEquals("No se pudo subir la foto. Intentá de nuevo.", resultado.getError());
+        assertFalse(resultado.isExitoso());
+        assertEquals("No se pudo subir la foto. Intentá de nuevo.", resultado.getMensaje());
         assertEquals(0, api.llamadasCrearPlatillo);
     }
 
@@ -194,9 +223,10 @@ public class SupabaseMenuRepositoryTest {
                 ResponseBody.create(MediaType.get("application/json"),
                         "{\"message\":\"duplicate key value violates unique constraint\\\"uq_platillo_nombre\\\"\"}")));
 
-        Result<Platillo> resultado = repositorioCon(api, storage).crearPlatillo(nuevoPlatillo(), imagen());
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, storage)
+                .crearPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1, imagen());
 
-        assertFalse(resultado.isSuccess());
+        assertFalse(resultado.isExitoso());
         // Lo que importa: el archivo que se subió es exactamente el que se borra.
         assertEquals(1, storage.rutasSubidas.size());
         assertEquals(1, storage.rutasBorradas.size());
@@ -209,9 +239,10 @@ public class SupabaseMenuRepositoryTest {
         FakeStorageApi storage = new FakeStorageApi();
         ImagenPlatillo gif = new ImagenPlatillo(new byte[]{1, 2, 3}, "image/gif");
 
-        Result<Platillo> resultado = repositorioCon(api, storage).crearPlatillo(nuevoPlatillo(), gif);
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, storage)
+                .crearPlatillo("Baleada sencilla", "Con frijoles", 35.0, 1, gif);
 
-        assertFalse(resultado.isSuccess());
+        assertFalse(resultado.isExitoso());
         assertTrue(storage.rutasSubidas.isEmpty());
         assertEquals(0, api.llamadasCrearPlatillo);
     }
@@ -223,11 +254,11 @@ public class SupabaseMenuRepositoryTest {
                 ResponseBody.create(MediaType.get("application/json"),
                         "{\"message\":\"new row violates check constraint \\\"ck_platillo_precio_positivo\\\"\"}")));
 
-        Result<Platillo> resultado =
-                repositorioCon(api, new FakeStorageApi()).crearPlatillo(nuevoPlatillo(), null);
+        ResultadoRed<PlatilloDto> resultado = remotoCon(api, new FakeStorageApi())
+                .crearPlatillo("Baleada sencilla", "Con frijoles", -5.0, 1, null);
 
-        assertFalse(resultado.isSuccess());
-        assertTrue(resultado.getError().contains("ck_platillo_precio_positivo"));
+        assertFalse(resultado.isExitoso());
+        assertTrue(resultado.getMensaje().contains("ck_platillo_precio_positivo"));
     }
 
     // ------------------------------------------------------------------ actualizar
@@ -236,17 +267,19 @@ public class SupabaseMenuRepositoryTest {
     public void actualizarPlatillo_conFotoNueva_borraLaViejaDespuesDeGuardar() {
         FakeMenuApi api = new FakeMenuApi();
         FakeStorageApi storage = new FakeStorageApi();
-        Platillo conFoto = new Platillo(1, "Baleada", "Con frijoles", 35.0, 1, "Entradas",
-                "vieja.jpg", true);
 
-        Result<Void> resultado = repositorioCon(api, storage).actualizarPlatillo(conFoto, imagen());
+        ResultadoRed<String> resultado = remotoCon(api, storage)
+                .actualizarPlatillo(1, "Baleada", "Con frijoles", 35.0, 1, true, imagen(),
+                        "vieja.jpg");
 
-        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.isExitoso());
         assertEquals(1, storage.rutasSubidas.size());
         assertEquals(1, storage.rutasBorradas.size());
         assertEquals("vieja.jpg", storage.rutasBorradas.get(0));
         // La ruta nueva nunca reusa la vieja: si no, Glide seguiría sirviendo la foto vieja.
         assertFalse(storage.rutasSubidas.get(0).equals("vieja.jpg"));
+        // Y el sincronizador la guarda en la fila local para mostrarla sin otra bajada.
+        assertEquals(storage.rutasSubidas.get(0), resultado.getValor());
     }
 
     @Test
@@ -255,24 +288,39 @@ public class SupabaseMenuRepositoryTest {
         FakeStorageApi storage = new FakeStorageApi();
         api.respuestaActualizarPlatillo = FakeCall.deRespuesta(
                 errorConMensaje(403, "No autorizado"));
-        Platillo conFoto = new Platillo(1, "Baleada", null, 35.0, 1, "Entradas", "vieja.jpg", true);
 
-        Result<Void> resultado = repositorioCon(api, storage).actualizarPlatillo(conFoto, imagen());
+        ResultadoRed<String> resultado = remotoCon(api, storage)
+                .actualizarPlatillo(1, "Baleada", null, 35.0, 1, true, imagen(), "vieja.jpg");
 
-        assertFalse(resultado.isSuccess());
+        assertFalse(resultado.isExitoso());
         assertEquals(1, storage.rutasBorradas.size());
         assertEquals(storage.rutasSubidas.get(0), storage.rutasBorradas.get(0));
+        // La vieja no se toca: la fila sigue apuntando a ella.
+        assertFalse(storage.rutasBorradas.contains("vieja.jpg"));
     }
 
     @Test
-    public void quitarImagen_mandaElNullExplicitoYBorraElArchivo() throws IOException {
+    public void actualizarPlatillo_sinImagenNiRutaVieja_noTocaElBucket() {
         FakeMenuApi api = new FakeMenuApi();
         FakeStorageApi storage = new FakeStorageApi();
-        Platillo conFoto = new Platillo(1, "Baleada", null, 35.0, 1, "Entradas", "foto.jpg", true);
 
-        Result<Void> resultado = repositorioCon(api, storage).quitarImagen(conFoto);
+        ResultadoRed<String> resultado = remotoCon(api, storage)
+                .actualizarPlatillo(1, "Baleada", "Con frijoles", 35.0, 1, true, null, null);
 
-        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.isExitoso());
+        assertEquals(null, resultado.getValor());
+        assertTrue(storage.rutasSubidas.isEmpty());
+        assertTrue(storage.rutasBorradas.isEmpty());
+    }
+
+    @Test
+    public void quitarImagen_mandaElNullExplicitoYBorraElArchivo() {
+        FakeMenuApi api = new FakeMenuApi();
+        FakeStorageApi storage = new FakeStorageApi();
+
+        ResultadoRed<Void> resultado = remotoCon(api, storage).quitarImagen(1, "foto.jpg");
+
+        assertTrue(resultado.isExitoso());
         // Gson omite los nulos: el null tiene que viajar en un cuerpo JSON literal.
         assertEquals("{\"ruta_imagen\":null}", api.cuerpoCrudoEnviado);
         assertEquals(1, storage.rutasBorradas.size());
@@ -284,9 +332,9 @@ public class SupabaseMenuRepositoryTest {
         FakeMenuApi api = new FakeMenuApi();
         FakeStorageApi storage = new FakeStorageApi();
 
-        Result<Void> resultado = repositorioCon(api, storage).cambiarEstadoPlatillo(1, false);
+        ResultadoRed<Void> resultado = remotoCon(api, storage).cambiarEstadoPlatillo(1, false);
 
-        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.isExitoso());
         assertEquals("eq.1", api.ultimoFiltroPlatillo);
         assertTrue(storage.rutasBorradas.isEmpty());
     }
@@ -295,16 +343,27 @@ public class SupabaseMenuRepositoryTest {
     public void cambiarEstadoPlatillo_sinFiltroJamas_elFiltroViajaSiempre() {
         FakeMenuApi api = new FakeMenuApi();
 
-        repositorioCon(api, new FakeStorageApi()).cambiarEstadoPlatillo(7, true);
+        remotoCon(api, new FakeStorageApi()).cambiarEstadoPlatillo(7, true);
 
         // Un PATCH sin filtro actualizaría todas las filas de la tabla.
         assertEquals("eq.7", api.ultimoFiltroPlatillo);
     }
 
+    @Test
+    public void cambiarEstadoPlatillo_soloPAtcheaElEstado() {
+        FakeMenuApi api = new FakeMenuApi();
+
+        remotoCon(api, new FakeStorageApi()).cambiarEstadoPlatillo(1, false);
+
+        String cuerpo = new Gson().toJson(api.ultimoActualizarPlatillo);
+        assertTrue(cuerpo.contains("\"id_estado\":2"));
+        assertFalse(cuerpo.contains("nombre"));
+    }
+
     // ------------------------------------------------------------------ categorías
 
     @Test
-    public void crearCategoria_exitoso_devuelveLaCategoriaSinPlatillos() {
+    public void crearCategoria_exitoso_devuelveLaCategoriaCreada() {
         FakeMenuApi api = new FakeMenuApi();
         CategoriaDto[] creada = gson.fromJson(
                 "[{\"id_categoria\":5,\"descripcion\":\"Postres\",\"id_estado\":1,"
@@ -312,11 +371,22 @@ public class SupabaseMenuRepositoryTest {
                 CategoriaDto[].class);
         api.respuestaCrearCategoria = FakeCall.deRespuesta(Response.success(List.of(creada)));
 
-        Result<Categoria> resultado = repositorioCon(api, new FakeStorageApi()).crearCategoria("Postres");
+        ResultadoRed<CategoriaDto> resultado =
+                remotoCon(api, new FakeStorageApi()).crearCategoria("Postres");
 
-        assertTrue(resultado.isSuccess());
-        assertEquals(5, resultado.getValue().getIdCategoria());
-        assertEquals(0, resultado.getValue().getCantidadPlatillos());
+        assertTrue(resultado.isExitoso());
+        assertEquals(5, resultado.getValor().getIdCategoria());
+        assertEquals(0, resultado.getValor().getCantidadPlatillos());
+    }
+
+    @Test
+    public void crearCategoria_sinSesion_devuelveFalloSinLlamarALaRed() {
+        FakeMenuApi api = new FakeMenuApi();
+
+        ResultadoRed<CategoriaDto> resultado = remotoSinSesion(api).crearCategoria("Postres");
+
+        assertFalse(resultado.isExitoso());
+        assertEquals(401, resultado.getCodigoHttp());
     }
 
     @Test
@@ -325,21 +395,21 @@ public class SupabaseMenuRepositoryTest {
         api.respuestaBorrarCategoria = FakeCall.deRespuesta(errorConMensaje(400,
                 "No se puede borrar una categoría que todavía tiene platillos."));
 
-        Result<Void> resultado = repositorioCon(api, new FakeStorageApi()).borrarCategoria(1);
+        ResultadoRed<Void> resultado = remotoCon(api, new FakeStorageApi()).borrarCategoria(1);
 
-        assertFalse(resultado.isSuccess());
+        assertFalse(resultado.isExitoso());
         // El mensaje del trigger lo escribimos nosotros en lenguaje humano: sí se muestra.
         assertEquals("No se puede borrar una categoría que todavía tiene platillos.",
-                resultado.getError());
+                resultado.getMensaje());
     }
 
     @Test
     public void borrarCategoria_vacia_funcionaYUsaElFiltro() {
         FakeMenuApi api = new FakeMenuApi();
 
-        Result<Void> resultado = repositorioCon(api, new FakeStorageApi()).borrarCategoria(9);
+        ResultadoRed<Void> resultado = remotoCon(api, new FakeStorageApi()).borrarCategoria(9);
 
-        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.isExitoso());
         assertEquals("eq.9", api.ultimoFiltroCategoria);
     }
 
@@ -348,20 +418,22 @@ public class SupabaseMenuRepositoryTest {
         FakeMenuApi api = new FakeMenuApi();
         api.respuestaActualizarCategoria = FakeCall.deFallo(new IOException("timeout"));
 
-        Result<Void> resultado =
-                repositorioCon(api, new FakeStorageApi()).renombrarCategoria(1, "Entraditas");
+        ResultadoRed<Void> resultado =
+                remotoCon(api, new FakeStorageApi()).renombrarCategoria(1, "Entraditas");
 
-        assertFalse(resultado.isSuccess());
-        assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getError());
+        assertFalse(resultado.isExitoso());
+        assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getMensaje());
     }
 
     // ------------------------------------------------------------------ fakes
 
-    /** Fake mínimo: solo implementa lo que {@link SupabaseMenuRepository} usa. */
+    /** Fake mínimo: solo implementa lo que {@link MenuRemoto} usa. */
     private static final class FakeMenuApi implements SupabaseMenuApi {
 
         Call<List<PlatilloDto>> respuestaListarPlatillos;
         Call<List<CategoriaDto>> respuestaListarCategorias;
+        Call<List<PlatilloDto>> respuestaListarPlatillosDesde;
+        Call<List<CategoriaDto>> respuestaListarCategoriasDesde;
         Call<List<PlatilloDto>> respuestaCrearPlatillo;
         Call<List<CategoriaDto>> respuestaCrearCategoria;
         Call<Void> respuestaActualizarPlatillo = FakeCall.deRespuesta(Response.success(null));
@@ -372,7 +444,10 @@ public class SupabaseMenuRepositoryTest {
         int llamadasCrearPlatillo;
         String ultimoFiltroPlatillo;
         String ultimoFiltroCategoria;
+        String ultimoFiltroDesdePlatillos;
         String cuerpoCrudoEnviado;
+        ActualizarPlatilloDto ultimoActualizarPlatillo;
+        CrearPlatilloDto ultimoCrearPlatillo;
 
         @Override
         public Call<List<PlatilloDto>> listarPlatillos(String bearerToken) {
@@ -386,8 +461,24 @@ public class SupabaseMenuRepositoryTest {
         }
 
         @Override
+        public Call<List<PlatilloDto>> listarPlatillosDesde(String bearerToken, String select,
+                                                            String actualizadoEnMayorQue,
+                                                            String orden, int limite) {
+            ultimoFiltroDesdePlatillos = actualizadoEnMayorQue;
+            return respuestaListarPlatillosDesde;
+        }
+
+        @Override
+        public Call<List<CategoriaDto>> listarCategoriasDesde(String bearerToken, String select,
+                                                              String actualizadoEnMayorQue,
+                                                              String orden, int limite) {
+            return respuestaListarCategoriasDesde;
+        }
+
+        @Override
         public Call<List<PlatilloDto>> crearPlatillo(String bearerToken, CrearPlatilloDto cuerpo) {
             llamadasCrearPlatillo++;
+            ultimoCrearPlatillo = cuerpo;
             return respuestaCrearPlatillo;
         }
 
@@ -395,11 +486,13 @@ public class SupabaseMenuRepositoryTest {
         public Call<Void> actualizarPlatillo(String bearerToken, String idPlatilloIgualA,
                                              ActualizarPlatilloDto cuerpo) {
             ultimoFiltroPlatillo = idPlatilloIgualA;
+            ultimoActualizarPlatillo = cuerpo;
             return respuestaActualizarPlatillo;
         }
 
         @Override
-        public Call<Void> actualizarPlatilloConCuerpoCrudo(String bearerToken, String idPlatilloIgualA,
+        public Call<Void> actualizarPlatilloConCuerpoCrudo(String bearerToken,
+                                                           String idPlatilloIgualA,
                                                            RequestBody cuerpoJson) {
             ultimoFiltroPlatillo = idPlatilloIgualA;
             cuerpoCrudoEnviado = leer(cuerpoJson);
@@ -407,7 +500,8 @@ public class SupabaseMenuRepositoryTest {
         }
 
         @Override
-        public Call<List<CategoriaDto>> crearCategoria(String bearerToken, CrearCategoriaDto cuerpo) {
+        public Call<List<CategoriaDto>> crearCategoria(String bearerToken,
+                                                       CrearCategoriaDto cuerpo) {
             return respuestaCrearCategoria;
         }
 

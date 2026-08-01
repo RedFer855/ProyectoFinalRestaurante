@@ -1,33 +1,43 @@
 package com.example.proyectofinalrestaurante.ui.menu;
 
+import android.app.Application;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.proyectofinalrestaurante.core.SesionActual;
-import com.example.proyectofinalrestaurante.core.SupabaseClient;
-import com.example.proyectofinalrestaurante.data.repository.SupabaseMenuRepository;
-import com.example.proyectofinalrestaurante.domain.model.Sesion;
-import com.example.proyectofinalrestaurante.domain.repository.MenuRepository;
+import com.example.proyectofinalrestaurante.core.SyncApplication;
+import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.repository.MenuRepositorioLocal;
 
 import java.util.concurrent.Executors;
 
-/** Composition root del módulo Menú (DI manual — ver P-002). */
+/**
+ * Composition root del módulo Menú (DI manual — ver P-002).
+ *
+ * <p>Desde la Fase 2b el repositorio es local-first: lee de Room y escribe optimista. Se
+ * construye con la base de {@link SyncApplication} (singleton del proceso), el {@link Outbox}
+ * y la carpeta de imágenes. El repositorio implementa
+ * {@link com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion}; acá se
+ * registra para que el {@code SyncWorker} le avise el estado global de la sincronización.</p>
+ */
 public class MenuViewModelFactory implements ViewModelProvider.Factory {
+
+    private final Application aplicacion;
+
+    public MenuViewModelFactory(@NonNull Application aplicacion) {
+        this.aplicacion = aplicacion;
+    }
 
     @NonNull
     @Override
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-        // El token se lee en cada llamada, no una sola vez: si la sesión cambia
-        // (cerrar sesión, o el selector de rol de debug), el repositorio usa la vigente.
-        MenuRepository repositorio = new SupabaseMenuRepository(
-                SupabaseClient.getMenuApi(),
-                SupabaseClient.getStorageApi(),
-                () -> {
-                    Sesion sesion = SesionActual.obtener();
-                    return sesion == null ? null : sesion.getAccessToken();
-                });
+        SyncApplication app = (SyncApplication) aplicacion;
+        Outbox outbox = new Outbox(app.baseDeDatos().operacionPendienteDao());
+        MenuRepositorioLocal repositorio = new MenuRepositorioLocal(
+                app.baseDeDatos(), outbox, app.getFilesDir(), app);
+        SyncApplication.setObservadorSincronizacion(repositorio);
         return (T) new MenuViewModel(repositorio, Executors.newSingleThreadExecutor());
     }
 }

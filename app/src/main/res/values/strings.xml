@@ -90,6 +90,14 @@
         <item quantity="other">%1$d platillos</item>
     </plurals>
 
+    <!-- Indicador global de sincronización (Plan Fase 2b, §4.5). -->
+    <string name="menu_sync_en_proceso">Sincronizando cambios…</string>
+    <string name="menu_sync_pendiente">Sin subir</string>
+    <plurals name="menu_sync_cambios_sin_subir">
+        <item quantity="one">%1$d cambio sin subir</item>
+        <item quantity="other">%1$d cambios sin subir</item>
+    </plurals>
+
     <string name="pedidos_nuevo">Nuevo pedido</string>
     <string name="pedidos_numero">Pedido #%1$d</string>
     <string name="pedidos_vacio">No hay pedidos en este estado.</string>

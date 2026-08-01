@@ -1,0 +1,252 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "570cc37b0cf1471c69aa48e70da456ca",
+    "entities": [
+      {
+        "tableName": "platillos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `nombre` TEXT, `descripcion` TEXT, `precio` REAL NOT NULL, `id_categoria_local` INTEGER NOT NULL, `nombre_categoria` TEXT, `ruta_imagen` TEXT, `activo` INTEGER NOT NULL, `estado_sync` TEXT, `actualizado_en` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "precio",
+            "columnName": "precio",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idCategoriaLocal",
+            "columnName": "id_categoria_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombreCategoria",
+            "columnName": "nombre_categoria",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rutaImagen",
+            "columnName": "ruta_imagen",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_platillos_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_platillos_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "categorias",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `descripcion` TEXT, `activo` INTEGER NOT NULL, `cantidad_platillos` INTEGER NOT NULL, `cantidad_platillos_activos` INTEGER NOT NULL, `estado_sync` TEXT, `actualizado_en` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPlatillos",
+            "columnName": "cantidad_platillos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPlatillosActivos",
+            "columnName": "cantidad_platillos_activos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_categorias_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_categorias_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "operaciones_pendientes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tipo` TEXT, `id_local` INTEGER NOT NULL, `payload_json` TEXT, `ruta_imagen_local` TEXT, `intentos` INTEGER NOT NULL, `ultimo_error` TEXT, `creado_en` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rutaImagenLocal",
+            "columnName": "ruta_imagen_local",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "intentos",
+            "columnName": "intentos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimoError",
+            "columnName": "ultimo_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "creadoEn",
+            "columnName": "creado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "sincronizacion",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tabla` TEXT NOT NULL, `marca_agua` TEXT, `ultimo_intento` INTEGER NOT NULL, `ultimo_error` TEXT, PRIMARY KEY(`tabla`))",
+        "fields": [
+          {
+            "fieldPath": "tabla",
+            "columnName": "tabla",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "marcaAgua",
+            "columnName": "marca_agua",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ultimoIntento",
+            "columnName": "ultimo_intento",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimoError",
+            "columnName": "ultimo_error",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tabla"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '570cc37b0cf1471c69aa48e70da456ca')"
+    ]
+  }
+}

@@ -40,6 +40,10 @@ public final class PlatilloDto {
     @SerializedName("id_estado")
     private int idEstado;
 
+    /** Marca de la fila en el servidor; es la que permite el sync delta (Fase 2b, §4.3). */
+    @SerializedName("actualizado_en")
+    private String actualizadoEn;
+
     public int getIdPlatillo() {
         return idPlatillo;
     }
@@ -70,5 +74,9 @@ public final class PlatilloDto {
 
     public int getIdEstado() {
         return idEstado;
+    }
+
+    public String getActualizadoEn() {
+        return actualizadoEn;
     }
 }

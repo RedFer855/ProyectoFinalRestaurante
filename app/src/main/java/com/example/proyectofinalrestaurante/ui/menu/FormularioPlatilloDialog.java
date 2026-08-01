@@ -54,9 +54,9 @@ public class FormularioPlatilloDialog extends DialogFragment {
     public interface AlGuardar {
         void onCrear(NuevoPlatillo nuevo, @Nullable ImagenPlatillo imagen);
 
-        void onEditar(Platillo editado, @Nullable ImagenPlatillo imagenNueva);
+        void onEditar(int idLocal, NuevoPlatillo editado, @Nullable ImagenPlatillo imagenNueva);
 
-        void onQuitarFoto(Platillo platillo);
+        void onQuitarFoto(int idLocal);
     }
 
     private static final String ARG_CATEGORIA_IDS = "categoria_ids";
@@ -113,7 +113,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
     public static FormularioPlatilloDialog paraEditar(Platillo platillo, List<Categoria> categorias) {
         FormularioPlatilloDialog dialogo = new FormularioPlatilloDialog();
         Bundle args = argumentosDeCategorias(categorias);
-        args.putInt(ARG_PLATILLO_ID, platillo.getIdPlatillo());
+        args.putInt(ARG_PLATILLO_ID, platillo.getIdLocal());
         args.putString(ARG_NOMBRE, platillo.getNombre());
         args.putString(ARG_DESCRIPCION, platillo.getDescripcion());
         args.putDouble(ARG_PRECIO, platillo.getPrecio());
@@ -133,7 +133,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
         int[] ids = new int[categorias.size()];
         String[] nombres = new String[categorias.size()];
         for (int i = 0; i < categorias.size(); i++) {
-            ids[i] = categorias.get(i).getIdCategoria();
+            ids[i] = categorias.get(i).getIdLocal();
             nombres[i] = categorias.get(i).getDescripcion();
         }
         args.putIntArray(ARG_CATEGORIA_IDS, ids);
@@ -288,7 +288,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
             return;
         }
         if (esEdicion() && requireArguments().getString(ARG_RUTA_IMAGEN) != null) {
-            alGuardar.onQuitarFoto(platilloDelFormulario());
+            alGuardar.onQuitarFoto(requireArguments().getInt(ARG_PLATILLO_ID));
             dismiss();
         }
     }
@@ -308,20 +308,11 @@ public class FormularioPlatilloDialog extends DialogFragment {
         }
 
         if (esEdicion()) {
-            alGuardar.onEditar(platilloDelFormulario(), imagenElegida);
+            alGuardar.onEditar(requireArguments().getInt(ARG_PLATILLO_ID), candidato, imagenElegida);
         } else {
             alGuardar.onCrear(candidato, imagenElegida);
         }
         dismiss();
-    }
-
-    /** El platillo con lo que hay en pantalla, conservando lo que el formulario no edita. */
-    private Platillo platilloDelFormulario() {
-        Bundle args = requireArguments();
-        return new Platillo(
-                args.getInt(ARG_PLATILLO_ID), texto(campoNombre), texto(campoDescripcion),
-                precioIngresado(), idCategoriaElegida, nombreDeCategoria(idCategoriaElegida),
-                args.getString(ARG_RUTA_IMAGEN), args.getBoolean(ARG_ACTIVO));
     }
 
     private double precioIngresado() {

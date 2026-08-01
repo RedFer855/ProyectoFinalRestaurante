@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.ReglasMenu;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -68,7 +69,7 @@ public class CategoriasDialog extends DialogFragment {
         boolean[] activas = new boolean[categorias.size()];
         for (int i = 0; i < categorias.size(); i++) {
             Categoria categoria = categorias.get(i);
-            ids[i] = categoria.getIdCategoria();
+            ids[i] = categoria.getIdLocal();
             nombres[i] = categoria.getDescripcion();
             cantidades[i] = categoria.getCantidadPlatillos();
             activas[i] = categoria.isActivo();
@@ -120,8 +121,10 @@ public class CategoriasDialog extends DialogFragment {
         List<Categoria> reconstruidas = new ArrayList<>();
         for (int i = 0; i < ids.length; i++) {
             // El contador de activos no se usa acá y no se transporta; lo que decide el
-            // borrado es el total, que sí viaja.
-            reconstruidas.add(new Categoria(ids[i], nombres[i], activas[i], cantidades[i], 0));
+            // borrado es el total, que sí viaja. idServidor no viaja: el diálogo opera por
+            // idLocal (Plan Fase 2b, §5.5).
+            reconstruidas.add(new Categoria(ids[i], null, nombres[i], activas[i],
+                    cantidades[i], 0, EstadoSync.SINCRONIZADO));
         }
         return reconstruidas;
     }
@@ -149,7 +152,7 @@ public class CategoriasDialog extends DialogFragment {
         if (accionId == R.id.accion_renombrar_categoria) {
             pedirNuevoNombre(categoria);
         } else if (accionId == R.id.accion_activar_desactivar_categoria) {
-            alOperar.onCambiarEstadoCategoria(categoria.getIdCategoria(), !categoria.isActivo());
+            alOperar.onCambiarEstadoCategoria(categoria.getIdLocal(), !categoria.isActivo());
             dismiss();
         } else if (accionId == R.id.accion_borrar_categoria) {
             confirmarBorrado(categoria);
@@ -172,7 +175,7 @@ public class CategoriasDialog extends DialogFragment {
                     String nuevo = campo.getText() == null
                             ? "" : campo.getText().toString().trim();
                     if (!nuevo.isEmpty() && !nuevo.equals(categoria.getDescripcion())) {
-                        alOperar.onRenombrarCategoria(categoria.getIdCategoria(), nuevo);
+                        alOperar.onRenombrarCategoria(categoria.getIdLocal(), nuevo);
                         dismiss();
                     }
                 })
@@ -186,7 +189,7 @@ public class CategoriasDialog extends DialogFragment {
                 .setMessage(getString(R.string.menu_categoria_confirmar_borrado,
                         categoria.getDescripcion()))
                 .setPositiveButton(R.string.menu_categoria_borrar, (d, cual) -> {
-                    alOperar.onBorrarCategoria(categoria.getIdCategoria());
+                    alOperar.onBorrarCategoria(categoria.getIdLocal());
                     dismiss();
                 })
                 .setNegativeButton(R.string.empleado_cancelar, null)

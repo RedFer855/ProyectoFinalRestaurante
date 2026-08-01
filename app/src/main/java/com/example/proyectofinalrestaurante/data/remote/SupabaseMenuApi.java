@@ -39,6 +39,27 @@ public interface SupabaseMenuApi {
     Call<List<CategoriaDto>> listarCategorias(@Header("Authorization") String bearerToken);
 
     /**
+     * Sync delta (Plan Fase 2b, §4.3): solo las filas modificadas después de la marca de
+     * agua, paginadas por {@code actualizado_en}. Retrofit codifica los valores, así que el
+     * {@code +} del offset del timestamp viaja como {@code %2B} y PostgREST lo decodifica.
+     */
+    @GET("rest/v1/vista_platillos")
+    Call<List<PlatilloDto>> listarPlatillosDesde(
+            @Header("Authorization") String bearerToken,
+            @Query("select") String select,
+            @Query("actualizado_en") String actualizadoEnMayorQue,
+            @Query("order") String orden,
+            @Query("limit") int limite);
+
+    @GET("rest/v1/vista_categorias")
+    Call<List<CategoriaDto>> listarCategoriasDesde(
+            @Header("Authorization") String bearerToken,
+            @Query("select") String select,
+            @Query("actualizado_en") String actualizadoEnMayorQue,
+            @Query("order") String orden,
+            @Query("limit") int limite);
+
+    /**
      * {@code Prefer: return=representation} hace que PostgREST devuelva la fila creada con
      * su id generado; sin ese header responde 201 con cuerpo vacío. Devuelve un
      * <b>array de un elemento</b>, no un objeto.

@@ -64,7 +64,7 @@ public final class ReglasMenu {
         }
         String buscado = normalizarNombre(nombre);
         for (Platillo platillo : platillos) {
-            if (platillo.getIdPlatillo() != idPlatilloActual
+            if (platillo.getIdLocal() != idPlatilloActual
                     && normalizarNombre(platillo.getNombre()).equals(buscado)) {
                 return true;
             }
@@ -81,7 +81,7 @@ public final class ReglasMenu {
         }
         String buscada = normalizarNombre(descripcion);
         for (Categoria categoria : categorias) {
-            if (categoria.getIdCategoria() != idCategoriaActual
+            if (categoria.getIdLocal() != idCategoriaActual
                     && normalizarNombre(categoria.getDescripcion()).equals(buscada)) {
                 return true;
             }
