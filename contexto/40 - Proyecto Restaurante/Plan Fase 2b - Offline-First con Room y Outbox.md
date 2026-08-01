@@ -53,8 +53,8 @@ El objetivo no es "agregar una base local". Es que **la app sea plenamente usabl
 **Alcance: solo el Menú.** La infraestructura (Room, outbox, `SyncWorker`) se construye
 genérica y reutilizable, pero **el único módulo migrado en 2b es el Menú**. Empleados sigue
 contra la red: es de admin, se usa con Wi-Fi de oficina y no es donde duele. Mesas y
-Clientes **nacen** offline-first sobre esta base — ver [[Plan Fase 3a - CRUD de Mesas]] y
-[[Plan Fase 3b - CRUD de Clientes]].
+Clientes **nacen** offline-first sobre esta base — ver [[Plan Fase 2c - CRUD de Mesas]] y
+[[Plan Fase 2d - CRUD de Clientes]].
 
 > [!important] Por qué 2b va **antes** que Mesas y Clientes
 > Si Mesas y Clientes se escriben contra la red como el Menú, después hay **tres** módulos
@@ -348,9 +348,9 @@ distinto (un `SwipeRefreshLayout`, no una pantalla de "cargando").
 | No hagas | Por qué |
 |---|---|
 | Migrar Empleados a Room | Es de admin, con Wi-Fi de oficina. Alcance propio |
-| Mesas o Clientes | Son [[Plan Fase 3a - CRUD de Mesas]] y [[Plan Fase 3b - CRUD de Clientes]], y **nacen** sobre esta base |
+| Mesas o Clientes | Son [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]], y **nacen** sobre esta base |
 | Persistir/cifrar el token | **P-009**, alcance propio — pero leé §5.3 |
-| Reorganizar a feature-first | **P-017**, sub-fase 2c |
+| Reorganizar a feature-first | **P-017**, sub-fase 2e |
 | Hilt | **P-002** |
 | Sincronizar imágenes bidireccionalmente | Solo subida. Bajar fotos es trabajo de Glide y su caché |
 
@@ -379,10 +379,10 @@ dispositivo real. Es la única forma de saber si esto funciona.
 
 - [[Protocolo de Ejecución de un Plan]] — **léelo primero**
 - [[Offline-First con Room y Outbox]] — las 8 reglas que esta fase implementa
-- [[Plan de Fase 2 - Menu]] — el paraguas: por qué 2a/2b/2c van separadas
+- [[Plan de Fase 2 - Menu]] — el paraguas: por qué 2a/2b/2c/2d/2e van separadas
 - [[Plan Fase 2a - CRUD de Platillos y Categorias]] — lo que 2b migra
 - [[Módulo Menú]] — el estado vivo del módulo
-- [[Plan Fase 3a - CRUD de Mesas]] · [[Plan Fase 3b - CRUD de Clientes]] — nacen sobre esta base
+- [[Plan Fase 2c - CRUD de Mesas]] · [[Plan Fase 2d - CRUD de Clientes]] — nacen sobre esta base
 - [[ADR-005 - Offline-first obligatorio desde la Fase 2]]
 - [[Deuda Técnica - Pendientes]] — **P-014** (se cierra acá), P-009, P-002, P-017
 - [[Lista Negra de APIs Android]] · [[Estrategia de Pruebas Android]]

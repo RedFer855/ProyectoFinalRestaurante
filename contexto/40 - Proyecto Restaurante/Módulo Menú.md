@@ -233,7 +233,7 @@ que el modo oscuro sale de `values-night/colors.xml` sin trabajo extra.
 
 - [[Plan Fase 2a - CRUD de Platillos y Categorias]] — el plan que lo define
 - [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]
-- [[Plan de Fase 2 - Menu]] — por qué 2a, 2b y 2c van separadas
+- [[Plan de Fase 2 - Menu]] — por qué 2a, 2b, 2c, 2d y 2e van separadas
 - [[Plan Fase 1d - Modulo Empleados Funcional]] — el patrón replicado
 - [[Módulo Login]] — el primer módulo, con la deuda que **no** se replicó
 - [[Esquema de Base de Datos]]

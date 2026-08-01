@@ -65,7 +65,7 @@ com.example.proyectofinalrestaurante
 └── ui/
     ├── login/                ← LoginActivity, LoginViewModel, EstadoLogin
     ├── menu/                 (Fase 2)
-    └── pedidos/              (Fase 3)
+    └── pedidos/              (Fase 4)
 ```
 
 > [!warning] Deuda estructural conocida
@@ -82,7 +82,7 @@ Señales de que llegó el momento:
 - Más de ~10 pantallas.
 
 > [!tip]
-> Migrar de módulo único a multi-módulo **cuesta 10× más** después que hacerlo desde el inicio. Si el proyecto va a crecer a 5 features, conviene modularizar antes de la Fase 3.
+> Migrar de módulo único a multi-módulo **cuesta 10× más** después que hacerlo desde el inicio. Si el proyecto va a crecer a 5 features, conviene modularizar antes de la Fase 4 (Pedidos).
 
 ---
 

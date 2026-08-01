@@ -117,7 +117,7 @@ APPLICATION_ID:       com.example.proyectofinalrestaurante   (⚠ cambiar antes 
 DOMINIO FUNCIONAL:    gestión de restaurante (menú, pedidos, mesas)
 BACKEND:              Supabase (REST)
 minSdk / targetSdk:   24 (objetivo) / 36+     — hoy 37 / 37 ⚠ ver P-003
-MODULARIZACIÓN:       módulo único (revisar en Fase 3)
+MODULARIZACIÓN:       módulo único (revisar en Fase 4)
 IDIOMA DEL CÓDIGO:    español de dominio + términos técnicos en inglés
 DISPOSITIVO OBJETIVO: 2 GB RAM, Android 9, 3G
 OFFLINE:              obligatorio (desde Fase 2)

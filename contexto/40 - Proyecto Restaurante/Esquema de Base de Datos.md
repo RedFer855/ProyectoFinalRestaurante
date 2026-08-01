@@ -162,10 +162,10 @@ propósito, así listar el contenido del bucket queda bloqueado.
 
 ## ⚠️ Hueco conocido: `mesa` y `clientes` no tienen su DDL documentado
 
-> [!danger] Esto bloquea la Parte A de la Fase 3
+> [!danger] Esto bloquea la Parte A de las Fases 2c y 2d
 > Las dos tablas existen y están en el diagrama, pero **nunca se registraron sus columnas,
-> tipos ni constraints**. [[Plan Fase 3a - CRUD de Mesas]] y
-> [[Plan Fase 3b - CRUD de Clientes]] tuvieron que escribir sus vistas sobre **nombres
+> tipos ni constraints**. [[Plan Fase 2c - CRUD de Mesas]] y
+> [[Plan Fase 2d - CRUD de Clientes]] tuvieron que escribir sus vistas sobre **nombres
 > supuestos** (`numero_mesa`, `capacidad`, `ubicacion`, `nombre`, `apellido`, `telefono`).
 >
 > **El primer paso de la Parte A de cada uno de esos planes es listar el DDL real y
@@ -175,18 +175,18 @@ propósito, así listar el contenido del bucket queda bloqueado.
 > Lo único confirmado hoy: `uq_clientes_identidad UNIQUE (identidad)` y que `pedido`
 > referencia `id_mesa` e `id_cliente`, ambos nullable.
 
-## Cambios planificados para la Fase 3 (2026-08-01)
+## Cambios planificados para las Fases 2c y 2d — Mesas y Clientes (2026-08-01)
 
 Todavía **no aplicados**. Detalle y justificación en los planes respectivos.
 
 | Objeto | Para qué | Plan |
 |---|---|---|
-| Catálogo `estado_mesa` (Libre/Ocupada/Reservada) + `mesa.id_estado_mesa` | Separa el estado **operativo** de la baja lógica (`estado_general`). Son ortogonales, y separarlos es lo que permite que la RLS distinga quién puede qué | [[Plan Fase 3a - CRUD de Mesas]] |
+| Catálogo `estado_mesa` (Libre/Ocupada/Reservada) + `mesa.id_estado_mesa` | Separa el estado **operativo** de la baja lógica (`estado_general`). Son ortogonales, y separarlos es lo que permite que la RLS distinga quién puede qué | [[Plan Fase 2c - CRUD de Mesas]] |
 | `mesa.actualizado_en` · `clientes.actualizado_en` + triggers | Lo exige el sync delta de [[Plan Fase 2b - Offline-First con Room y Outbox]] | 2b / 3a / 3b |
 | `vista_mesas` · `vista_clientes` (`security_invoker = on`) | El contrato de lectura que programa el cliente Android | 3a / 3b |
-| `cambiar_estado_mesa()` — RPC `SECURITY DEFINER` | RLS autoriza filas, no columnas. Es la única forma de que el mesero cambie el estado **sin** poder editar capacidad ni número | [[Plan Fase 3a - CRUD de Mesas]] |
-| `buscar_o_crear_cliente()` — RPC `SECURITY DEFINER` | Implementa [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] de forma **atómica**: dos meseros a la vez no crean dos clientes con la misma identidad | [[Plan Fase 3b - CRUD de Clientes]] |
-| `uq_clientes_identidad` → único sobre la identidad **normalizada** | Hoy `0801-1990-1` y `080119901` son dos clientes distintos, y el buscar-o-crear falla justo cuando importa | [[Plan Fase 3b - CRUD de Clientes]] |
+| `cambiar_estado_mesa()` — RPC `SECURITY DEFINER` | RLS autoriza filas, no columnas. Es la única forma de que el mesero cambie el estado **sin** poder editar capacidad ni número | [[Plan Fase 2c - CRUD de Mesas]] |
+| `buscar_o_crear_cliente()` — RPC `SECURITY DEFINER` | Implementa [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] de forma **atómica**: dos meseros a la vez no crean dos clientes con la misma identidad | [[Plan Fase 2d - CRUD de Clientes]] |
+| `uq_clientes_identidad` → único sobre la identidad **normalizada** | Hoy `0801-1990-1` y `080119901` son dos clientes distintos, y el buscar-o-crear falla justo cuando importa | [[Plan Fase 2d - CRUD de Clientes]] |
 | `trg_mesa_no_borrar` · `trg_clientes_no_borrar_con_pedidos` | `pedido` los referencia; borrarlos rompe el historial | 3a / 3b |
 | Índices sobre `actualizado_en` en `platillo` y `categoria` | Que el sync delta no haga seq scan cuando la tabla crezca | [[Plan Fase 2b - Offline-First con Room y Outbox]] |
 

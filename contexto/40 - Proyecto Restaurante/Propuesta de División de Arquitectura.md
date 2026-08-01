@@ -135,7 +135,7 @@ graph TD
 |---|---|
 | **Hoy (Fase 0 / 1)** | Propuesta 1 — no reorganizar mientras se arregla la deuda; un cambio a la vez |
 | **Al empezar Fase 2 (Menú)** | **Migrar a Propuesta 2** en un commit dedicado `refactor:`, sin mezclar con código nuevo |
-| **Fase 3 en adelante** | Seguir en Propuesta 2 |
+| **Fase 4 en adelante** | Seguir en Propuesta 2 |
 | **Solo si duele el build** | Propuesta 3 |
 
 > [!warning] Un commit, una cosa

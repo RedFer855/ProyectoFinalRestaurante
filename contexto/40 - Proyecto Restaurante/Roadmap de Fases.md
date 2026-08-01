@@ -48,21 +48,37 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 |---|---|---|---|
 | 1 | `feat/fase1-login` | Login contra Supabase Auth (REST/Retrofit), arquitectura por capas base | 🟡 Funcional, con deuda catalogada |
 | **0** | `fix/fase0-estandar` | **Remediación de la brecha contra el estándar** | ⬜ **Siguiente** |
-| 2 | `feat/fase2-menu` | Menú, partida en **2a** (CRUD de platillos/categorías + Storage), **2b** (Room + outbox) y **2c** (P-017/P-011) | 🟢 **2a implementada** 2026-07-31 (falta probarla en dispositivo) — ver [[Módulo Menú]] |
+| **2a** | `feat/fase2-menu` | CRUD de platillos y categorías + fotos en Storage | 🟢 **Implementada** 2026-07-31 (falta probarla en dispositivo) — ver [[Módulo Menú]] |
 | **2b** | `feat/fase2b-offline` | **Room + outbox + `SyncWorker`** — cierra **P-014**. El Menú pasa a offline-first | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
-| **3a** | `feat/fase3-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 3a - CRUD de Mesas]] |
-| **3b** | `feat/fase3-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 3b - CRUD de Clientes]] |
+| **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2c - CRUD de Mesas]] |
+| **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2d - CRUD de Clientes]] |
+| **2e** | `feat/fase2e-refactor` | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
+| 3 | — | **Reservada** — contenido a definir por el usuario | ⬜ Sin asignar |
 | 4 | `feat/fase4-pedidos` | Creación y seguimiento de pedidos (**consume** Menú, Mesas y Clientes) | ⬜ No iniciado |
 | 5 | ~~`feat/fase5-usuarios-roles`~~ | Roles y permisos | 🟢 **Adelantada** — se implementó en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, módulo Empleados) |
 | 6 | `feat/fase6-reportes` | Reportes de ventas/consumo | ⬜ No iniciado |
 
-> [!info] Reordenamiento del 2026-08-01
-> **Mesas y Clientes se adelantaron delante de Pedidos**, y Pedidos pasó de fase 3 a fase 4.
-> El motivo es de dependencias, no de gusto: un pedido referencia `id_mesa` y `id_cliente`,
-> así que construir Pedidos primero obligaría a maquetar las dos cosas que aún no existen.
-> El roadmap se declara editable desde el principio; esto es un ajuste de ese tipo.
+> [!info] Renumeración del 2026-08-01
+> **Mesas y Clientes son `2c` y `2d`.** Estuvieron unas horas propuestas como `3a`/`3b`; se
+> renumeraron a pedido del usuario porque **la Fase 3 queda reservada** para un contenido
+> distinto, todavía sin definir.
 >
-> **2b va antes que 3a/3b** para no contraer la deuda de P-014 tres veces: Mesas y Clientes
+> Como consecuencia, **el antiguo `2c` —el refactor P-017/P-011— pasó a `2e`**. Seguía
+> siendo el cierre de la Fase 2, así que quedar al final es coherente.
+>
+> | Nombre viejo | Nombre actual | Qué es |
+> |---|---|---|
+> | `2c` (hasta 2026-08-01) | **`2e`** | Refactor P-017 + P-011 |
+> | `3a` (propuesto 2026-08-01) | **`2c`** | CRUD de Mesas |
+> | `3b` (propuesto 2026-08-01) | **`2d`** | CRUD de Clientes |
+>
+> Cualquier nota anterior que diga *"2c (P-017/P-011)"* o *"Fase 3a/3b"* se lee con esta tabla.
+>
+> **Mesas y Clientes van delante de Pedidos**, que sigue en la fase 4. El motivo es de
+> dependencias, no de gusto: un pedido referencia `id_mesa` y `id_cliente`, así que construir
+> Pedidos primero obligaría a maquetar las dos cosas que aún no existen.
+>
+> **2b va antes que 2c/2d** para no contraer la deuda de P-014 tres veces: Mesas y Clientes
 > **nacen** offline-first en vez de escribirse contra la red y reescribirse después.
 > `feat/fase5-usuarios-roles` se marcó como adelantada porque su contenido ya está hecho.
 
@@ -78,7 +94,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 | **Single-Activity + Navigation Component** | Antes de Fase 4 — con pocas pantallas que convertir | P-015 |
 | **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature. **Ya se pasó el umbral**: desde la 2a hay tres features (`login`, `empleados`, `menu`) y sigue layer-first | P-017 |
 | **`applicationId` real** | Antes de publicar — después de publicar es irreversible | P-018 |
-| **Multi-módulo** | Antes de Fase 3, si el proyecto va a llegar a 5 features | — |
+| **Multi-módulo** | Antes de Fase 4 (Pedidos), si el proyecto va a llegar a 5 features | — |
 
 ---
 
@@ -86,7 +102,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 
 - [[Protocolo de Ejecución de un Plan]] — lo que cualquier agente lee antes de tomar un plan
 - [[Plan Fase 2b - Offline-First con Room y Outbox]]
-- [[Plan Fase 3a - CRUD de Mesas]] · [[Plan Fase 3b - CRUD de Clientes]]
+- [[Plan Fase 2c - CRUD de Mesas]] · [[Plan Fase 2d - CRUD de Clientes]]
 - [[Estándar de Ingeniería Android]]
 - [[Deuda Técnica - Pendientes]]
 - [[Gate de Autoverificación]]

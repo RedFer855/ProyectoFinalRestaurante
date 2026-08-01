@@ -103,7 +103,7 @@ El `Executor` se instancia dentro del ViewModel en vez de inyectarse. Un test no
 
 Consecuencia directa: **el proyecto no tiene ni una sola prueba propia** — solo los dos archivos de ejemplo de Android Studio.
 
-**Riesgo:** el patrón se replicará a cada ViewModel nuevo, y el proyecto llegará a la Fase 3 sin red de seguridad.
+**Riesgo:** el patrón se replicará a cada ViewModel nuevo, y el proyecto llegará a Pedidos (Fase 4) sin red de seguridad.
 
 **Solución:** recibir `Executor` por constructor (lo provee `LoginViewModelFactory` o Hilt) y escribir `LoginViewModelTest` con `InstantTaskExecutorRule` + `FakeAuthRepository`. Ver [[Asincronia en Java para Android]] y [[Estrategia de Pruebas Android]].
 
@@ -197,9 +197,9 @@ El estándar pide arquitectura **single-Activity** con Fragments, ViewBinding y 
 
 **Riesgo:** medio. Con dos pantallas es manejable; con diez, la navegación por `Intent` se vuelve imposible de razonar y no hay back stack coherente.
 
-**Solución:** migrar a single-Activity + `nav_graph.xml` + ViewBinding **antes de la Fase 3**, cuando aún hay pocas pantallas que convertir.
+**Solución:** migrar a single-Activity + `nav_graph.xml` + ViewBinding **antes de la Fase 4 (Pedidos)**, cuando aún hay pocas pantallas que convertir.
 
-**Estado:** `[ ] Pendiente — antes de Fase 3`
+**Estado:** `[ ] Pendiente — antes de Fase 4 (Pedidos)`
 
 ---
 

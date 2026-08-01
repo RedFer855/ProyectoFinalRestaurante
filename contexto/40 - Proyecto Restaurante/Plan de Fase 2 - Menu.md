@@ -24,7 +24,7 @@ ventana de oportunidad (**P-014** y **P-017**).
 
 ---
 
-## Por qué se parte en tres
+## Por qué se parte en sub-fases
 
 Meter "CRUD + imágenes + Room + outbox + reorganización feature-first" en una sola
 entrega produce un cambio imposible de revisar y con dos fuentes de fallo mezcladas
@@ -34,12 +34,20 @@ entrega produce un cambio imposible de revisar y con dos fuentes de fallo mezcla
 |---|---|---|
 | **2a** | CRUD de **platillos y categorías** contra Supabase + foto en **Storage** | 🟢 **Implementada** 2026-07-31 — ver [[Módulo Menú]] |
 | **2b** | **Room + outbox + `SyncWorker`**: el Menú pasa a offline-first (**P-014**) | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
-| **2c** | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
+| **2c** | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2c - CRUD de Mesas]] |
+| **2d** | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2d - CRUD de Clientes]] |
+| **2e** | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
+
+> [!note] La Fase 2 creció el 2026-08-01
+> Nació como "el Menú partido en tres" y hoy incluye Mesas y Clientes, que se numeraron
+> `2c`/`2d` porque la Fase 3 quedó reservada para otro contenido. El refactor P-017/P-011,
+> que era el viejo `2c`, pasó a `2e` y sigue siendo el cierre de la fase. La tabla de
+> equivalencias con los nombres viejos está en [[Roadmap de Fases]].
 
 > [!warning] 2b dejó de ser "la deuda del Menú" y pasó a ser un prerrequisito
-> [[Plan Fase 3a - CRUD de Mesas]] y [[Plan Fase 3b - CRUD de Clientes]] **nacen** sobre la
+> [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]] **nacen** sobre la
 > infraestructura de 2b en vez de repetir el patrón contra-la-red de 2a. Eso convierte a 2b
-> en bloqueante de la Fase 3: no es opcional ni postergable sin multiplicar P-014 por tres.
+> en bloqueante de 2c y 2d: no es opcional ni postergable sin multiplicar P-014 por tres.
 
 ---
 

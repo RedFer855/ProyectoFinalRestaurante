@@ -594,7 +594,7 @@ mensaje correcto es *"Tu sesión venció. Volvé a iniciar sesión."*, igual que
 | No hagas | Por qué |
 |---|---|
 | Room, `SyncWorker`, outbox | Es la Fase 2b. Meterlo acá hace la entrega irrevisable |
-| Reorganizar paquetes a feature-first | Es **P-017**, sub-fase 2c |
+| Reorganizar paquetes a feature-first | Es **P-017**, sub-fase 2e |
 | Renombrar IDs de vistas a `camelCase` | Es **P-011**, bloqueado por P-017 — son ~15 layouts |
 | Hilt | **P-002**, sigue en DI manual por Factory |
 | Persistir o refrescar el token | **P-009**, alcance propio |
@@ -637,7 +637,7 @@ en el entorno del agente. ⬜ **Pendiente.**
 
 - [[Módulo Menú]] — el estado vivo del módulo ya implementado
 - [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]
-- [[Plan de Fase 2 - Menu]] — el paraguas: por qué 2a, 2b y 2c van separadas
+- [[Plan de Fase 2 - Menu]] — el paraguas: por qué 2a, 2b, 2c, 2d y 2e van separadas
 - [[Plan Fase 1d - Modulo Empleados Funcional]] — **el patrón a replicar**
 - [[Esquema de Base de Datos]] — el esquema completo
 - [[Estándar de Ingeniería Android]] · [[Gate de Autoverificación]] · [[Lista Negra de APIs Android]]

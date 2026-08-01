@@ -37,7 +37,7 @@ No hay contraseña, no hay Supabase Auth, no hay Google Sign-In para clientes. L
 
 ## Consecuencias
 
-- El módulo de **Pedidos** (Fase 3) necesita, como parte de su UI, un paso de captura/búsqueda de cliente — no una pantalla de registro separada.
+- El módulo de **Pedidos** (Fase 4) necesita, como parte de su UI, un paso de captura/búsqueda de cliente — no una pantalla de registro separada.
 - `clientes` no necesita política RLS de `INSERT` para `anon`/rol de cliente — solo el staff autenticado (`mesero`/`admin`) inserta, vía su propia sesión.
 - Si más adelante se quisiera una app para el cliente final (pedir desde su teléfono, ver su historial), esto se reabre como una decisión nueva — no se descarta el escenario B para siempre, solo no aplica hoy.
 - Cierra la ambigüedad que quedaba abierta desde [[Plan de Conexión con Supabase]] sobre "¿quiénes son los clientes que se registran?".

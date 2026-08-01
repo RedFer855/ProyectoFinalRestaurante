@@ -1,9 +1,9 @@
 ---
-title: Plan Fase 3b — CRUD de Clientes
+title: Plan Fase 2d — CRUD de Clientes
 tags:
   - restaurante
   - plan
-  - fase3b
+  - fase2d
   - clientes
   - rls
   - privacidad
@@ -11,7 +11,7 @@ date: 2026-08-01
 lifecycle: draft
 ---
 
-# Plan Fase 3b — CRUD de Clientes
+# Plan Fase 2d — CRUD de Clientes
 
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Ahí está el contrato completo: la división Parte A / Parte B, el orden de lectura, las
@@ -187,7 +187,7 @@ Tres cosas deliberadas:
 - **Es atómica**: un `SELECT` seguido de un `INSERT` desde el cliente tiene una ventana de
   carrera con dos meseros tomando pedidos a la vez. Acá no.
 - **`security definer` + `search_path` fijo**, y `revoke … from anon`, por lo mismo que en
-  [[Plan Fase 3a - CRUD de Mesas]].
+  [[Plan Fase 2c - CRUD de Mesas]].
 
 ### 2.5 Vista de lectura — **el contrato que la Parte B programa**
 
@@ -368,7 +368,7 @@ sesión de cocina, para confirmar que el módulo no aparece.
 
 - [[Protocolo de Ejecución de un Plan]] — **léelo primero**
 - [[Plan Fase 2b - Offline-First con Room y Outbox]] — **prerrequisito**
-- [[Plan Fase 3a - CRUD de Mesas]] — el otro catálogo que Pedidos necesita
+- [[Plan Fase 2c - CRUD de Mesas]] — el otro catálogo que Pedidos necesita
 - [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] — la decisión que este plan respeta
 - [[Seguridad y Privacidad Android]] — datos personales en el dispositivo
 - [[Esquema de Base de Datos]] — hay que documentar ahí el DDL real de `clientes`

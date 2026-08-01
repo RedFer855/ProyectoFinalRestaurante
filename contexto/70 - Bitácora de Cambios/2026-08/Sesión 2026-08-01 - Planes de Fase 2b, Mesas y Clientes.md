@@ -5,8 +5,8 @@ tags:
   - restaurante
   - plan
   - fase2b
-  - fase3a
-  - fase3b
+  - fase2c
+  - fase2d
   - offline
   - mesas
   - clientes
@@ -63,11 +63,11 @@ descartó). Ocho entregables, y la Parte A es mínima: el `actualizado_en` con t
 Fase 2a agregó "pensando en el sync delta de 2b" resulta que alcanza — lo único que se
 propone es un índice.
 
-### [[Plan Fase 3a - CRUD de Mesas]] (nueva)
+### [[Plan Fase 2c - CRUD de Mesas]] (nueva)
 
 CRUD de mesas + estado operativo. La Parte A es la más grande de las tres.
 
-### [[Plan Fase 3b - CRUD de Clientes]] (nueva)
+### [[Plan Fase 2d - CRUD de Clientes]] (nueva)
 
 CRUD de clientes respetando [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]],
 más la operación buscar-o-crear que la Fase 4 (Pedidos) va a consumir.
@@ -131,14 +131,42 @@ ADR-006 siga funcionando (muchos clientes de mostrador sin identidad no colision
 > Regla escrita en los dos planes: si lo real difiere de lo supuesto, **gana la base** y se
 > corrige el plan.
 
+## Renumeración, más tarde el mismo día
+
+Los planes de Mesas y Clientes se escribieron primero como **`3a`** y **`3b`**. El usuario
+pidió renumerarlos a **`2c`** y **`2d`** porque **la Fase 3 queda reservada** para un
+contenido distinto, todavía sin definir. Se renombraron los archivos con `git mv` y se
+actualizaron las 35 referencias de la bóveda.
+
+Eso destapó una **colisión**: ya existía un `2c` — el refactor P-017/P-011 definido en
+[[Plan de Fase 2 - Menu]], referenciado en 8 lugares. Se resolvió moviéndolo a **`2e`**:
+seguía siendo el cierre de la Fase 2, así que quedar al final no le cambia el sentido.
+
+| Nombre viejo | Nombre actual | Qué es |
+|---|---|---|
+| `2c` (hasta 2026-08-01) | **`2e`** | Refactor P-017 + P-011 |
+| `3a` (propuesto ese mismo día) | **`2c`** | CRUD de Mesas |
+| `3b` (propuesto ese mismo día) | **`2d`** | CRUD de Clientes |
+
+La rama propuesta pasó de `feat/fase3-mesas-clientes` a `feat/fase2cd-mesas-clientes`, y la
+Fase 3 quedó en el roadmap como **reservada, sin contenido asignado**. Pedidos **no** volvió
+a la 3: sigue en la 4, porque depende de Mesas y Clientes.
+
+De paso se corrigieron referencias sueltas a "Fase 3" que en realidad querían decir
+"cuando el proyecto crezca": P-015, P-005, `Modularizacion por Feature`, el
+[[Estándar de Ingeniería Android]] y [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]]
+ahora dicen **Fase 4 (Pedidos)**, que es lo que significaban. La mención a "Fase 3.1" de
+[[Seguridad y Privacidad Android]] **no** se tocó: se refiere al plan del proyecto Bimbo,
+no a este roadmap.
+
 ## Notas actualizadas
 
 - [[Roadmap de Fases]] — 2b, 3a y 3b agregadas; Pedidos a Fase 4; fase 5 marcada como
   adelantada; la ventana de P-014 marcada como "se cierra acá".
 - [[Plan de Fase 2 - Menu]] — 2a a 🟢 implementada, 2b a 🟡 planificada, y el aviso de que 2b
-  dejó de ser "la deuda del Menú" para ser prerrequisito de la Fase 3.
+  dejó de ser "la deuda del Menú" para ser prerrequisito de 2c y 2d.
 - [[Esquema de Base de Datos]] — el hueco de `mesa`/`clientes` y la tabla de cambios
-  planificados para la Fase 3 (todavía **no aplicados**).
+  planificados para 2c y 2d (todavía **no aplicados**).
 - [[Conocimiento Principal]] — estado, próximos pasos y navegación.
 
 ## Verificación
@@ -159,9 +187,9 @@ No hay código que compilar en esta sesión. Lo que sí se verificó:
 - **Cero SQL.** Esta sesión no tenía acceso a Supabase; toda la Parte A está **escrita, no
   aplicada**.
 - **No se escribió el ADR-007** (`estado_mesa` como catálogo propio): lo escribe quien
-  ejecute la Parte A de la Fase 3a, que es quien va a confirmar contra la base si la decisión
+  ejecute la Parte A de la Fase 2c, que es quien va a confirmar contra la base si la decisión
   sobrevive al esquema real.
-- **No se creó ninguna rama nueva.** `feat/fase2b-offline` y `feat/fase3-mesas-clientes`
+- **No se creó ninguna rama nueva.** `feat/fase2b-offline` y `feat/fase2cd-mesas-clientes`
   están **propuestas** en el roadmap; las crea quien ejecute cada fase.
 - **P-004** (verificar edge-to-edge en un teléfono físico) sigue siendo el único pendiente
   para mergear `feat/fase1-login` a `master`.
@@ -172,7 +200,7 @@ No hay código que compilar en esta sesión. Lo que sí se verificó:
 
 - [[Protocolo de Ejecución de un Plan]] — la nota compartida que nació acá
 - [[Plan Fase 2b - Offline-First con Room y Outbox]]
-- [[Plan Fase 3a - CRUD de Mesas]] · [[Plan Fase 3b - CRUD de Clientes]]
+- [[Plan Fase 2c - CRUD de Mesas]] · [[Plan Fase 2d - CRUD de Clientes]]
 - [[Roadmap de Fases]] · [[Esquema de Base de Datos]] · [[Plan de Fase 2 - Menu]]
 - [[Offline-First con Room y Outbox]] — el patrón que 2b implementa
 - [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]]

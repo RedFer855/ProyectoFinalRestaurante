@@ -1,16 +1,16 @@
 ---
-title: Plan Fase 3a — CRUD de Mesas
+title: Plan Fase 2c — CRUD de Mesas
 tags:
   - restaurante
   - plan
-  - fase3a
+  - fase2c
   - mesas
   - rls
 date: 2026-08-01
 lifecycle: draft
 ---
 
-# Plan Fase 3a — CRUD de Mesas
+# Plan Fase 2c — CRUD de Mesas
 
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Ahí está el contrato completo: la división Parte A / Parte B, el orden de lectura, las
@@ -364,7 +364,7 @@ con dos sesiones (admin y mesero) para ver que los permisos se comportan distint
 
 - [[Protocolo de Ejecución de un Plan]] — **léelo primero**
 - [[Plan Fase 2b - Offline-First con Room y Outbox]] — **prerrequisito**
-- [[Plan Fase 3b - CRUD de Clientes]] — el otro catálogo que Pedidos necesita
+- [[Plan Fase 2d - CRUD de Clientes]] — el otro catálogo que Pedidos necesita
 - [[Módulo Menú]] — el patrón a replicar
 - [[Esquema de Base de Datos]] — hay que documentar ahí el DDL real de `mesa`
 - [[Plan Fase 1c - Maqueta Visual por Roles]] — la matriz de permisos que la RLS respalda

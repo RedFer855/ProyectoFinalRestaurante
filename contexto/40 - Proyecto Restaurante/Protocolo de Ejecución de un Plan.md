@@ -177,5 +177,5 @@ en git, anotarla ahí equivale a publicarla.
 - [[Arquitectura Actual]] · [[Deuda Técnica - Pendientes]] · [[Roadmap de Fases]]
 - [[Módulo Menú]] — el módulo de referencia vigente
 - [[Plan Fase 2b - Offline-First con Room y Outbox]]
-- [[Plan Fase 3a - CRUD de Mesas]]
-- [[Plan Fase 3b - CRUD de Clientes]]
+- [[Plan Fase 2c - CRUD de Mesas]]
+- [[Plan Fase 2d - CRUD de Clientes]]
