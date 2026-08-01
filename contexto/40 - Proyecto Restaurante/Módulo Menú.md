@@ -11,13 +11,16 @@ date: 2026-07-31
 
 # Módulo Menú
 
-> [!success] Funcional desde 2026-07-31 (Fase 2a)
+> [!success] Funcional desde 2026-07-31 (Fase 2a) · local-first desde 2026-08-01 (Fase 2b)
 > CRUD real de platillos y categorías contra Supabase, con la foto del platillo en el
-> bucket `platillos` de Storage. Reemplazó la maqueta de la Fase 1c. Falta **la prueba
-> manual en un dispositivo**.
+> bucket `platillos` de Storage. Reemplazó la maqueta de la Fase 1c.
+>
+> Desde la **Fase 2b** la UI **no habla con la red**: observa Room y escribe optimista; el
+> `SyncWorker` drena el outbox y baja el delta. Falta **la prueba manual en un dispositivo**,
+> sobre todo el flujo offline completo.
 
 > [!info] Replica el patrón de Empleados, no el del login
-> `ui/empleados/` + `SupabaseEmpleadoRepository` son el patrón vigente y aprobado
+> `ui/empleados/` + `EmpleadoRepositorioLocal` son el patrón vigente y aprobado
 > ([[Plan Fase 1d - Modulo Empleados Funcional]]). El [[Módulo Login]] se escribió antes
 > del [[Estándar de Ingeniería Android]] y arrastra deuda que no se replicó acá.
 
@@ -57,7 +60,8 @@ remote/SupabaseStorageApi.java  — subir y borrar en el bucket `platillos`
 remote/dto/PlatilloDto.java · CategoriaDto.java
 remote/dto/CrearPlatilloDto.java · ActualizarPlatilloDto.java
 remote/dto/CrearCategoriaDto.java · ActualizarCategoriaDto.java
-repository/SupabaseMenuRepository.java — implementa MenuRepository; orquesta base + Storage
+repository/MenuRepositorioLocal.java  — implementa MenuRepository: Room + outbox (Fase 2b)
+repository/MenuRemoto.java            — la cara remota; orquesta base + Storage
 ```
 
 ### `ui/menu/`
@@ -167,7 +171,7 @@ deja una imagen rota y visible; el archivo huérfano es invisible.
 
 | Suite | Cubre |
 |---|---|
-| `SupabaseMenuRepositoryTest` (20) | listar, crear, actualizar, quitar foto, categorías, mensajes de trigger y **la compensación del bucket** |
+| `MenuRemotoTest` (20) | listar, crear, actualizar, quitar foto, categorías, mensajes de trigger y **la compensación del bucket** |
 | `ReglasMenuTest` (16) | borrado de categorías, unicidad insensible, límites de imagen, inmutabilidad |
 | `MenuViewModelTest` (14) | carga, vacío vs vacío-por-filtro, error, filtro, búsqueda, filtro que sobrevive a la recarga |
 | `ValidadorPlatilloTest` (8) | nombre, precio, categoría |
@@ -182,7 +186,7 @@ de los unit tests. Registrado como **P-024**.
 |---|---|
 | 🟢 **P-024** | `CompresorDeImagen` sin pruebas (requiere Robolectric o test instrumentado) |
 | 🟢 **P-023** | Nadie limpia los archivos huérfanos del bucket |
-| 🔴 **P-014** | Sin offline-first: todo lee y escribe contra la red — **Fase 2b** |
+| ~~🔴 **P-014**~~ ✅ | Cerrado en la Fase 2b (2026-08-01): el módulo es local-first |
 | 🟢 **P-001** | `mensajeDeError()` duplicado entre este repositorio y el de Empleados |
 | 🟢 **P-019** | Mensajes de error hardcodeados en el ViewModel y el repositorio |
 | 🟢 **P-011** | IDs de vista en `snake_case` — bloqueado por **P-017** |

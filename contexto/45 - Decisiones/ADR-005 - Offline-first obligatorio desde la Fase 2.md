@@ -4,7 +4,7 @@ tags:
   - adr
   - decision
 date: 2026-07-29
-estado: propuesto
+estado: aceptado
 ---
 
 # ADR-005 — Offline-first obligatorio desde la Fase 2
@@ -48,8 +48,15 @@ Detalle de implementación en [[Offline-First con Room y Outbox]].
 - **Se asume complejidad nueva:** resolución de conflictos, migraciones de esquema y estados de sincronización visibles. Todo eso hay que probarlo (`MigrationTestHelper`, fakes de DataSource) — ver [[Estrategia de Pruebas Android]].
 - **Requisito previo:** Hilt (**P-002**), porque `HiltWorkerFactory` es lo que permite inyectar dependencias en un `Worker`. Y Hilt 2.57.1+ exige Java 17, lo que encadena con **P-006** y **P-003**.
 
-> [!note] Estado
-> `propuesto` — se marca `aceptado` cuando arranque la Fase 2 y se confirme el diseño de tablas. Registrado como **P-014** en [[Deuda Técnica - Pendientes]].
+> [!success] Estado
+> **`aceptado`** (2026-08-01). La condición que fijaba este mismo ADR —que arrancara la Fase 2
+> y se confirmara el diseño de tablas— se cumplió: el esquema local va por la v2 y **P-014
+> está cerrado**. Ver [[Plan Fase 2b - Offline-First con Room y Outbox]].
+>
+> **Un supuesto del ADR no se cumplió y no hizo falta:** decía que Hilt (**P-002**) era
+> *requisito previo* porque `HiltWorkerFactory` es lo que inyecta dependencias en un
+> `Worker`. Se resolvió con una `WorkerFactory` propia en `SyncApplication`, sin Hilt. El
+> requisito era real pero no exclusivo: lo que hacía falta era **alguna** factory, no esa.
 
 ---
 

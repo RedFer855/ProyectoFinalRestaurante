@@ -100,10 +100,21 @@ Un ícono de nube con tres estados en cada fila resuelve el 90% de los reclamos 
 
 ## Estado en este proyecto
 
-> [!warning] No implementado — es el gran pendiente arquitectónico
-> Hoy la app **no tiene Room, ni WorkManager, ni outbox**. El login va directo a la red y falla si no hay conexión; no hay nada que cachear todavía porque no hay más pantallas.
+> [!success] Implementado (2026-08-01) — **P-014 cerrado**
+> **Menú** y **Empleados** son local-first: la UI observa Room y el `SyncWorker` drena el
+> outbox y baja el delta. Ver [[Módulo Menú]] y [[Módulo Empleados]].
 >
-> **Esto debe implementarse en la Fase 2 (Menú)**, no después: retro-adaptar offline-first sobre 5 módulos ya escritos contra la red es una reescritura, no un refactor. Registrado como **P-014** en [[Deuda Técnica - Pendientes]].
+> Infraestructura: `data/local` (Room 2.8.4, esquema v2), `data/outbox` **particionado por
+> módulo** y `data/sync` con un **worker único** — la regla 3 de esta misma nota.
+>
+> El **login** queda fuera por definición: autenticar exige red. Lo que le falta es persistir
+> la sesión, que es **P-009**, no cachearla.
+
+> [!tip] La advertencia se cumplió, y salió barata por poco
+> Esta nota decía que retro-adaptar offline-first sobre módulos ya escritos contra la red
+> *"es una reescritura, no un refactor"*. Pasó exactamente eso: la Fase 2a escribió el Menú
+> contra la red a propósito, y la 2b **reescribió** su capa `data` completa. Se pudo pagar
+> porque eran dos módulos, no cinco. Mesas, Clientes y Pedidos nacen ya sobre esta base.
 
 ---
 

@@ -49,7 +49,7 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 | 1 | `feat/fase1-login` | Login contra Supabase Auth (REST/Retrofit), arquitectura por capas base | 🟡 Funcional, con deuda catalogada |
 | **0** | `fix/fase0-estandar` | **Remediación de la brecha contra el estándar** | ⬜ **Siguiente** |
 | **2a** | `feat/fase2-menu` | CRUD de platillos y categorías + fotos en Storage | 🟢 **Implementada** 2026-07-31 (falta probarla en dispositivo) — ver [[Módulo Menú]] |
-| **2b** | `feat/fase2b-offline` | **Room + outbox + `SyncWorker`** — cierra **P-014**. El Menú pasa a offline-first | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+| **2b** | `feat/fase2-menu` | **Room + outbox + `SyncWorker`** — cierra **P-014**. Menú **y** Empleados pasan a offline-first | 🟢 **Implementada** 2026-08-01 (falta probarla en dispositivo) — ver [[Módulo Menú]] y [[Módulo Empleados]] |
 | **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2c - CRUD de Mesas]] |
 | **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2d - CRUD de Clientes]] |
 | **2e** | `feat/fase2e-refactor` | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
@@ -90,7 +90,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 
 | Decisión | Última oportunidad barata | Ítem |
 |---|---|---|
-| **Offline-first** (Room + outbox) | Fase **2b**, ya planificada. ⚠️ **La ventana se cierra acá**: si Mesas y Clientes se escriben contra la red, la deuda se multiplica por tres | P-014 |
+| ~~**Offline-first** (Room + outbox)~~ ✅ | Cerrada en la Fase **2b** (2026-08-01). La ventana se aprovechó a tiempo: Mesas, Clientes y Pedidos **nacen** sobre la infraestructura en vez de contraer la deuda de nuevo | ~~P-014~~ |
 | **Single-Activity + Navigation Component** | Antes de Fase 4 — con pocas pantallas que convertir | P-015 |
 | **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature. **Ya se pasó el umbral**: desde la 2a hay tres features (`login`, `empleados`, `menu`) y sigue layer-first | P-017 |
 | **`applicationId` real** | Antes de publicar — después de publicar es irreversible | P-018 |

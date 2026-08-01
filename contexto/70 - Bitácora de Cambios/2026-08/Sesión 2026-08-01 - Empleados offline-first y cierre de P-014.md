@@ -131,6 +131,29 @@ donde el bug puede esconderse.
 - **P-025**, **P-002**, **P-011**, **P-017**: sin tocar.
 - **P-004** sigue siendo lo único que falta para mergear `feat/fase1-login` a `master`.
 
+## Puesta al día de la bóveda
+
+Cerrar P-014 dejó **siete notas afirmando el mundo anterior**. Se corrigieron en la misma
+sesión, porque una bóveda que se contradice a sí misma es peor que una desactualizada — el
+próximo agente no sabe cuál creer:
+
+| Nota | Decía | Dice |
+|---|---|---|
+| [[Offline-First con Room y Outbox]] | *"No implementado — el gran pendiente arquitectónico"* | Implementado, con qué módulo usa qué |
+| [[ADR-005 - Offline-first obligatorio desde la Fase 2]] | estado `propuesto` | **`aceptado`** — se cumplió la condición que el propio ADR fijaba |
+| [[Roadmap de Fases]] | 2b planificada, en rama `feat/fase2b-offline` | Implementada, en `feat/fase2-menu` |
+| [[Roadmap de Fases]] | ventana de P-014 abierta | Cerrada y aprovechada a tiempo |
+| [[Plan de Fase 2 - Menu]] | 2b planificada | Implementada |
+| [[Módulo Menú]] | P-014 abierto; `SupabaseMenuRepository` | Cerrado; `MenuRepositorioLocal` + `MenuRemoto` |
+| [[Módulo Menú]] | "funcional desde la 2a" | + local-first desde la 2b |
+
+> [!tip] Un supuesto del ADR-005 que no se cumplió, y no hizo falta
+> El ADR daba **Hilt (P-002) como requisito previo**, porque `HiltWorkerFactory` es lo que
+> inyecta dependencias en un `Worker`. Se resolvió con una `WorkerFactory` propia en
+> `SyncApplication`, sin Hilt. El requisito era real pero **no exclusivo**: hacía falta
+> *alguna* factory, no esa. Quedó anotado en el ADR para que P-002 no se justifique con un
+> argumento que ya no se sostiene.
+
 ---
 
 ## Relaciones
