@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Opciones (⋮) de un empleado. Todas son exclusivas de admin; el módulo entero
-  no existe para los demás roles.
+  Opciones (⋮) de un empleado. Ya no existe "Eliminar": borrar a alguien romperia la
+  trazabilidad de pedido.id_usuario (quien atendio cada pedido). Se desactiva, que deja
+  de poder entrar pero conserva el historial.
+
+  Cada opcion se oculta ademas con ReglasEmpleado: un admin no puede tocar a otro admin.
 -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
@@ -13,7 +16,4 @@
     <item
         android:id="@+id/accion_activar_desactivar"
         android:title="@string/accion_desactivar" />
-    <item
-        android:id="@+id/accion_eliminar_empleado"
-        android:title="@string/accion_eliminar" />
 </menu>

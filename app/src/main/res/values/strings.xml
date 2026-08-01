@@ -75,6 +75,30 @@
     <string name="accion_activar">Activar</string>
     <string name="accion_desactivar">Desactivar</string>
 
+    <string name="empleado_nombres">Nombres</string>
+    <string name="empleado_apellidos">Apellidos</string>
+    <string name="empleado_identidad">Identidad</string>
+    <string name="empleado_telefono">Teléfono (opcional)</string>
+    <string name="empleado_correo">Correo electrónico</string>
+    <string name="empleado_rol">Rol</string>
+    <string name="empleado_contrasenia_temporal">Contraseña temporal</string>
+    <string name="empleado_titulo_nuevo">Nuevo empleado</string>
+    <string name="empleado_titulo_editar">Editar empleado</string>
+    <string name="empleado_titulo_cambiar_rol">Cambiar rol de %1$s</string>
+    <string name="empleado_guardar">Guardar</string>
+    <string name="empleado_cancelar">Cancelar</string>
+    <string name="empleado_reintentar">Reintentar</string>
+    <string name="empleado_error_campos">Completá nombres, apellidos, identidad y correo</string>
+    <string name="empleado_error_correo">El correo no es válido</string>
+    <string name="empleado_requisitos_ok">La contraseña cumple los requisitos</string>
+    <string name="empleado_requisitos_falta">Falta: %1$s</string>
+    <string name="empleado_req_longitud">8 caracteres</string>
+    <string name="empleado_req_mayuscula">una mayúscula</string>
+    <string name="empleado_req_minuscula">una minúscula</string>
+    <string name="empleado_req_digito">un número</string>
+    <string name="empleado_req_simbolo">un símbolo</string>
+    <string name="empleado_no_editable">No podés modificar a otro administrador</string>
+
     <string name="reportes_rango_hoy">Hoy</string>
     <string name="reportes_rango_semana">Esta semana</string>
     <string name="reportes_rango_mes">Este mes</string>

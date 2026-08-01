@@ -175,29 +175,6 @@ public final class DatosMaqueta {
         }
     }
 
-    public static final class Empleado {
-        public final String nombres;
-        public final String apellidos;
-        public final String identidad;
-        public final String correo;
-        public final String rol;
-        public final boolean activo;
-
-        public Empleado(String nombres, String apellidos, String identidad,
-                        String correo, String rol, boolean activo) {
-            this.nombres = nombres;
-            this.apellidos = apellidos;
-            this.identidad = identidad;
-            this.correo = correo;
-            this.rol = rol;
-            this.activo = activo;
-        }
-
-        public String nombreCompleto() {
-            return nombres + " " + apellidos;
-        }
-    }
-
     public static final class ConteoSimple {
         public final String etiqueta;
         public final int cantidad;
@@ -281,22 +258,6 @@ public final class DatosMaqueta {
                 new Cliente("Sofía", "Ramos", "0801198877665", "9911-2233"),
                 new Cliente("Carlos", "Núñez", "0703199044556", "8877-6655"),
                 new Cliente("Gabriela", "Paz", null, "9900-1234"));
-    }
-
-    public static List<Empleado> empleados() {
-        return Arrays.asList(
-                new Empleado("Fernando José", "Barahona Castro", "0801200307196",
-                        "fbarahona280@gmail.com", "admin", true),
-                new Empleado("Kelvin Francisco", "Izaguirre", "0719200601382",
-                        "kelvinizaguirre914@gmail.com", "admin", true),
-                new Empleado("Marta", "Zelaya", "0801199433221",
-                        "marta.zelaya@restaurante.hn", "mesero", true),
-                new Empleado("Óscar", "Fúnez", "0501199877112",
-                        "oscar.funez@restaurante.hn", "mesero", true),
-                new Empleado("Rosa", "Interiano", "0703198855443",
-                        "rosa.interiano@restaurante.hn", "cocina", true),
-                new Empleado("Diego", "Andino", "0801200011223",
-                        "diego.andino@restaurante.hn", "cocina", false));
     }
 
     public static List<ConteoSimple> platillosMasPedidos() {
