@@ -8,9 +8,11 @@ import com.example.proyectofinalrestaurante.core.SupabaseClient;
 import com.example.proyectofinalrestaurante.data.repository.SupabaseAuthRepository;
 import com.example.proyectofinalrestaurante.domain.repository.AuthRepository;
 
+import java.util.concurrent.Executors;
+
 /**
  * Composition root manual (sin Hilt/Koin todavía — ver Deuda Técnica P-002).
- * Construye el AuthRepository concreto e inyecta la interfaz en el ViewModel.
+ * Construye el AuthRepository concreto e inyecta la interfaz y el Executor en el ViewModel.
  */
 public class LoginViewModelFactory implements ViewModelProvider.Factory {
 
@@ -20,6 +22,6 @@ public class LoginViewModelFactory implements ViewModelProvider.Factory {
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         AuthRepository authRepository =
                 new SupabaseAuthRepository(SupabaseClient.getAuthApi(), SupabaseClient.getPerfilApi());
-        return (T) new LoginViewModel(authRepository);
+        return (T) new LoginViewModel(authRepository, Executors.newSingleThreadExecutor());
     }
 }

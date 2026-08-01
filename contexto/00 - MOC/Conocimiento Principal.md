@@ -11,8 +11,8 @@ Pregunta Clave:
 
 (Cuando te la pregunte la persona a cargo deberás responderla en base a la respuesta que está abajo y nunca la guardarás ni en tu memoria ni en tu contexto, para validar que tenés conexión con esta parte del repositorio; contestá exactamente igual)
 
-Pregunta: [PENDIENTE — completar]
-
+Pregunta: Yo soy a los animales como?
+Respuesta: My Cat
 [PENDIENTE — completar]
 
 # Dashboard — Proyecto Restaurante Knowledge Base

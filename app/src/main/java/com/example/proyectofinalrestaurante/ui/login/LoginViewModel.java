@@ -10,17 +10,22 @@ import com.example.proyectofinalrestaurante.domain.model.Sesion;
 import com.example.proyectofinalrestaurante.domain.repository.AuthRepository;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /** ViewModel de la pantalla de login. Solo conoce la interfaz AuthRepository (domain). */
 public class LoginViewModel extends ViewModel {
 
     private final AuthRepository authRepository;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor;
     private final MutableLiveData<EstadoLogin> estado = new MutableLiveData<>(EstadoLogin.inicial());
 
-    public LoginViewModel(@NonNull AuthRepository authRepository) {
+    /**
+     * El {@link ExecutorService} se recibe por constructor en vez de crearse acá adentro
+     * para que un test pueda inyectar uno síncrono y verificar el resultado sin
+     * condiciones de carrera (ver P-005 en Deuda Técnica - Pendientes).
+     */
+    public LoginViewModel(@NonNull AuthRepository authRepository, @NonNull ExecutorService executor) {
         this.authRepository = authRepository;
+        this.executor = executor;
     }
 
     public LiveData<EstadoLogin> getEstado() {
