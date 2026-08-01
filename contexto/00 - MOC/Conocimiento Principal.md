@@ -35,7 +35,7 @@ Respuesta: My Cat
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
 | **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
-| **Fase 2b — Offline-first (Room + outbox)** | 🟡 **Planificada** (2026-08-01). Cierra **P-014** y es **prerrequisito** de 2c y 2d — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+| **Fase 2b — Offline-first (Room + outbox)** | 🟢 **Implementada** (2026-08-01). El Menú es local-first: Room + outbox + `SyncWorker`, y la Parte A del servidor cerrada. **195 tests** en verde. **P-014** queda parcial: Empleados sigue contra la red — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
 | **Fase 2c — Mesas** · **3b — Clientes** | 🟡 **Planificadas** (2026-08-01). Nacen offline-first sobre 2b — ver [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]] |
 | Usuarios y roles | 🟢 Adelantado — se hizo en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, Empleados) |
 | Pedidos (Fase 4), Reportes (Fase 6) | ⬜ No iniciado |
@@ -137,4 +137,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-08-01 - Cierre de pendientes de Fase 1 (emulador y política de contraseñas)]]
+Sesión más reciente: [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]]

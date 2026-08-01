@@ -72,13 +72,18 @@ Clientes **nacen** offline-first sobre esta base — ver [[Plan Fase 2c - CRUD d
 
 ### 2.1 Verificación previa (no es opcional)
 
+> [!success] Parte A ejecutada y verificada el 2026-08-01
+> Los tres puntos pasan y los índices de §2.2 están aplicados (migración
+> `menu_indices_para_sync_delta`). **No queda nada de servidor pendiente en esta fase.**
+> Ver [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]].
+
 Antes de tocar nada, confirmá contra la base real:
 
-- [ ] `platillo.actualizado_en` y `categoria.actualizado_en` existen, son `timestamptz NOT NULL`
+- [x] `platillo.actualizado_en` y `categoria.actualizado_en` existen, son `timestamptz NOT NULL`
       y tienen su trigger `BEFORE UPDATE` funcionando (un `UPDATE` los avanza solo).
-- [ ] `vista_platillos` y `vista_categorias` **exponen `actualizado_en`**. Si no lo exponen,
+- [x] `vista_platillos` y `vista_categorias` **exponen `actualizado_en`**. Si no lo exponen,
       el sync delta es imposible: agregalo a la vista.
-- [ ] Ambas vistas exponen `id_estado`, para que el cliente pueda replicar las bajas lógicas.
+- [x] Ambas vistas exponen `id_estado`, para que el cliente pueda replicar las bajas lógicas.
 
 ### 2.2 Lo único que hay que agregar
 
@@ -92,6 +97,9 @@ create index if not exists ix_categoria_actualizado_en on public.categoria (actu
 
 Con 5 platillos no cambia nada; con 500 sí. Es idempotente y no afecta a nadie.
 
+> [!success] Aplicados el 2026-08-01
+> Migración `menu_indices_para_sync_delta`. Los dos índices existen.
+
 > [!warning] Lo que **NO** hay que hacer acá
 > No crear una función `ahora()` ni ningún endpoint de "hora del servidor". El cliente
 > **no necesita el reloj del servidor** con el diseño de §4.3, y agregar ese endpoint es
@@ -102,6 +110,20 @@ Con 5 platillos no cambia nada; con 500 sí. Es idempotente y no afecta a nadie.
 Dentro de una transacción revertida: `UPDATE` a un platillo y confirmar que
 `actualizado_en` avanzó solo, y que `select … where actualizado_en > $1` devuelve esa fila y
 no las demás. `get_advisors(security)` → 0 errores.
+
+> [!danger] Esta verificación **no se puede hacer en una sola transacción**
+> Es una trampa del propio criterio de aceptación, y costó descubrirla. El trigger escribe
+> `now()`, que en Postgres es la hora de **inicio de la transacción**, no la del `UPDATE`.
+> Si el corte también se toma con `now()` dentro de la misma transacción, los dos valores
+> son **idénticos** y `actualizado_en > corte` devuelve **cero filas** — parece que el sync
+> delta está roto cuando en realidad lo que está mal es el test.
+>
+> Verificado el 2026-08-01 **entre transacciones separadas**: un `UPDATE` en una, y el
+> filtro `actualizado_en > $corte` en otra → devuelve exactamente la fila tocada. ✅
+>
+> Que `now()` sea la hora de inicio no es solo una molestia del test: abre una ventana real
+> por la que el sync puede perderse un cambio. Quedó registrado como **P-025** en
+> [[Deuda Técnica - Pendientes]].
 
 ---
 

@@ -117,7 +117,7 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | Regla de negocio en dominio | `ValidadorContrasenia`, `ValidadorPlatillo`, `VisibilidadMenu`, `Permisos`, `ReglasEmpleado`, `ReglasMenu` | ✅ Java puro, testeable con JUnit |
 | Interceptor (Decorator) | `core.SupabaseClient` — `apikey` siempre; `Content-Type` JSON solo si el cuerpo no trae el suyo | ✅ Corregido en Fase 2a: forzarlo rompía las subidas binarias a Storage |
 | Carga de imágenes | Glide 4.16.0 en `PlatilloAdapter` y `FormularioPlatilloDialog` | ✅ Fase 2a; ruta UUID nueva por reemplazo para no pelear con el caché |
-| [[Offline-First con Room y Outbox]] | — | ⬜ **No implementado** (**P-014**) |
+| [[Offline-First con Room y Outbox]] | `data/local` (Room), `data/outbox`, `data/sync` (WorkManager) — **solo el Menú** | 🟡 **Parcial** (Fase 2b, 2026-08-01): el Menú es local-first; Empleados y el login siguen contra la red (**P-014**) |
 | [[Base Repository con manejo de errores]] | — | ⬜ Documentado, no extraído (**P-001**) |
 | DI con Hilt | — | ⬜ DI manual (**P-002**) |
 | ViewBinding | — | ⬜ `findViewById` (**P-015**) |

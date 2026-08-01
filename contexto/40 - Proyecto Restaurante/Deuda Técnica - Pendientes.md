@@ -77,13 +77,25 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 
 **Alcance:** todo el proyecto.
 
-El requisito no funcional #1 es que la app sea usable sin red — un restaurante con Wi-Fi intermitente no puede depender de la conexión para tomar un pedido. Hoy no hay **nada** de eso: no hay base local, la única pantalla va directo a la red y falla si no hay conexión.
+El requisito no funcional #1 es que la app sea usable sin red — un restaurante con Wi-Fi intermitente no puede depender de la conexión para tomar un pedido. Cuando se abrió este ítem no había **nada** de eso: ni base local, ni cola de salida, y la única pantalla iba directo a la red.
 
 **Riesgo:** si los módulos de Menú, Pedidos y Mesas se escriben contra la red directamente, meter offline-first después **no es un refactor: es una reescritura** de cada pantalla.
 
 **Solución:** implementar Room + `SyncWorker` + tabla `operaciones_pendientes` **en la Fase 2 (Menú)**, no después. Ver [[Offline-First con Room y Outbox]].
 
-**Estado:** `[ ] Pendiente — decisión obligada al arrancar Fase 2`
+**Estado:** `[~] Parcial` (2026-08-01) — **la infraestructura existe y el Menú la usa**; el resto del proyecto no.
+
+Lo que ya está, de la Fase 2b (ver [[Plan Fase 2b - Offline-First con Room y Outbox]] y [[Módulo Menú]]):
+
+| Pieza | Dónde |
+|---|---|
+| Base local (Room 2.8.4) | `data/local/` — `AppDatabase`, DAOs, entidades y mappers |
+| Cola de salida | `data/outbox/` — `Outbox`, `TipoOperacion`, `ClasificadorDeError` |
+| Sincronización diferida | `data/sync/` — `MenuSyncWorker` (WorkManager), `MenuSyncScheduler`, `SincronizadorMenu` |
+| Sync delta | `actualizado_en` + índices `ix_platillo_actualizado_en` / `ix_categoria_actualizado_en` (2026-08-01) |
+| La UI observa Room, no la red | `MenuRepositorioLocal` devuelve `LiveData`; `MenuRemoto` quedó detrás del sincronizador |
+
+**Lo que falta para cerrarlo del todo:** `SupabaseAuthRepository` y `SupabaseEmpleadoRepository` **siguen yendo directo a la red** y fallan sin conexión. Empleados es el candidato natural a migrar — ya existe toda la infraestructura, así que es replicar el patrón, no inventarlo. El login es un caso aparte: autenticar **exige** red por definición; lo que le falta ahí es persistir la sesión (**P-009**), no cachearla.
 
 ---
 
@@ -440,7 +452,7 @@ pruebas deberían evitar.
 **Solución:** una de dos, y la elección tiene su costo.
 
 1. **Robolectric** — corre en `testDebugUnitTest` con implementaciones reales de
-   `BitmapFactory`. Es una dependencia nueva y pesada (~40 MB de artefactos de Android
+   `BitmapFactory`. Era una dependencia nueva y pesada (~40 MB de artefactos de Android
    emulados) para cubrir una sola clase.
 2. **Test instrumentado** en `androidTest/`, con imágenes de prueba en `assets/`. Sin
    dependencia nueva, pero **el proyecto todavía no tiene harness de tests instrumentados
@@ -450,7 +462,54 @@ La 2 es más honesta (prueba el `BitmapFactory` de verdad, no una emulación) y 
 que la verificación funcional del proyecto ya depende de un dispositivo. Decidirlo cuando
 se arme el harness de instrumentación, no antes.
 
-**Estado:** `[ ] Pendiente`
+> [!success] El argumento del costo ya no aplica (2026-08-01)
+> La Fase 2b **agregó Robolectric 4.16.1** para poder testear los DAOs de Room
+> (`data/local/*Test`), así que la opción 1 dejó de costar una dependencia nueva: hoy son
+> unas pocas líneas de test sobre infraestructura que ya está pagada y corriendo en la
+> suite. Este ítem pasó de *"hay que decidir y bancarse el costo"* a **simplemente
+> pendiente y barato**.
+>
+> Sigue valiendo la salvedad de la opción 2: Robolectric emula `BitmapFactory`, no lo
+> ejecuta. Para lo que hay que cubrir acá —que `inSampleSize` deje el lado largo en ~1024
+> px y que una foto con `ORIENTATION_ROTATE_90` salga derecha— la emulación alcanza; el
+> caso que **no** cubre es una foto de 12 MP real contra el límite de 2 MB del bucket.
+
+**Estado:** `[ ] Pendiente — desbloqueado 2026-08-01, Robolectric ya está en el proyecto`
+
+---
+
+### P-025 · `actualizado_en` usa `now()`, que es la hora de **inicio** de la transacción
+
+**Alcance:** `tocar_actualizado_en()` en Supabase + el sync delta de
+[[Plan Fase 2b - Offline-First con Room y Outbox]].
+
+El trigger hace `new.actualizado_en := now()`. En Postgres `now()` es sinónimo de
+`transaction_timestamp()`: devuelve la hora en que **empezó** la transacción, no la del
+momento del `UPDATE`. Se verificó en la base: `now() = transaction_timestamp()` → `true`, y
+`clock_timestamp() > now()` dentro de la misma transacción → también `true`.
+
+Eso abre una ventana en el sync delta. Si una transacción empieza en `T` y confirma en
+`T+5s`, la fila queda con `actualizado_en = T` pero **recién se vuelve visible en `T+5s`**.
+Un cliente que sincroniza en `T+2s` no la ve, guarda `last_sync_at = T+2s`, y en la próxima
+corrida pide `actualizado_en > T+2s` — donde esa fila **ya no entra**. Se pierde para
+siempre, en silencio.
+
+**Riesgo:** bajo hoy, y por una razón concreta: la app manda `PATCH` de una sola sentencia,
+así que sus transacciones duran milisegundos y la ventana es despreciable. Sube en cuanto
+aparezca cualquier operación multi-sentencia larga — un alta de pedido con su detalle, una
+carga masiva desde el SQL Editor, o una Edge Function que agrupe varias escrituras.
+
+**Descubierto:** 2026-08-01, verificando el criterio de aceptación de §2.3 del plan de 2b.
+El primer test dio "0 filas en el delta" y la causa no era el índice recién creado sino
+esto: el corte y el trigger escribían **el mismo** `now()`. Entre transacciones separadas el
+delta funciona bien (verificado: devuelve exactamente la fila tocada).
+
+**Solución:** cambiar el trigger a `clock_timestamp()`, que devuelve la hora real del
+momento. No es gratis: dos filas actualizadas en la misma transacción dejarían de compartir
+timestamp, lo que es más correcto pero cambia el orden observable. Alternativa más sólida y
+más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
+
+**Estado:** `[ ] Pendiente — revisar antes de que exista la primera escritura multi-sentencia (Pedidos, Fase 4)`
 
 ---
 
@@ -471,7 +530,7 @@ se arme el harness de instrumentación, no antes.
 | P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[~]` Parcial 2026-07-29 | idem |
 | ~~P-012~~ | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-013~~ | Evento de navegación sin marcar consumido | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
-| P-014 | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[ ]` Pendiente | idem |
+| P-014 | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[~]` **Parcial** 2026-08-01 — el Menú ya es local-first; Empleados sigue contra la red | [[Sesión 2026-08-01 - Offline-first del Menú (Fase 2b E6-E8) y suite de tests al día]] |
 | P-015 | `Activity` + `findViewById` en vez de Fragment/ViewBinding | 🟡 | `[ ]` Pendiente | idem |
 | P-016 | `Result` con `String` en vez de `AppException` | 🟡 | `[ ]` Pendiente | idem |
 | P-017 | Paquetes layer-first en vez de feature-first | 🟢 | `[ ]` Pendiente | idem |
@@ -481,7 +540,8 @@ se arme el harness de instrumentación, no antes.
 | ~~P-020~~ | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 | P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
-| P-024 | `CompresorDeImagen` sin pruebas (necesita Robolectric o instrumentación) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
+| P-024 | `CompresorDeImagen` sin pruebas | 🟢 | `[ ]` Pendiente — **desbloqueado** 2026-08-01 (Robolectric ya está) | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
+| P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]] |
 
 ---
 
