@@ -34,8 +34,8 @@ Respuesta: My Cat
 | **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020); quedan 3 ítems que solo se cierran con acceso a Supabase o a un dispositivo — ver [[Deuda Técnica - Pendientes]] |
 | **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
-| **Fase 2 — Menú** | ⬜ No iniciada — planificada al cerrar este ciclo |
-| Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, obligatorio en Fase 2 |
+| **Fase 2a — Menú (CRUD + Storage)** | 🟡 Planificada. Rama `feat/fase2-menu` creada; **Supabase ya está listo**, falta todo el código — ver [[Plan Fase 2a - CRUD de Platillos y Categorias]] |
+| Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, va en la sub-fase **2b** |
 | Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
 > [!warning] `feat/fase1-login` no se mergea a `master` todavía
@@ -46,7 +46,7 @@ Respuesta: My Cat
 ## Próximos pasos
 
 1. **Vos:** probar login + Empleados en un emulador/dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas en el dashboard de Supabase (Authentication → Policies). Con eso cerrado, se mergea `feat/fase1-login` a `master`.
-2. **Fase 2 — Menú**: sin arrancar. Primer módulo que debe nacer offline-first (**P-014**, [[ADR-005 - Offline-first obligatorio desde la Fase 2]]) y reemplazar `DatosMaqueta`.
+2. **Fase 2a — Menú**: el servidor ya está preparado (columnas, vistas, triggers, RLS y el bucket `platillos` de Storage). Lo que sigue es **solo código Android**: el plan ejecutable está en [[Plan Fase 2a - CRUD de Platillos y Categorias]].
 3. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
 4. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
@@ -67,6 +67,8 @@ Respuesta: My Cat
 - [[Plan Fase 1b - Recuperación de Contraseña y Roles]] — **6 entregables ejecutables**, solo código (sin acceso a Supabase)
 - [[Plan Fase 1c - Maqueta Visual por Roles]] — maqueta completa con permisos por rol, respaldados por RLS
 - [[Plan Fase 1d - Modulo Empleados Funcional]] — **primer módulo real**: Edge Function, triggers y CRUD contra la base
+- [[Plan de Fase 2 - Menu]] — por qué la Fase 2 va partida en 2a / 2b / 2c
+- [[Plan Fase 2a - CRUD de Platillos y Categorias]] — **plan ejecutable**: CRUD del Menú + fotos en Supabase Storage
 - [[Guía de Diseño Visual]] — paleta, tipografía y componentes ("barato de renderizar, caro de ver")
 - [[Esquema de Base de Datos]] — **14 tablas** en Supabase, RLS y conflicto `usuarios` vs `perfiles`
 - [[Plan de Conexión con Supabase]] — **4 propuestas** para conectar el login a un backend real
@@ -125,4 +127,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]]
+Sesión más reciente: [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]]

@@ -12,7 +12,7 @@ lifecycle: verified
 # Esquema de Base de Datos — proyecto Restaurante
 
 > [!info] Estado
-> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **14 tablas**, todas con **RLS activa**. Todas vacías (0 filas) — falta cargar los catálogos base.
+> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **14 tablas**, todas con **RLS activa** y con policies por módulo. Catálogos base cargados; `tipo_pedido` sigue vacío. Desde el **2026-07-31** hay además un bucket de Storage (`platillos`) — ver la sección de Fase 2a más abajo.
 
 ---
 
@@ -57,8 +57,14 @@ Convención: PK `id_<tabla>` con `INT GENERATED ALWAYS AS IDENTITY`, FK nombrada
 
 ## Seguridad — RLS
 
-> [!danger] Estado actual: RLS activa, **sin políticas** = deny-all
-> Las 14 tablas tienen `ENABLE ROW LEVEL SECURITY` pero **ninguna policy**. Eso significa que hoy la app **no puede leer ni escribir nada** en ellas desde el APK. Es el default correcto y deliberado: cada módulo agrega **sus** políticas en su propia fase (Menú → `platillo`/`categoria`, Pedidos → `pedido`/`detalle_*`, etc.), en la misma migración que el código que las consume.
+> [!success] Estado actual (2026-07-31): RLS activa **con** políticas por rol
+> El arranque fue deny-all deliberado (RLS activa, cero policies). Hoy las 14 tablas ya
+> tienen sus políticas, todas apoyadas en la función `rol_actual()` — que lee
+> `perfiles.rol` del `auth.uid()` de la sesión **y exige `activo = true`**, así que un
+> empleado desactivado no lee ni escribe nada.
+>
+> Para `platillo` y `categoria`: **leer** puede cualquier rol con sesión activa;
+> **escribir** solo `admin`. Ver [[Plan Fase 2a - CRUD de Platillos y Categorias]].
 
 El esquema original llegó sin RLS. Al aplicarlo, el linter de Supabase reportó **13 errores nivel ERROR** (`rls_disabled_in_public`): con la llave `anon` embebida en el APK, cualquiera que extraiga esa llave podía leer y escribir **toda** la base. Se corrigió en la migración `habilitar_rls_en_esquema_restaurante`. Ver [[Seguridad y Privacidad Android]].
 
@@ -111,11 +117,52 @@ Sigue existiendo la pregunta de fondo — ¿`perfiles` y `usuarios` conviven, o 
 |---|---|
 | `roles` | `1=admin, 2=mesero, 3=cocina` (2026-07-29) — mismos 3 valores que el `CHECK` de `perfiles.rol` |
 | `estado_general` | `1=Activo, 2=Inactivo` (2026-07-29) — mínimo para desbloquear `empleados`/`usuarios`/`clientes`. **`mesa` y `pedido` van a necesitar estados más específicos** (libre/ocupada/reservada; pendiente/en preparación/listo/entregado/cancelado) — pendiente de decidir si se agregan acá o se separan en catálogos propios. |
-| `categoria`, `tipo_pedido` | ⬜ Vacíos |
+| `categoria` | `1=Entradas, 2=Platos fuertes, 3=Bebidas, 4=Postres` |
+| `platillo` | 5 filas de ejemplo, todas activas y **sin foto** (`ruta_imagen IS NULL`) |
+| `tipo_pedido` | ⬜ Vacío |
+
+---
+
+## Cambios de la Fase 2a — Menú (2026-07-31)
+
+Aplicados sobre `platillo` y `categoria` para que el CRUD del Menú sea posible. Detalle y
+justificación en [[Plan Fase 2a - CRUD de Platillos y Categorias]].
+
+| Objeto | Qué se agregó |
+|---|---|
+| `platillo.id_estado` · `categoria.id_estado` | `int NOT NULL DEFAULT 1` → `estado_general`. **Borrado lógico** |
+| `platillo.ruta_imagen` | `text NULL` — la **ruta dentro del bucket**, nunca la URL completa |
+| `platillo.actualizado_en` · `categoria.actualizado_en` | `timestamptz` con trigger `BEFORE UPDATE`. Lo exige el sync delta de la Fase 2b |
+| `ck_platillo_precio_positivo` | `CHECK (precio > 0)` |
+| `uq_platillo_nombre` · `uq_categoria_descripcion` | Únicos sobre `lower(btrim(...))` — insensibles a mayúsculas y espacios |
+| `vista_platillos` · `vista_categorias` | Vistas planas con `security_invoker = on`, mismo patrón que `vista_empleados` |
+| `trg_platillo_no_borrar` | Un platillo **nunca** se borra: `detalle_pedido` lo referencia |
+| `trg_categoria_no_borrar_con_platillos` | Una categoría se borra solo si está vacía — con mensaje legible en vez del error de FK |
+
+Los dos triggers de borrado tienen la misma **válvula de escape** que `proteger_admins()`:
+sin sesión (`auth.uid() is null`) no aplican, para poder reparar la base desde el SQL Editor.
+
+### Storage — bucket `platillos`
+
+Primer uso de Supabase Storage en el proyecto. Bucket `platillos`, **público para
+lectura**, límite de **2 MB** y solo `image/jpeg|png|webp`. `INSERT`/`UPDATE`/`DELETE`
+sobre `storage.objects` solo si `rol_actual() = 'admin'`; **no hay policy de `SELECT`** a
+propósito, así listar el contenido del bucket queda bloqueado.
+
+> [!note] Por qué público y no privado
+> Un bucket privado obligaría a pedir una *signed URL* por imagen y a invalidar la caché
+> de Glide al expirar — mucho código en la ruta más caliente de la pantalla, en teléfonos
+> de gama baja. La foto de un platillo es material de menú, no dato personal. Si algún día
+> se guarda ahí algo sensible, hay que revisar esta decisión.
+>
+> Esto además abre el camino para migrar `empresa.logo_empresa` (hoy `BYTEA`) a Storage,
+> que ya estaba señalado más arriba como pendiente.
+
+---
 
 ## Pendiente inmediato
 
-1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. **Cargar** `categoria`, `tipo_pedido`.
+1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. ~~Cargar `categoria`~~ ✅ Hecho. **Cargar** `tipo_pedido`.
 2. **Resolver P-021** — decidir si `usuarios` reemplaza a `perfiles`, si convive enlazada por `uuid`, o si se elimina.
 3. **Políticas RLS por módulo** — a medida que cada fase de [[Roadmap de Fases]] consuma sus tablas.
 4. Evaluar `TIMESTAMP` → `TIMESTAMPTZ` en `pedido.fecha` antes de que haya datos.

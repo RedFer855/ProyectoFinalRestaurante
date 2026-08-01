@@ -382,6 +382,34 @@ Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el m
 
 ---
 
+### P-023 · Nadie limpia los archivos huérfanos del bucket `platillos`
+
+**Alcance:** Supabase Storage, bucket `platillos` (creado 2026-07-31, Fase 2a).
+
+El flujo de imágenes que define [[Plan Fase 2a - CRUD de Platillos y Categorias]] sube el
+archivo **antes** de tocar la fila, y al reemplazar una foto usa siempre una ruta nueva
+(un UUID) para no pelearse con la caché de Glide. De ahí salen dos formas de dejar basura:
+
+1. El insert de `platillo` falla después de subir la foto. El plan pide **compensar
+   borrando el objeto**, pero si ese `DELETE` también falla, el archivo queda.
+2. Se reemplaza la foto de un platillo: la vieja se borra en un tercer paso que puede
+   fallar sin que el usuario se entere.
+
+No hay recolector de basura del bucket ni un inventario que cruce `storage.objects`
+contra `platillo.ruta_imagen`.
+
+**Riesgo:** bajo a corto plazo (cuestan centavos y no se ven), medio a largo: nadie sabrá
+después qué archivo pertenece a qué platillo, y el bucket es público — un archivo huérfano
+sigue siendo servible por su URL indefinidamente.
+
+**Solución:** una función programada (`pg_cron` + una consulta que compare
+`storage.objects` del bucket contra las `ruta_imagen` vigentes) o un barrido manual
+documentado. Requiere acceso a Supabase, así que **no es trabajo del agente de código**.
+
+**Estado:** `[ ] Pendiente — al cerrar la Fase 2`
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -408,6 +436,7 @@ Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el m
 | ~~P-022~~ | Sin permiso `INTERNET` — crasheaba al loguear | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Primer login verificado en emulador]] |
 | ~~P-020~~ | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
+| P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
 
 ---
 

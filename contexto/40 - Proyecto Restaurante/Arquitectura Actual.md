@@ -119,7 +119,7 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 |---|---|---|
 | [[Módulo Login]] | 🟡 Funcional con deuda | `LoginActivity`, `LoginViewModel`, `SupabaseAuthRepository` |
 | Recuperación de contraseña | 🟢 Funcional (Fase 1b) — falta verificación manual | `ui/recuperacion/*`, `ValidadorContrasenia` |
-| Menú | ⬜ No iniciado — **primer módulo con Room/offline** | placeholder "Próximamente" en `MainActivity` |
+| Menú | 🟡 Maqueta. Servidor listo (columnas, vistas, triggers, RLS y bucket `platillos`); falta todo el código — ver [[Plan Fase 2a - CRUD de Platillos y Categorias]] | `ui/menu/*` leyendo de `DatosMaqueta` |
 | Pedidos | ⬜ No iniciado | — |
 | Mesas | ⬜ No iniciado | — |
 | Empleados / Usuarios / Roles | 🟢 **Funcional** (Fase 1d) — CRUD real contra Supabase, alta vía Edge Function | `ui/empleados/*`, `SupabaseEmpleadoRepository`, `supabase/functions/crear-empleado/` |
@@ -133,9 +133,9 @@ Ver [[Roadmap de Fases]].
 
 1. ~~🔴 `minSdk = 37`~~ — ✅ resuelto el 2026-07-31 (**P-003**), ahora `minSdk = 24` (~96.6% de dispositivos). Falta la prueba en un teléfono físico real.
 2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
-3. 🔴 **Sin arquitectura offline** — decisión obligada al arrancar la Fase 2 (**P-014**).
-4. ⚠️ **Cero pruebas propias** — solo los ejemplos de Android Studio (**P-005**).
-5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**), con llave `anon` legada (falta generar la `sb_publishable_...`, **P-012**). `public.perfiles` con RLS ya existe; falta el usuario de prueba (manual).
+3. 🔴 **Sin arquitectura offline** (**P-014**) — programada para la sub-fase **2b**; la 2a se escribe contra la red a propósito, con el costo documentado en [[Plan de Fase 2 - Menu]].
+4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **56 tests** propios entre ViewModels, repositorios y dominio.
+5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**); la constante se renombró a `SUPABASE_PUBLISHABLE_KEY` el 2026-07-31 (**P-012** resuelto). `perfiles` con RLS y usuarios reales cargados.
 6. ⚠️ `applicationId` sigue en `com.example.*` — Play lo rechaza y es irreversible tras publicar (**P-018**).
 
 ---
@@ -144,7 +144,7 @@ Ver [[Roadmap de Fases]].
 
 1. **Verificar en emulador** la Fase 1b completa (login → drawer por rol → recuperación de 2 pasos); se necesita `local.properties` con credenciales de Supabase reales para la e2e.
 2. **Fase 0** — cerrar la brecha crítica contra el estándar, empezando por **P-003**.
-3. **Fase 2 (Menú)** — implementar Room + offline-first **desde el día uno** de ese módulo.
+3. **Fase 2a (Menú)** — CRUD de platillos/categorías + fotos en Storage: [[Plan Fase 2a - CRUD de Platillos y Categorias]]. Room + offline-first van en **2b**, inmediatamente después.
 4. Extraer `BaseRepository` + `AppException` al agregar el segundo repositorio.
 5. Decidir feature-first vs layer-first antes de que existan tres features → propuesta lista en [[Propuesta de División de Arquitectura]] (**P-017**).
 
