@@ -32,6 +32,14 @@ public class LoginViewModel extends ViewModel {
         return estado;
     }
 
+    /** Marca la sesión como ya consumida por la navegación (ver P-013). */
+    public void onNavegacionConsumida() {
+        EstadoLogin actual = estado.getValue();
+        if (actual != null) {
+            estado.setValue(actual.sesionConsumida());
+        }
+    }
+
     public void login(String correo, String contrasenia) {
         if (correo == null || correo.trim().isEmpty() || contrasenia == null || contrasenia.isEmpty()) {
             estado.setValue(EstadoLogin.error("Completá correo y contraseña"));

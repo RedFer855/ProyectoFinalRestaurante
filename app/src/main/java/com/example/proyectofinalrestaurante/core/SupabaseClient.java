@@ -84,7 +84,7 @@ public final class SupabaseClient {
         return chain -> {
             Request original = chain.request();
             Request withApiKey = original.newBuilder()
-                    .header("apikey", BuildConfig.SUPABASE_ANON_KEY)
+                    .header("apikey", BuildConfig.SUPABASE_PUBLISHABLE_KEY)
                     .header("Content-Type", "application/json")
                     .build();
             return chain.proceed(withApiKey);

@@ -13,7 +13,6 @@ Pregunta Clave:
 
 Pregunta: Yo soy a los animales como?
 Respuesta: My Cat
-[PENDIENTE — completar]
 
 # Dashboard — Proyecto Restaurante Knowledge Base
 
@@ -25,29 +24,30 @@ Respuesta: My Cat
 
 ---
 
-## Estado del proyecto — 2026-07-29
+## Estado del proyecto — 2026-07-31
 
 | Área | Estado |
 |---|---|
 | App base Android (Java + XML Views) | ✅ Esqueleto + Fase 1 |
 | Bóveda de conocimiento (`contexto/`) | ✅ Estándar de ingeniería documentado |
 | Arquitectura por capas (`ui`/`domain`/`data`/`core`) | ✅ Definida e implementada |
-| **Fase 1 — Login** | 🟡 Funciona y compila, **con 16 ítems de deuda catalogados** |
-| **Fase 1b — Recuperación + Roles** | ✅ Código completo (6 entregables) en `feat/fase1-login`; falta verificación manual en emulador |
-| **Fase 0 — Remediación contra el estándar** | ⬜ **Siguiente prioridad** |
-| Offline-first (Room + outbox) | ⬜ Obligatorio desde Fase 2 |
-| Menú, Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
+| **Fase 1 — Login** | 🟡 Funciona y compila. Deuda de código cerrada (P-005/P-010 parcial/P-012/P-013/P-020); quedan 3 ítems que solo se cierran con acceso a Supabase o a un dispositivo — ver [[Deuda Técnica - Pendientes]] |
+| **Fase 1b/1c/1d** | ✅ Código completo (recuperación, roles, Empleados funcional contra Supabase) |
+| **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
+| **Fase 2 — Menú** | ⬜ No iniciada — planificada al cerrar este ciclo |
+| Offline-first (Room + outbox) | ⬜ No implementado — **P-014**, obligatorio en Fase 2 |
+| Pedidos, Mesas, Usuarios, Reportes | ⬜ No iniciado |
 
-> [!success] Bloqueante resuelto — 2026-07-31
-> **`minSdk`** bajó de 37 a **24** (~96.6% de dispositivos reales), junto con Java 17 (**P-006**). Era **P-003** en [[Deuda Técnica - Pendientes]]. Falta la prueba en un teléfono físico real.
+> [!warning] `feat/fase1-login` no se mergea a `master` todavía
+> Faltan 3 ítems que **solo el usuario puede cerrar**: probar el login/Empleados en un emulador o dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas del servidor en el dashboard de Supabase (S-2). Ver la sesión [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]].
 
 ---
 
 ## Próximos pasos
 
-1. **Fase 0 — remediación**: empezar por **P-003** (`minSdk 37 → 24`), luego **P-004** (edge-to-edge en el login) y **P-006** (Java 17). Ver [[Roadmap de Fases]].
-2. **Fase 2 — Menú**: primer módulo con **Room + offline-first desde el día uno** ([[ADR-005 - Offline-first obligatorio desde la Fase 2]]).
-3. ~~Completar `SUPABASE_URL` y la llave en `local.properties`~~ ✅ Hecho 2026-07-29 (proyecto **Restaurante**, `mxarlisuueovxvttytcm`) + tabla `perfiles` con RLS creada. **Falta:** crear un usuario de prueba en el dashboard (Authentication → Users) y su fila en `perfiles` — paso manual, ver [[Plan de Conexión con Supabase]].
+1. **Vos:** probar login + Empleados en un emulador/dispositivo, verificar P-004 en un teléfono físico, y configurar la política de contraseñas en el dashboard de Supabase (Authentication → Policies). Con eso cerrado, se mergea `feat/fase1-login` a `master`.
+2. **Fase 2 — Menú**: sin arrancar. Primer módulo que debe nacer offline-first (**P-014**, [[ADR-005 - Offline-first obligatorio desde la Fase 2]]) y reemplazar `DatosMaqueta`.
+3. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
 4. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
 ---
@@ -125,4 +125,4 @@ Regla: `domain` **nunca** referencia `data`.
 ## Bitácora
 
 Las sesiones están en `70 - Bitácora de Cambios/`.
-Sesión más reciente: [[Sesión 2026-07-31 - Plan Fase 1b completo (recuperación de contraseña y roles)]]
+Sesión más reciente: [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]]

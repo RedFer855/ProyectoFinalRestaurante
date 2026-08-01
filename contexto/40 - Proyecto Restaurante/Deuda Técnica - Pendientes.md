@@ -169,7 +169,7 @@ Sin `contentDescription`, sin `android:labelFor`, y los campos usan `android:hin
 
 **Solución:** ver el checklist de [[Accesibilidad Android]].
 
-**Estado:** `[~] Parcial` (2026-07-29) — el layout se rehízo con `TextInputLayout` (hint flotante que no se pierde al escribir), `contentDescription` en el `ProgressBar` y `accessibilityLiveRegion="polite"` en el `TextView` de error, para que TalkBack anuncie el error sin que el usuario lo busque. **Falta:** verificar con TalkBack y con fuente al 200 %, y asociar el mensaje de error al campo que lo causó (`TextInputLayout#setError`, hoy el error es un `TextView` suelto).
+**Estado:** `[~] Parcial` (actualizado 2026-07-31) — el layout se rehízo con `TextInputLayout` (hint flotante que no se pierde al escribir) y `contentDescription` en el `ProgressBar`. El 2026-07-31 se resolvió la segunda mitad: `txt_error_login` (el `TextView` suelto con `accessibilityLiveRegion`) se eliminó y el mensaje de error ahora se asocia con `TextInputLayout#setError()` sobre `til_correo` y `til_contrasenia` — el login no distingue qué campo causó el fallo, así que se marca en los dos; Material anuncia el error solo, sin necesitar el `live region` manual. **Falta:** verificar con TalkBack real y con fuente al 200 % — requiere un dispositivo/emulador, no se pudo hacer desde este entorno (sin Android SDK/adb).
 
 ---
 
@@ -270,6 +270,9 @@ Se usa Retrofit 2.11.0 con llamadas bloqueantes dentro de un `ExecutorService`. 
 
 **Estado:** `[~] Parcial` (2026-07-29) — el color hardcodeado se reemplazó por `?attr/colorError` del tema Material 3 (mejor que un `@color/` propio: se adapta solo a claro/oscuro). Los `dp` sueltos del layout también pasaron a `@dimen/`. **Falta:** renombrar los IDs `snake_case` → `camelCase` (`txt_correo` → `etCorreo`, etc.), que obliga a tocar `LoginActivity`.
 
+> [!warning] El alcance creció (2026-07-31)
+> Al revisar para cerrar este ítem se encontró que **los ~15 layouts restantes del proyecto usan el mismo patrón `snake_case`** (`fragment_empleados.xml`, `dialog_empleado.xml`, `activity_cambiar_contrasenia.xml`, etc.) — incluidos los de Fase 1c/1d, escritos **después** de adoptar el estándar el 2026-07-29. Renombrar solo `activity_login.xml` dejaría el proyecto más inconsistente, no menos. Se decide **no** tocar IDs ahora: la reorganización feature-first de **P-017** (Fase 2) ya implica tocar todos los layouts y sus `Activity`/`Fragment`/`Adapter`, así que el renombrado de IDs se hace en el mismo pase en vez de duplicar el trabajo. Este ítem pasa a bloqueado por P-017.
+
 ---
 
 ### ~~P-012~~ ✅ · `SUPABASE_ANON_KEY` conserva el nombre de la llave legada
@@ -336,7 +339,7 @@ Desde el 2026-07-29 el repositorio orquesta 3 llamadas de red (login → GET per
 
 **Solución:** introducir una interfaz fake de los dos Retrofit services (o Mockito, hoy no está en las dependencias) y testear los 4 caminos con JUnit puro, sin red real.
 
-**Estado:** `[ ] Pendiente`
+**Estado:** `[x] Resuelto` (2026-07-31) — se optó por fakes manuales (no Mockito, se mantiene sin agregar la dependencia): `FakeCall<T>` implementa `retrofit2.Call<T>` devolviendo una `Response` ya armada, y `FakeSupabaseAuthApi`/`FakeSupabasePerfilApi` implementan las interfaces Retrofit. Los DTOs de fixture se arman con `Gson.fromJson()` en vez de agregarles constructores solo para testear. `SupabaseAuthRepositoryTest` cubre los 5 caminos: éxito, credenciales inválidas, perfil inexistente (con logout), perfil inactivo (con logout) y sin conexión. Mismo patrón aplicado a `SupabaseEmpleadoRepositoryTest` (6 casos), que cerraba la deuda equivalente del [[Plan Fase 1d - Modulo Empleados Funcional]].
 
 ---
 
@@ -387,15 +390,15 @@ Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el m
 | P-002 | DI manual sin framework | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Bootstrap de bóveda y Fase 1 Login]] |
 | ~~P-003~~ | `minSdk 37` → 0% de dispositivos | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Fix de minSdk y Java 17]] |
 | ~~P-004~~ | `LoginActivity` sin edge-to-edge ni insets | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
-| P-005 | `Executor` no inyectado → cero pruebas | 🟡 | `[ ]` Pendiente | idem |
+| ~~P-005~~ | `Executor` no inyectado → cero pruebas | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-006~~ | Java 11 en vez de 17 | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Fix de minSdk y Java 17]] |
 | P-007 | Retrofit 2 con `.execute()` sin adaptadores | 🟢 | `[ ]` Pendiente | idem |
 | P-008 | Sin R8, Baseline Profile ni benchmark | 🟡 | `[ ]` Pendiente | idem |
 | P-009 | Token no persistido ni cifrado; sin refresh | 🟡 | `[ ]` Pendiente | idem |
 | P-010 | Login sin accesibilidad | 🟡 | `[~]` Parcial 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[~]` Parcial 2026-07-29 | idem |
-| P-012 | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[ ]` Pendiente | idem |
-| P-013 | Evento de navegación sin marcar consumido | 🟡 | `[ ]` Pendiente | idem |
+| ~~P-012~~ | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
+| ~~P-013~~ | Evento de navegación sin marcar consumido | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | P-014 | Sin offline-first (Room/WorkManager/outbox) | 🔴 | `[ ]` Pendiente | idem |
 | P-015 | `Activity` + `findViewById` en vez de Fragment/ViewBinding | 🟡 | `[ ]` Pendiente | idem |
 | P-016 | `Result` con `String` en vez de `AppException` | 🟡 | `[ ]` Pendiente | idem |
@@ -403,7 +406,7 @@ Faltaba `<uses-permission android:name="android.permission.INTERNET" />` en el m
 | P-018 | `applicationId` sigue en `com.example.*` | 🟢 | `[ ]` Pendiente | idem |
 | P-019 | Mensajes de error hardcodeados en VM/repositorio | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | ~~P-022~~ | Sin permiso `INTERNET` — crasheaba al loguear | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Primer login verificado en emulador]] |
-| P-020 | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Conexión real a Supabase y verificación de perfil activo]] |
+| ~~P-020~~ | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 
 ---

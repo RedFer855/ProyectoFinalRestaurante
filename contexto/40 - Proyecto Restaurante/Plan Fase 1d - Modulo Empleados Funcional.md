@@ -200,10 +200,10 @@ el bloqueo por RLS del guion de la [[Plan Fase 1c - Maqueta Visual por Roles]].
 
 | Ítem | Detalle |
 |---|---|
-| Forzar cambio de contraseña en el primer ingreso | Hoy la temporal que puso el admin sirve indefinidamente |
-| **S-2** del Plan Fase 1b | La política de contraseñas del servidor sigue sin configurarse: hoy Supabase aceptaría una clave débil aunque la Edge Function la valide |
-| **P-021** | El rol sigue duplicado en dos tablas; el trigger lo mantiene consistente, pero la resolución de fondo (una sola tabla) sigue abierta |
-| Tests del repositorio | `SupabaseEmpleadoRepository` no tiene tests — mismo caso que **P-020** |
+| Forzar cambio de contraseña en el primer ingreso | Hoy la temporal que puso el admin sirve indefinidamente. **Bloqueado** (2026-07-31): exige una columna nueva en `perfiles`/`usuarios` y tocar la Edge Function `crear-empleado` — sin acceso al conector de Supabase en este entorno. Ver [[Deuda Técnica - Pendientes]]. |
+| **S-2** del Plan Fase 1b | La política de contraseñas del servidor sigue sin configurarse: hoy Supabase aceptaría una clave débil aunque la Edge Function la valide. **Bloqueado** (2026-07-31): es un ajuste del dashboard de Supabase (Authentication), no de código. |
+| **P-021** | El rol sigue duplicado en dos tablas; el trigger lo mantiene consistente, pero la resolución de fondo (una sola tabla) sigue abierta — decisión de arquitectura, no se resuelve al pasar. |
+| ~~Tests del repositorio~~ ✅ | Resuelto 2026-07-31: `SupabaseEmpleadoRepositoryTest` (6 casos, fakes manuales sin Mockito) — mismo patrón que cerró **P-020**. Ver [[Deuda Técnica - Pendientes]]. |
 
 ---
 

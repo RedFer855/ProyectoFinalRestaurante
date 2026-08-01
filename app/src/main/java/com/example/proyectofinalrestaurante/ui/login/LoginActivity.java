@@ -6,7 +6,6 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -19,15 +18,17 @@ import com.example.proyectofinalrestaurante.MainActivity;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.core.SesionActual;
 import com.example.proyectofinalrestaurante.ui.recuperacion.SolicitarCodigoActivity;
+import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
 
     private LoginViewModel viewModel;
     private EditText txtCorreo;
     private EditText txtContrasenia;
+    private TextInputLayout tilCorreo;
+    private TextInputLayout tilContrasenia;
     private Button btnLogin;
     private ProgressBar progressBar;
-    private TextView txtError;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,11 +37,12 @@ public class LoginActivity extends AppCompatActivity {
         setContentView(R.layout.activity_login);
         aplicarInsets();
 
+        tilCorreo = findViewById(R.id.til_correo);
+        tilContrasenia = findViewById(R.id.til_contrasenia);
         txtCorreo = findViewById(R.id.txt_correo);
         txtContrasenia = findViewById(R.id.txt_contrasenia);
         btnLogin = findViewById(R.id.btn_login);
         progressBar = findViewById(R.id.progress_login);
-        txtError = findViewById(R.id.txt_error_login);
 
         viewModel = new ViewModelProvider(this, new LoginViewModelFactory()).get(LoginViewModel.class);
 
@@ -72,15 +74,15 @@ public class LoginActivity extends AppCompatActivity {
         progressBar.setVisibility(estadoLogin.isCargando() ? View.VISIBLE : View.GONE);
         btnLogin.setEnabled(!estadoLogin.isCargando());
 
-        if (estadoLogin.getError() != null) {
-            txtError.setText(estadoLogin.getError());
-            txtError.setVisibility(View.VISIBLE);
-        } else {
-            txtError.setVisibility(View.GONE);
-        }
+        // El error se asocia al TextInputLayout (no a un TextView suelto): TalkBack lo
+        // anuncia solo, sin necesitar accessibilityLiveRegion aparte (ver P-010). Como el
+        // login no distingue qué campo causó el fallo, se marca en los dos.
+        tilCorreo.setError(estadoLogin.getError());
+        tilContrasenia.setError(estadoLogin.getError());
 
-        if (estadoLogin.getSesion() != null) {
+        if (estadoLogin.debeNavegar()) {
             SesionActual.guardar(estadoLogin.getSesion());
+            viewModel.onNavegacionConsumida();
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
             finish();
