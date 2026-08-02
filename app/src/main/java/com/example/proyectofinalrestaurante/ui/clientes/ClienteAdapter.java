@@ -15,14 +15,29 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.ReglasCliente;
+import com.example.proyectofinalrestaurante.domain.model.Cliente;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 
-/** Lista de clientes. Mesero puede editar; solo admin puede eliminar. */
-public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAdapter.Holder> {
+/**
+ * Lista de clientes con datos reales (Plan Fase 2d, E6). Mesero puede editar; solo admin
+ * puede dar de baja/reactivar o borrar (Plan Fase 2d, §2.6).
+ *
+ * <p>La opción "eliminar" del menú ⋮ es dinámica: reactiva si el cliente está de baja, borra
+ * de verdad si {@link ReglasCliente#puedeBorrarse} (sin pedidos), o da de baja en el resto de
+ * los casos — el servidor nunca pierde el historial de un cliente con pedidos.</p>
+ */
+public class ClienteAdapter extends ListAdapter<Cliente, ClienteAdapter.Holder> {
 
     public interface AlElegirAccion {
-        void onAccion(DatosMaqueta.Cliente cliente, int accionId);
+        void onEditar(Cliente cliente);
+
+        void onReactivar(Cliente cliente);
+
+        void onDarDeBaja(Cliente cliente);
+
+        void onBorrar(Cliente cliente);
     }
 
     private final AlElegirAccion alElegirAccion;
@@ -32,20 +47,20 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
         this.alElegirAccion = alElegirAccion;
     }
 
-    private static final DiffUtil.ItemCallback<DatosMaqueta.Cliente> DIFF =
-            new DiffUtil.ItemCallback<DatosMaqueta.Cliente>() {
-                @Override
-                public boolean areItemsTheSame(@NonNull DatosMaqueta.Cliente a,
-                                               @NonNull DatosMaqueta.Cliente b) {
-                    return a.nombreCompleto().equals(b.nombreCompleto());
-                }
+    private static final DiffUtil.ItemCallback<Cliente> DIFF = new DiffUtil.ItemCallback<Cliente>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Cliente a, @NonNull Cliente b) {
+            return a.getIdLocal() == b.getIdLocal();
+        }
 
-                @Override
-                public boolean areContentsTheSame(@NonNull DatosMaqueta.Cliente a,
-                                                  @NonNull DatosMaqueta.Cliente b) {
-                    return a.telefono.equals(b.telefono);
-                }
-            };
+        @Override
+        public boolean areContentsTheSame(@NonNull Cliente a, @NonNull Cliente b) {
+            return a.isActivo() == b.isActivo() && a.getEstadoSync() == b.getEstadoSync()
+                    && a.nombreCompleto().equals(b.nombreCompleto())
+                    && java.util.Objects.equals(a.getTelefono(), b.getTelefono())
+                    && java.util.Objects.equals(a.getIdentidad(), b.getIdentidad());
+        }
+    };
 
     @NonNull
     @Override
@@ -66,6 +81,8 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
         private final TextView nombre;
         private final TextView identidad;
         private final TextView telefono;
+        private final com.google.android.material.chip.Chip chipEstado;
+        private final com.google.android.material.chip.Chip chipSync;
         private final ImageButton opciones;
 
         Holder(@NonNull View itemView) {
@@ -74,37 +91,72 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
             nombre = itemView.findViewById(R.id.txt_nombre_cliente);
             identidad = itemView.findViewById(R.id.txt_identidad_cliente);
             telefono = itemView.findViewById(R.id.txt_telefono_cliente);
+            chipEstado = itemView.findViewById(R.id.chip_estado_cliente);
+            chipSync = itemView.findViewById(R.id.chip_sync_cliente);
             opciones = itemView.findViewById(R.id.btn_opciones_cliente);
         }
 
-        void enlazar(DatosMaqueta.Cliente cliente, AlElegirAccion alElegirAccion) {
+        void enlazar(Cliente cliente, AlElegirAccion alElegirAccion) {
             nombre.setText(cliente.nombreCompleto());
             iniciales.setText(inicialesDe(cliente));
-            // La identidad es opcional a propósito: la venta de mostrador no la pide (ADR-006).
-            identidad.setText(cliente.identidad != null
-                    ? cliente.identidad
+            identidad.setText(cliente.getIdentidad() != null
+                    ? cliente.getIdentidad()
                     : itemView.getContext().getString(R.string.clientes_sin_identidad));
-            telefono.setText(cliente.telefono);
+            telefono.setText(cliente.getTelefono());
+
+            chipEstado.setVisibility(cliente.isActivo() ? View.GONE : View.VISIBLE);
+            chipSync.setVisibility(
+                    cliente.getEstadoSync() != EstadoSync.SINCRONIZADO ? View.VISIBLE : View.GONE);
 
             boolean puedeEditar = VistaPorPermiso.puede(Modulo.CLIENTES, Accion.EDITAR);
-            boolean puedeEliminar = VistaPorPermiso.puede(Modulo.CLIENTES, Accion.ELIMINAR);
-            opciones.setVisibility(puedeEditar || puedeEliminar ? View.VISIBLE : View.GONE);
+            boolean puedeGestionarBaja = VistaPorPermiso.puede(Modulo.CLIENTES, Accion.ELIMINAR);
+            opciones.setVisibility(puedeEditar || puedeGestionarBaja ? View.VISIBLE : View.GONE);
+            if (!puedeEditar && !puedeGestionarBaja) {
+                return;
+            }
+
             opciones.setOnClickListener(v -> {
                 PopupMenu menu = new PopupMenu(v.getContext(), v);
                 menu.inflate(R.menu.menu_acciones);
                 menu.getMenu().findItem(R.id.accion_editar).setVisible(puedeEditar);
-                menu.getMenu().findItem(R.id.accion_eliminar).setVisible(puedeEliminar);
+                menu.getMenu().findItem(R.id.accion_eliminar)
+                        .setTitle(tituloDeLaAccionEliminar(v.getContext(), cliente))
+                        .setVisible(puedeGestionarBaja);
                 menu.setOnMenuItemClickListener(item -> {
-                    alElegirAccion.onAccion(cliente, item.getItemId());
+                    if (item.getItemId() == R.id.accion_editar) {
+                        alElegirAccion.onEditar(cliente);
+                    } else if (item.getItemId() == R.id.accion_eliminar) {
+                        accionarEliminar(cliente, alElegirAccion);
+                    }
                     return true;
                 });
                 menu.show();
             });
         }
 
-        private String inicialesDe(DatosMaqueta.Cliente cliente) {
-            char primera = cliente.nombres.isEmpty() ? '?' : cliente.nombres.charAt(0);
-            char segunda = cliente.apellidos.isEmpty() ? ' ' : cliente.apellidos.charAt(0);
+        private void accionarEliminar(Cliente cliente, AlElegirAccion alElegirAccion) {
+            if (!cliente.isActivo()) {
+                alElegirAccion.onReactivar(cliente);
+            } else if (ReglasCliente.puedeBorrarse(cliente)) {
+                alElegirAccion.onBorrar(cliente);
+            } else {
+                alElegirAccion.onDarDeBaja(cliente);
+            }
+        }
+
+        private CharSequence tituloDeLaAccionEliminar(android.content.Context contexto, Cliente cliente) {
+            if (!cliente.isActivo()) {
+                return contexto.getString(R.string.accion_activar);
+            }
+            if (ReglasCliente.puedeBorrarse(cliente)) {
+                return contexto.getString(R.string.accion_eliminar);
+            }
+            return contexto.getString(R.string.accion_desactivar);
+        }
+
+        private String inicialesDe(Cliente cliente) {
+            char primera = cliente.getNombre().isEmpty() ? '?' : cliente.getNombre().charAt(0);
+            char segunda = cliente.getApellido().isEmpty() ? ' ' : cliente.getApellido().charAt(0);
             return (String.valueOf(primera) + segunda).trim().toUpperCase();
         }
     }

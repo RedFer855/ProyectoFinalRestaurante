@@ -16,6 +16,17 @@ aliases:
 > [!danger] Actualizado 2026-07-29 — Auditoría contra el estándar
 > Se adoptó el [[Estándar de Ingeniería Android]] y se auditó la Fase 1 contra él. Resultado: **16 ítems de brecha**, entre ellos `minSdk = 37` (**P-003**), que hace que la app **no se instale en ningún teléfono real del mercado**. La remediación es la **Fase 0** de [[Roadmap de Fases]].
 
+> [!success] Actualizado 2026-08-01 — Fase 2c/2d: Mesas y Clientes, Parte A y B completas
+> `ui/mesas` y `ui/clientes` dejaron de leer de `DatosMaqueta` y hacen CRUD real contra Room
+> + outbox, con sus sincronizadores sumados al `SyncWorker`. **345 tests** en verde. A mitad
+> de sesión el usuario autorizó el MCP de Supabase, así que también se ejecutó y verificó la
+> Parte A: catálogo `estado_mesa`, `vista_mesas`/`vista_clientes`, triggers y los dos RPC
+> (`cambiar_estado_mesa`, `buscar_o_crear_cliente`) ya están en la base real, con las
+> pruebas de aceptación de cada plan pasando contra roles simulados. Dos correcciones al
+> DDL asumido: `mesa` no tenía `numero_mesa`/`ubicacion` (se agregaron) y `clientes` usa
+> `nombres`/`apellidos` en plural (se corrigió el DTO de Android). Ver [[Módulo Mesas]],
+> [[Módulo Clientes]] y [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]].
+
 > [!success] Actualizado 2026-07-31 — Fase 2a: el Menú es un módulo real
 > `ui/menu` dejó de leer de `DatosMaqueta` y ahora hace CRUD contra Supabase, con las fotos
 > de los platillos en el bucket `platillos` de Storage. Es el **tercer** módulo funcional
@@ -67,13 +78,16 @@ graph TD
 | `ui.recuperacion` | `SolicitarCodigo*`, `CambiarContrasenia*` (Activities + VMs + Factory + estados) | `domain` |
 | `ui.empleados` | `EmpleadosFragment`, `EmpleadoAdapter`, `EmpleadosViewModel`, `EstadoEmpleados`, Factory, `FormularioEmpleadoDialog` | `domain` |
 | `ui.menu` | `MenuFragment`, `PlatilloAdapter`, `MenuViewModel`, `EstadoMenu`, Factory, `FormularioPlatilloDialog`, `CategoriasDialog`, `UrlDeImagen`, `CompresorDeImagen` | `domain` |
+| `ui.mesas` | `MesasFragment`, `MesaAdapter`, `MesasViewModel`, `EstadoMesas`, Factory, `FormularioMesaDialog`, `EstadoMesaUi` | `domain` |
+| `ui.clientes` | `ClientesFragment`, `ClienteAdapter`, `ClientesViewModel`, `EstadoClientes`, Factory, `FormularioClienteDialog` | `domain` |
 | `ui.permisos` | `VistaPorPermiso` — aplica la matriz de permisos sobre vistas y menús | `domain` |
-| `domain.model` | `Sesion`, `Empleado`, `NuevoEmpleado`, `Platillo`, `NuevoPlatillo`, `Categoria`, `ImagenPlatillo` | — |
-| `domain.repository` | `AuthRepository`, `EmpleadoRepository`, `MenuRepository` | — |
-| `domain` (raíz) | `Result<T>`, `Permisos`, `Modulo`, `Accion`, `RequisitoContrasenia`, `ResultadoValidacion`, `ValidadorContrasenia`, `ValidadorPlatillo`, `ReglasEmpleado`, `ReglasMenu`, `VisibilidadMenu` | — |
-| `data.remote` | `SupabaseAuthApi`, `SupabasePerfilApi`, `SupabaseEmpleadoApi`, `SupabaseMenuApi` (PostgREST), `SupabaseStorageApi` (bucket `platillos`), DTOs | `core` |
-| `data.repository` | `SupabaseAuthRepository`, `EmpleadoRepositorioLocal` + `EmpleadoRemoto`, `MenuRepositorioLocal` + `MenuRemoto` | `domain`, `data.remote`, `data.local` |
-| `core` | `SupabaseClient` (Retrofit singleton; expone auth/perfil/empleado/menu/storage), `SesionActual` (sesión en memoria) | — |
+| `domain.model` | `Sesion`, `Empleado`, `NuevoEmpleado`, `Platillo`, `NuevoPlatillo`, `Categoria`, `ImagenPlatillo`, `Mesa`, `NuevaMesa`, `EstadoMesa`, `Cliente`, `NuevoCliente` | — |
+| `domain.repository` | `AuthRepository`, `EmpleadoRepository`, `MenuRepository`, `MesaRepository`, `ClienteRepository` | — |
+| `domain` (raíz) | `Result<T>`, `Permisos`, `Modulo`, `Accion`, `RequisitoContrasenia`, `ResultadoValidacion`, `ValidadorContrasenia`, `ValidadorPlatillo`, `ValidadorMesa`, `ValidadorCliente`, `ReglasEmpleado`, `ReglasMenu`, `ReglasMesa`, `ReglasCliente`, `VisibilidadMenu` | — |
+| `data.remote` | `SupabaseAuthApi`, `SupabasePerfilApi`, `SupabaseEmpleadoApi`, `SupabaseMenuApi`, `SupabaseMesaApi`, `SupabaseClienteApi` (PostgREST), `SupabaseStorageApi` (bucket `platillos`), DTOs | `core` |
+| `data.repository` | `SupabaseAuthRepository`, `EmpleadoRepositorioLocal` + `EmpleadoRemoto`, `MenuRepositorioLocal` + `MenuRemoto`, `MesaRepositorioLocal` + `MesaRemoto`, `ClienteRepositorioLocal` + `ClienteRemoto` | `domain`, `data.remote`, `data.local` |
+| `data.sync` | `SyncWorker` (único), `SincronizadorMenu`, `SincronizadorEmpleados`, `SincronizadorMesas`, `SincronizadorClientes`, `Outbox`, `ClasificadorDeError` | `data.local`, `data.remote` |
+| `core` | `SupabaseClient` (Retrofit singleton; expone auth/perfil/empleado/menu/mesa/cliente/storage), `SesionActual` (sesión en memoria), `SyncApplication` (composition root) | — |
 
 ---
 
@@ -117,7 +131,7 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | Regla de negocio en dominio | `ValidadorContrasenia`, `ValidadorPlatillo`, `VisibilidadMenu`, `Permisos`, `ReglasEmpleado`, `ReglasMenu` | ✅ Java puro, testeable con JUnit |
 | Interceptor (Decorator) | `core.SupabaseClient` — `apikey` siempre; `Content-Type` JSON solo si el cuerpo no trae el suyo | ✅ Corregido en Fase 2a: forzarlo rompía las subidas binarias a Storage |
 | Carga de imágenes | Glide 4.16.0 en `PlatilloAdapter` y `FormularioPlatilloDialog` | ✅ Fase 2a; ruta UUID nueva por reemplazo para no pelear con el caché |
-| [[Offline-First con Room y Outbox]] | `data/local` (Room v2), `data/outbox` (particionado por módulo), `data/sync` (`SyncWorker` único) | ✅ **Implementado** (2026-08-01): Menú **y** Empleados son local-first. **P-014 cerrado** |
+| [[Offline-First con Room y Outbox]] | `data/local` (Room v4), `data/outbox` (particionado por módulo), `data/sync` (`SyncWorker` único) | ✅ **Implementado**: Menú, Empleados, Mesas y Clientes son local-first. **P-014 cerrado**. Mesas/Clientes: código listo, sin servidor real contra el que sincronizar todavía |
 | [[Base Repository con manejo de errores]] | — | ⬜ Documentado, no extraído (**P-001**) |
 | DI con Hilt | — | ⬜ DI manual (**P-002**) |
 | ViewBinding | — | ⬜ `findViewById` (**P-015**) |
@@ -131,9 +145,10 @@ Ver [[Toolchain Android 2026 - AGP, Gradle y JDK]] y [[Niveles de API y minSdk -
 | [[Módulo Login]] | 🟡 Funcional con deuda | `LoginActivity`, `LoginViewModel`, `SupabaseAuthRepository` |
 | Recuperación de contraseña | 🟢 Funcional (Fase 1b) — falta verificación manual | `ui/recuperacion/*`, `ValidadorContrasenia` |
 | [[Módulo Menú]] | 🟢 **Funcional y local-first** (Fase 2a + 2b) — CRUD de platillos y categorías, fotos en Storage, Room + outbox. Falta la prueba en dispositivo | `ui/menu/*`, `MenuRepositorioLocal`, `SincronizadorMenu`, `SupabaseStorageApi` |
-| Pedidos | ⬜ No iniciado | — |
-| Mesas | ⬜ No iniciado | — |
+| Pedidos | ⬜ No iniciado — depende de Mesas y Clientes | — |
+| [[Módulo Mesas]] | 🟢 **Funcional y local-first** (Fase 2c, 2026-08-01) — código (73 tests) y servidor verificados. Falta la prueba en dispositivo físico | `ui/mesas/*`, `MesaRepositorioLocal`, `SincronizadorMesas` |
 | [[Módulo Empleados]] | 🟢 **Funcional y local-first** (Fase 1d + offline-first 2026-08-01) — Room + outbox; el alta exige conexión porque crea la cuenta de acceso | `ui/empleados/*`, `EmpleadoRepositorioLocal`, `SincronizadorEmpleados`, `supabase/functions/crear-empleado/` |
+| [[Módulo Clientes]] | 🟢 **Funcional y local-first** (Fase 2d, 2026-08-01) — código (55 tests) y servidor verificados. Falta la prueba en dispositivo físico | `ui/clientes/*`, `ClienteRepositorioLocal`, `SincronizadorClientes` |
 | Reportes | ⬜ No iniciado | — |
 
 Ver [[Roadmap de Fases]].
@@ -145,19 +160,25 @@ Ver [[Roadmap de Fases]].
 1. ~~🔴 `minSdk = 37`~~ — ✅ resuelto el 2026-07-31 (**P-003**), ahora `minSdk = 24` (~96.6% de dispositivos). Falta la prueba en un teléfono físico real.
 2. ~~🔴 `LoginActivity` sin manejo de insets~~ — ✅ resuelto el 2026-07-29 (**P-004**), pendiente de verse en un dispositivo real.
 3. ~~🔴 **Sin arquitectura offline**~~ — ✅ resuelto el 2026-08-01 (**P-014**): Menú y Empleados son local-first sobre Room + outbox + `SyncWorker` único. El login queda fuera por definición (autenticar exige red); lo suyo es **P-009**.
-4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): **124 tests** propios entre ViewModels, repositorios y dominio (56 tras la Fase 0, +68 en la Fase 2a). Con la **Fase 2b** (2026-08-01) la suite creció a **217 tests** agregando DAOs con Robolectric, outbox particionado, clasificador de errores, los dos sincronizadores y la migración v1→v2 (`MigrationTestHelper` con `AndroidSQLiteDriver`). `CompresorDeImagen` sigue sin cobertura (**P-024**).
+4. ~~⚠️ **Cero pruebas propias**~~ — ✅ resuelto el 2026-07-31 (**P-005**/**P-020**): la suite creció de 124 (Fase 0) a 217 (Fase 2b, 2026-08-01: DAOs con Robolectric, outbox particionado, sincronizadores, migración v1→v2) a **345 tests** al cerrar la Parte B de Mesas y Clientes (2026-08-01). `CompresorDeImagen` sigue sin cobertura (**P-024**).
 5. ~~⚠️ `SUPABASE_URL`/`SUPABASE_ANON_KEY` vacíos~~ — ✅ conectados el 2026-07-29 al proyecto real (**Restaurante**); la constante se renombró a `SUPABASE_PUBLISHABLE_KEY` el 2026-07-31 (**P-012** resuelto). `perfiles` con RLS y usuarios reales cargados.
 6. ⚠️ `applicationId` sigue en `com.example.*` — Play lo rechaza y es irreversible tras publicar (**P-018**).
+7. ~~🔴 Mesas y Clientes no funcionan de punta a punta~~ — ✅ resuelto el 2026-08-01: Parte A y Parte B completas y verificadas contra el servidor real. Falta la prueba en un dispositivo físico. Ver [[Módulo Mesas]], [[Módulo Clientes]].
 
 ---
 
 ## Próximos pasos recomendados
 
-1. **Verificar en dispositivo** el Menú de la Fase 2a: subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
-2. **Cerrar la Fase 1**: solo falta verificar **P-004** en un teléfono físico. El login + Empleados en emulador y la política de contraseñas del dashboard (**S-2**) los cerró el usuario el 2026-08-01. Con P-004 se mergea `feat/fase1-login` a `master`.
-3. **P-009** — persistir y refrescar el token. Es el próximo cuello de botella real del offline: sin sesión guardada, al reabrir la app hay que loguearse y el `SyncWorker` no drena la cola.
-4. Extraer `BaseRepository` + `AppException` (**P-001**/**P-016**): ya hay **tres** repositorios con el mismo `mensajeDeError()` copiado.
-5. Decidir feature-first vs layer-first — ya existen tres features (`login`, `empleados`, `menu`), que era el umbral que fijaba [[Propuesta de División de Arquitectura]] (**P-017**).
+1. **Probar Mesas y Clientes en dispositivo**: dos sesiones (admin y mesero) para confirmar
+   que los permisos se comportan distinto, y el flujo offline (cambiar el estado de una mesa
+   en modo avión, ver "Sin subir", recuperar la red) sube solo. Es lo único que le falta a
+   las dos fases — el servidor ya está verificado (Parte A y B completas, 2026-08-01).
+2. **Verificar en dispositivo** el Menú de la Fase 2a: subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
+3. **Cerrar la Fase 1**: solo falta verificar **P-004** en un teléfono físico. El login + Empleados en emulador y la política de contraseñas del dashboard (**S-2**) los cerró el usuario el 2026-08-01. Con P-004 se mergea `feat/fase1-login` a `master`.
+4. **P-009** — persistir y refrescar el token. Es el próximo cuello de botella real del offline: sin sesión guardada, al reabrir la app hay que loguearse y el `SyncWorker` no drena la cola.
+5. Extraer `BaseRepository` + `AppException` (**P-001**/**P-016**): ya hay **cinco** repositorios con el mismo `mensajeDeError()` copiado.
+6. Decidir feature-first vs layer-first — ya existen cinco features (`login`, `empleados`, `menu`, `mesas`, `clientes`), muy por encima del umbral que fijaba [[Propuesta de División de Arquitectura]] (**P-017**).
+7. **Fase 4 (Pedidos)** ya puede arrancar cuando el usuario lo decida: Mesas y Clientes, sus dependencias, están completas de punta a punta. Resolver **P-026** (id de cliente offline para el buscar-o-crear) es parte de ese trabajo.
 
 ---
 
@@ -168,5 +189,5 @@ Ver [[Roadmap de Fases]].
 - [[Roadmap de Fases]]
 - [[Gate de Autoverificación]]
 - [[Módulo Login]]
-- [[Módulo Menú]]
+- [[Módulo Menú]] · [[Módulo Empleados]] · [[Módulo Mesas]] · [[Módulo Clientes]]
 - [[Clean Architecture]]

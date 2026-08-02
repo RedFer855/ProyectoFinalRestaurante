@@ -60,4 +60,74 @@ public final class Migraciones {
                     + "ON `operaciones_pendientes` (`modulo`, `id`)");
         }
     };
+
+    /**
+     * v2 → v3: llega el módulo Mesas a la base local.
+     *
+     * <p>Dos tablas nuevas, ninguna se toca la que ya existe:</p>
+     *
+     * <ol>
+     *   <li>{@code mesas}, con el mismo esquema de identidad que {@code platillos}
+     *       ({@code id_local} PK, {@code id_servidor} con índice único) más las marcas de
+     *       sincronización. {@code id_estado_mesa} es el estado operativo (catálogo
+     *       {@code estado_mesa}) y {@code id_estado}/{@code activo} la existencia en el
+     *       salón (baja lógica, {@code 1 = activo}).</li>
+     *   <li>{@code estados_mesa}, el catálogo de estados operativos cacheado para que la UI
+     *       traduzca {@code id_estado_mesa} en etiquetas sin pedir la descripción al
+     *       servidor. Se reemplaza completo en cada sincronización.</li>
+     * </ol>
+     */
+    public static final Migration DE_2_A_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `mesas` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_servidor` INTEGER, "
+                    + "`numero_mesa` INTEGER NOT NULL, "
+                    + "`capacidad` INTEGER NOT NULL, "
+                    + "`ubicacion` TEXT, "
+                    + "`id_estado_mesa` INTEGER NOT NULL, "
+                    + "`estado_mesa` TEXT, "
+                    + "`id_estado` INTEGER NOT NULL, "
+                    + "`activo` INTEGER NOT NULL, "
+                    + "`actualizado_en` TEXT, "
+                    + "`estado_sync` TEXT NOT NULL)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_mesas_id_servidor` ON `mesas` (`id_servidor`)");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `estados_mesa` ("
+                    + "`id_estado_mesa` INTEGER NOT NULL, "
+                    + "`descripcion` TEXT NOT NULL, "
+                    + "`orden` INTEGER NOT NULL, "
+                    + "PRIMARY KEY(`id_estado_mesa`))");
+        }
+    };
+
+    /**
+     * v3 → v4: llega el módulo Clientes a la base local. Mismo esquema de identidad que
+     * {@code mesas}: {@code id_local} PK, {@code id_servidor} con índice único,
+     * {@code id_estado}/{@code activo} la baja lógica y {@code cantidad_pedidos} la caché de
+     * {@code vista_clientes} que decide si {@code ReglasCliente.puedeBorrarse}.
+     */
+    public static final Migration DE_3_A_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `clientes` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_servidor` INTEGER, "
+                    + "`nombre` TEXT, "
+                    + "`apellido` TEXT, "
+                    + "`identidad` TEXT, "
+                    + "`telefono` TEXT, "
+                    + "`id_estado` INTEGER NOT NULL, "
+                    + "`activo` INTEGER NOT NULL, "
+                    + "`cantidad_pedidos` INTEGER NOT NULL, "
+                    + "`actualizado_en` TEXT, "
+                    + "`estado_sync` TEXT NOT NULL)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_clientes_id_servidor` ON `clientes` (`id_servidor`)");
+        }
+    };
 }

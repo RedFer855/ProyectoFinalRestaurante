@@ -17,6 +17,13 @@ lifecycle: draft
 > Ahí está el contrato completo: la división Parte A / Parte B, el orden de lectura, las
 > reglas de oro del código y qué significa "terminado". **No es opcional.**
 
+> [!success] Plan completo — Parte A y Parte B ejecutadas (2026-08-01)
+> El código Android (E1-E7, 55 tests) y el servidor (§2 completo, verificado con las pruebas
+> de aceptación de §2.7) están aplicados y funcionando sobre el proyecto real. Ver
+> [[Módulo Clientes]] para el detalle, incluida la corrección de `nombre`/`apellido` →
+> `nombres`/`apellidos` del lado Android (el DDL real ya los tenía así). Falta solo la
+> verificación en un dispositivo físico, fuera del alcance del agente.
+
 > [!warning] Depende de la Fase 2b
 > Clientes **nace offline-first**, sobre la infraestructura de
 > [[Plan Fase 2b - Offline-First con Room y Outbox]]. Si 2b no está terminada, este plan no

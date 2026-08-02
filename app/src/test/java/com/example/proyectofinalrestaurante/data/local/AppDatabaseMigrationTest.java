@@ -106,6 +106,67 @@ public class AppDatabaseMigrationTest {
         migrada.close();
     }
 
+    @Test
+    public void migracion2a3_creaLasTablasDeMesasYConservaLoExistente() throws IOException {
+        MigrationTestHelper helper = helper();
+        SQLiteConnection base = helper.createDatabase(2);
+        // Un platillo de la v2 que debe sobrevivir a la migración.
+        try (SQLiteStatement insercion = base.prepare("INSERT INTO platillos "
+                + "(id_local, id_servidor, nombre, descripcion, precio, id_categoria_local, "
+                + "nombre_categoria, ruta_imagen, activo, estado_sync, actualizado_en) "
+                + "VALUES (1, 10, 'Baleada', NULL, 45.0, 1, 'Platos', NULL, 1, "
+                + "'SINCRONIZADO', NULL)")) {
+            insercion.step();
+        }
+        base.close();
+
+        // runMigrationsAndValidate compara el esquema resultante contra el JSON de la v3:
+        // si la migración escrita a mano no deja la base exactamente como Room espera,
+        // esto lanza IllegalStateException.
+        SQLiteConnection migrada = helper.runMigrationsAndValidate(
+                3, Collections.singletonList(Migraciones.DE_2_A_3));
+
+        assertNotNull(migrada);
+        assertTrue(tablaExiste(migrada, "mesas"));
+        assertTrue(tablaExiste(migrada, "estados_mesa"));
+        assertTrue(tablaExiste(migrada, "platillos"));
+        // El platillo encolado/descargado no se pierde al sumar el módulo Mesas.
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT nombre FROM platillos WHERE id_local = 1")) {
+            assertTrue("el platillo se perdió en la migración", sentencia.step());
+            assertEquals("Baleada", sentencia.getText(0));
+        }
+        migrada.close();
+    }
+
+    @Test
+    public void migracion3a4_creaLaTablaDeClientesYConservaLoExistente() throws IOException {
+        MigrationTestHelper helper = helper();
+        SQLiteConnection base = helper.createDatabase(3);
+        // Una mesa de la v3 que debe sobrevivir a la migración.
+        try (SQLiteStatement insercion = base.prepare("INSERT INTO mesas "
+                + "(id_local, id_servidor, numero_mesa, capacidad, ubicacion, id_estado_mesa, "
+                + "estado_mesa, id_estado, activo, actualizado_en, estado_sync) "
+                + "VALUES (1, 10, 4, 6, 'Patio', 1, 'Libre', 1, 1, NULL, 'SINCRONIZADO')")) {
+            insercion.step();
+        }
+        base.close();
+
+        SQLiteConnection migrada = helper.runMigrationsAndValidate(
+                4, Collections.singletonList(Migraciones.DE_3_A_4));
+
+        assertNotNull(migrada);
+        assertTrue(tablaExiste(migrada, "clientes"));
+        assertTrue(tablaExiste(migrada, "mesas"));
+        // La mesa encolada/descargada no se pierde al sumar el módulo Clientes.
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT numero_mesa FROM mesas WHERE id_local = 1")) {
+            assertTrue("la mesa se perdió en la migración", sentencia.step());
+            assertEquals(4L, sentencia.getLong(0));
+        }
+        migrada.close();
+    }
+
     /**
      * El driver-based helper no borra el archivo previo (a diferencia del helper legacy);
      * el test debe garantizar una base limpia antes de {@code createDatabase}.

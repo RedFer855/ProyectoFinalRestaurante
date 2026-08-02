@@ -15,12 +15,16 @@ import com.example.proyectofinalrestaurante.data.local.AppDatabase;
 import com.example.proyectofinalrestaurante.data.local.Migraciones;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.repository.ClienteRemoto;
 import com.example.proyectofinalrestaurante.data.repository.EmpleadoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MenuRemoto;
+import com.example.proyectofinalrestaurante.data.repository.MesaRemoto;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
 import com.example.proyectofinalrestaurante.data.sync.Sincronizador;
+import com.example.proyectofinalrestaurante.data.sync.SincronizadorClientes;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorEmpleados;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMenu;
+import com.example.proyectofinalrestaurante.data.sync.SincronizadorMesas;
 import com.example.proyectofinalrestaurante.data.sync.SyncWorker;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
 
@@ -49,8 +53,8 @@ public final class SyncApplication extends Application implements Configuration.
     /**
      * Quién avisa a la UI del estado de la sincronización, <b>por módulo</b>.
      *
-     * <p>Es un mapa y no un solo observador porque hay dos repositorios local-first (Menú y
-     * Empleados) y cada uno alimenta su propio {@code EstadoSincronizacion}. La clave por
+     * <p>Es un mapa y no un solo observador porque hay varios repositorios local-first (Menú,
+     * Empleados, Mesas) y cada uno alimenta su propio {@code EstadoSincronizacion}. La clave por
      * módulo además evita el duplicado obvio: cada rotación de pantalla reconstruye el
      * repositorio y vuelve a registrarse, y con una lista se irían acumulando observadores
      * muertos.</p>
@@ -100,7 +104,8 @@ public final class SyncApplication extends Application implements Configuration.
                     baseDeDatos = Room.databaseBuilder(this, AppDatabase.class, NOMBRE_BASE)
                             // Migración explícita: fallbackToDestructiveMigration() borraría
                             // los cambios que el usuario todavía no subió.
-                            .addMigrations(Migraciones.DE_1_A_2)
+                            .addMigrations(Migraciones.DE_1_A_2, Migraciones.DE_2_A_3,
+                                    Migraciones.DE_3_A_4)
                             .build();
                 }
             }
@@ -139,7 +144,20 @@ public final class SyncApplication extends Application implements Configuration.
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.EMPLEADOS),
                     base.empleadoDao(), base.sincronizacionDao());
 
-            return new SyncWorker(contexto, parametros, Arrays.asList(menu, empleados),
+            MesaRemoto mesaRemoto = new MesaRemoto(
+                    SupabaseClient.getMesaApi(), SyncApplication::tokenDeLaSesion);
+            Sincronizador mesas = new SincronizadorMesas(mesaRemoto,
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MESAS),
+                    base.mesaDao(), base.sincronizacionDao());
+
+            ClienteRemoto clienteRemoto = new ClienteRemoto(
+                    SupabaseClient.getClienteApi(), SyncApplication::tokenDeLaSesion);
+            Sincronizador clientes = new SincronizadorClientes(clienteRemoto,
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.CLIENTES),
+                    base.clienteDao(), base.sincronizacionDao());
+
+            return new SyncWorker(contexto, parametros,
+                    Arrays.asList(menu, empleados, mesas, clientes),
                     SyncApplication::tokenDeLaSesion, observadorDeTodos());
         }
     }

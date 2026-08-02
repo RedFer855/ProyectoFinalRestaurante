@@ -16,6 +16,15 @@ lifecycle: draft
 > Ahí está el contrato completo: la división Parte A / Parte B, el orden de lectura, las
 > reglas de oro del código y qué significa "terminado". **No es opcional.**
 
+> [!success] Plan completo — Parte A y Parte B ejecutadas (2026-08-01)
+> El código Android (E1-E7, 73 tests) y el servidor (§2 completo, verificado con las 9
+> pruebas de aceptación de §2.7) están aplicados y funcionando sobre el proyecto real. Ver
+> [[Módulo Mesas]] para el detalle, incluidas dos correcciones al plan
+> (`numero_mesa`/`ubicacion` agregadas como columnas reales — ver
+> [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]] — y una
+> policy RLS preexistente que se sacó). Falta solo la verificación en un dispositivo físico,
+> fuera del alcance del agente.
+
 > [!warning] Depende de la Fase 2b
 > Mesas **nace offline-first**: lee de Room y encola escrituras, sobre la infraestructura de
 > [[Plan Fase 2b - Offline-First con Room y Outbox]]. Si 2b no está terminada, **este plan

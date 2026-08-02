@@ -50,8 +50,8 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 | **0** | `fix/fase0-estandar` | **Remediación de la brecha contra el estándar** | ⬜ **Siguiente** |
 | **2a** | `feat/fase2-menu` | CRUD de platillos y categorías + fotos en Storage | 🟢 **Implementada** 2026-07-31 (falta probarla en dispositivo) — ver [[Módulo Menú]] |
 | **2b** | `feat/fase2-menu` | **Room + outbox + `SyncWorker`** — cierra **P-014**. Menú **y** Empleados pasan a offline-first | 🟢 **Implementada** 2026-08-01 (falta probarla en dispositivo) — ver [[Módulo Menú]] y [[Módulo Empleados]] |
-| **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2c - CRUD de Mesas]] |
-| **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2d - CRUD de Clientes]] |
+| **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (73 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Mesas]] |
+| **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (55 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Clientes]] |
 | **2e** | `feat/fase2e-refactor` | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
 | 3 | — | **Reservada** — contenido a definir por el usuario | ⬜ Sin asignar |
 | 4 | `feat/fase4-pedidos` | Creación y seguimiento de pedidos (**consume** Menú, Mesas y Clientes) | ⬜ No iniciado |

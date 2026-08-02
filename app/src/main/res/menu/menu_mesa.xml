@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Menú de opciones (⋮) de una mesa. No hay "eliminar": las mesas no se borran, se dan de
+     baja (ReglasMesa.lasMesasNoSeBorran()) — por eso es un menú propio y no menu_acciones.xml. -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/accion_editar_mesa"
+        android:title="@string/accion_editar" />
+    <item
+        android:id="@+id/accion_activar_desactivar_mesa"
+        android:title="@string/accion_desactivar" />
+</menu>

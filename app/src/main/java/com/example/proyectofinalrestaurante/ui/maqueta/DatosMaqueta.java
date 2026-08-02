@@ -15,10 +15,10 @@ import java.util.List;
  * módulos empiecen a leer de Supabase. Vive en {@code ui/} y nunca en {@code domain/}:
  * el dominio no debe enterarse de que existió.</p>
  *
- * <p>Los estados de pedido y mesa están acá y no en {@code domain} a propósito: el
- * catálogo real todavía no se decidió en la base ({@code estado_general} solo tiene
- * Activo/Inactivo — ver Esquema de Base de Datos). Definirlos ahora sería congelar una
- * decisión que no está tomada.</p>
+ * <p>{@code EstadoPedido} sigue acá y no en {@code domain} a propósito: el catálogo real de
+ * Pedidos todavía no se decidió en la base (Fase 4). {@code EstadoMesa} ya se mudó a
+ * {@code domain.model} cuando la Fase 2c conectó Mesas a Supabase — el catálogo
+ * {@code estado_mesa} sí quedó fijado (Plan Fase 2c, §2.2).</p>
  */
 public final class DatosMaqueta {
 
@@ -54,24 +54,6 @@ public final class DatosMaqueta {
                 default:
                     return this;
             }
-        }
-    }
-
-    public enum EstadoMesa {
-        LIBRE(R.string.estado_mesa_libre, R.color.estado_listo),
-        OCUPADA(R.string.estado_mesa_ocupada, R.color.estado_cancelado),
-        RESERVADA(R.string.estado_mesa_reservada, R.color.estado_pendiente);
-
-        @StringRes public final int etiqueta;
-        @ColorRes public final int color;
-
-        EstadoMesa(@StringRes int etiqueta, @ColorRes int color) {
-            this.etiqueta = etiqueta;
-            this.color = color;
-        }
-
-        public EstadoMesa siguiente() {
-            return values()[(ordinal() + 1) % values().length];
         }
     }
 
@@ -119,41 +101,6 @@ public final class DatosMaqueta {
         }
     }
 
-    public static final class Mesa {
-        public final int numero;
-        public final int capacidad;
-        public final EstadoMesa estado;
-
-        public Mesa(int numero, int capacidad, EstadoMesa estado) {
-            this.numero = numero;
-            this.capacidad = capacidad;
-            this.estado = estado;
-        }
-
-        /** Copia con otro estado — inmutable, para que DiffUtil detecte el cambio. */
-        public Mesa conEstado(EstadoMesa nuevo) {
-            return new Mesa(numero, capacidad, nuevo);
-        }
-    }
-
-    public static final class Cliente {
-        public final String nombres;
-        public final String apellidos;
-        public final String identidad;
-        public final String telefono;
-
-        public Cliente(String nombres, String apellidos, String identidad, String telefono) {
-            this.nombres = nombres;
-            this.apellidos = apellidos;
-            this.identidad = identidad;
-            this.telefono = telefono;
-        }
-
-        public String nombreCompleto() {
-            return nombres + " " + apellidos;
-        }
-    }
-
     public static final class ConteoSimple {
         public final String etiqueta;
         public final int cantidad;
@@ -195,29 +142,6 @@ public final class DatosMaqueta {
                 new LineaPedido("Sopa de caracol", 1, 190.00, false),
                 new LineaPedido("Refresco de tamarindo", 1, 45.00, true),
                 new LineaPedido("Tortillas extra", 2, 10.00, true));
-    }
-
-    public static List<Mesa> mesas() {
-        return Arrays.asList(
-                new Mesa(1, 2, EstadoMesa.LIBRE),
-                new Mesa(2, 4, EstadoMesa.OCUPADA),
-                new Mesa(3, 4, EstadoMesa.LIBRE),
-                new Mesa(4, 6, EstadoMesa.OCUPADA),
-                new Mesa(5, 2, EstadoMesa.RESERVADA),
-                new Mesa(6, 8, EstadoMesa.LIBRE),
-                new Mesa(7, 4, EstadoMesa.OCUPADA),
-                new Mesa(8, 2, EstadoMesa.LIBRE),
-                new Mesa(9, 6, EstadoMesa.OCUPADA),
-                new Mesa(10, 4, EstadoMesa.LIBRE));
-    }
-
-    public static List<Cliente> clientes() {
-        return Arrays.asList(
-                new Cliente("Ana", "Cruz", "0801199512345", "9988-1122"),
-                new Cliente("Luis", "Medina", "0501200203344", "3344-5566"),
-                new Cliente("Sofía", "Ramos", "0801198877665", "9911-2233"),
-                new Cliente("Carlos", "Núñez", "0703199044556", "8877-6655"),
-                new Cliente("Gabriela", "Paz", null, "9900-1234"));
     }
 
     public static List<ConteoSimple> platillosMasPedidos() {

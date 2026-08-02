@@ -527,6 +527,50 @@ más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
 
 ---
 
+### P-026 · El id de cliente offline para Pedidos sigue sin resolver
+
+**Alcance:** `domain/repository/ClienteRepository.buscarOCrearCliente(...)`, Fase 4 (Pedidos).
+
+[[Plan Fase 2d - CRUD de Clientes]] §5.1 acepta explícitamente que el RPC
+`buscar_o_crear_cliente` **no puede ser offline**: el `id_cliente` lo genera el servidor. Este
+módulo implementa la opción A (crear el cliente local con `id_local` y encolar, como todo lo
+demás del CRUD) y deja el RPC expuesto en el repositorio, sin consumidor, para que Pedidos
+decida.
+
+**Riesgo:** un pedido tomado sin red que referencia a un cliente que **tampoco** tiene
+`id_servidor` todavía es un caso que Pedidos va a encontrarse de entrada. Probablemente se
+resuelve encolando ambas operaciones juntas y resolviendo el id al drenar el outbox — mismo
+espíritu que el pliegue de ediciones sobre un `CREAR` pendiente del Menú—, pero no está
+diseñado.
+
+**Solución:** diseñarlo al abrir la Fase 4, con el caso de uso real de Pedidos delante en vez
+de anticiparlo en abstracto.
+
+**Estado:** `[ ] Pendiente — registrado al cerrar la Fase 2d (Parte B), 2026-08-01`
+
+---
+
+### P-027 · Room guarda datos personales de clientes sin cifrar
+
+**Alcance:** `data/local/entity/ClienteEntity.java`, base `restaurante.db`.
+
+Desde el módulo Clientes (Fase 2d), Room guarda nombre, apellido, identidad y teléfono de
+gente real en SQLite sin cifrar. Un teléfono perdido es, entre otras cosas, una base de
+clientes perdida. El plan (§5.4) pide explícitamente **no improvisar** esto: registrarlo como
+deuda en vez de decidirlo al pasar.
+
+**Riesgo:** bajo mientras el volumen de clientes sea chico y el dispositivo esté bajo control
+del restaurante; sube con la cantidad de datos y con cualquier escenario de robo/pérdida del
+teléfono.
+
+**Solución:** SQLCipher (o `SQLiteDatabase` cifrada con `EncryptedFile`/Jetpack Security) para
+la tabla `clientes` — evaluar si conviene cifrar la base entera o solo esa tabla, y el costo
+de rendimiento en Room. Ver [[Seguridad y Privacidad Android]].
+
+**Estado:** `[ ] Pendiente — decisión propia, diferida a propósito`
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -556,6 +600,8 @@ más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
 | P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
 | P-024 | `CompresorDeImagen` sin pruebas | 🟢 | `[ ]` Pendiente — **desbloqueado** 2026-08-01 (Robolectric ya está) | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
 | P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]] |
+| P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
+| P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 
 ---
 

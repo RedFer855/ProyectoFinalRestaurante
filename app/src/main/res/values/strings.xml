@@ -107,11 +107,44 @@
     <string name="mesas_numero">Mesa %1$d</string>
     <string name="mesas_capacidad">%1$d personas</string>
     <string name="mesas_vacio">No hay mesas en este estado.</string>
+    <string name="mesas_sin_coincidencias">No hay mesas que coincidan con la búsqueda.</string>
+    <string name="mesas_buscar">Buscar por número o ubicación</string>
+    <string name="mesas_de_baja">De baja</string>
+
+    <string name="mesa_numero">Número de mesa</string>
+    <string name="mesa_capacidad">Capacidad</string>
+    <string name="mesa_ubicacion">Ubicación (opcional)</string>
+    <string name="mesa_titulo_nuevo">Nueva mesa</string>
+    <string name="mesa_titulo_editar">Editar mesa</string>
+    <string name="mesa_guardar">Guardar</string>
+    <string name="mesa_cancelar">Cancelar</string>
+    <string name="mesa_error_numero">El número de mesa debe ser mayor que cero.</string>
+    <string name="mesa_error_capacidad">La capacidad debe ser mayor que cero.</string>
+    <string name="mesa_error_ubicacion">La ubicación es demasiado larga.</string>
+    <string name="mesa_error_numero_duplicado">Ya existe una mesa con ese número.</string>
+    <string name="mesa_titulo_cambiar_estado">Cambiar el estado de la mesa %1$d</string>
+    <string name="mesa_de_baja_no_cambia_estado">Esa mesa está dada de baja: reactivala primero.</string>
 
     <string name="clientes_buscar">Buscar por nombre o identidad</string>
     <string name="clientes_agregar">Agregar cliente</string>
-    <string name="clientes_vacio">No hay clientes que coincidan con la búsqueda.</string>
+    <string name="clientes_vacio">Todavía no hay clientes registrados.</string>
+    <string name="clientes_sin_coincidencias">No hay clientes que coincidan con la búsqueda.</string>
     <string name="clientes_sin_identidad">Sin identidad</string>
+    <string name="clientes_activo">Activo</string>
+    <string name="clientes_inactivo">Inactivo</string>
+
+    <string name="cliente_nombre">Nombre</string>
+    <string name="cliente_apellido">Apellido</string>
+    <string name="cliente_identidad">Identidad (opcional)</string>
+    <string name="cliente_telefono">Teléfono (opcional)</string>
+    <string name="cliente_titulo_nuevo">Nuevo cliente</string>
+    <string name="cliente_titulo_editar">Editar cliente</string>
+    <string name="cliente_guardar">Guardar</string>
+    <string name="cliente_cancelar">Cancelar</string>
+    <string name="cliente_error_nombre">El nombre es obligatorio.</string>
+    <string name="cliente_error_apellido">El apellido es obligatorio.</string>
+    <string name="cliente_error_identidad">La identidad debe tener al menos 13 dígitos.</string>
+    <string name="cliente_confirmar_borrado">¿Borrar a %1$s? No tiene pedidos, así que esto no se puede deshacer.</string>
 
     <string name="empleados_buscar">Buscar empleado</string>
     <string name="empleados_agregar">Agregar empleado</string>

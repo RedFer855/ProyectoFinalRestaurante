@@ -12,38 +12,67 @@
     app:strokeColor="@color/brand_outline"
     app:strokeWidth="1dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="@dimen/espaciado_campo">
+        android:layout_height="wrap_content">
 
-        <TextView
-            android:id="@+id/txt_numero_mesa"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceHeadlineSmall"
-            android:textColor="?attr/colorOnSurface"
-            tools:text="Mesa 4" />
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/espaciado_campo">
 
-        <TextView
-            android:id="@+id/txt_capacidad_mesa"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="6 personas" />
+            <TextView
+                android:id="@+id/txt_numero_mesa"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="?attr/colorOnSurface"
+                tools:text="Mesa 4" />
 
-        <!-- Estado con color Y texto — nunca solo color. -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_estado_mesa"
-            style="@style/Widget.Material3.Chip.Assist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_minimo"
-            tools:text="Ocupada" />
+            <TextView
+                android:id="@+id/txt_capacidad_mesa"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                tools:text="6 personas" />
 
-    </LinearLayout>
+            <!-- Estado con color Y texto — nunca solo color. -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_estado_mesa"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/espaciado_minimo"
+                android:clickable="false"
+                tools:text="Ocupada" />
+
+            <!-- Regla 8 de Offline-First: nunca dejar al usuario con la duda de si el
+                 cambio ya llegó al servidor. -->
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_sync_mesa"
+                style="@style/Widget.Material3.Chip.Assist"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/espaciado_minimo"
+                android:clickable="false"
+                android:text="@string/sync_pendiente"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_opciones_mesa"
+            android:layout_width="@dimen/altura_minima_tactil"
+            android:layout_height="@dimen/altura_minima_tactil"
+            android:layout_gravity="top|end"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_mas_opciones"
+            android:src="@drawable/ic_mas_opciones" />
+
+    </FrameLayout>
 
 </com.google.android.material.card.MaterialCardView>

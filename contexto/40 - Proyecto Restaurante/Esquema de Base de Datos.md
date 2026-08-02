@@ -12,7 +12,9 @@ lifecycle: verified
 # Esquema de Base de Datos — proyecto Restaurante
 
 > [!info] Estado
-> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **14 tablas**, todas con **RLS activa** y con policies por módulo. Catálogos base cargados; `tipo_pedido` sigue vacío. Desde el **2026-07-31** hay además un bucket de Storage (`platillos`) — ver la sección de Fase 2a más abajo.
+> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **15 tablas** (se sumó `estado_mesa` el 2026-08-01), todas con **RLS activa** y con policies por módulo. Catálogos base cargados; `tipo_pedido` sigue vacío. Desde el **2026-07-31** hay además un bucket de Storage (`platillos`) — ver la sección de Fase 2a más abajo.
+>
+> **2026-08-01 — Parte A de Mesas y Clientes ejecutada.** El DDL real de `mesa` y `clientes` está documentado más abajo. Detalle completo de las migraciones, la verificación por rol y las dos correcciones al plan en [[Módulo Mesas]], [[Módulo Clientes]] y [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]].
 
 ---
 
@@ -116,7 +118,8 @@ Sigue existiendo la pregunta de fondo — ¿`perfiles` y `usuarios` conviven, o 
 | Tabla | Filas |
 |---|---|
 | `roles` | `1=admin, 2=mesero, 3=cocina` (2026-07-29) — mismos 3 valores que el `CHECK` de `perfiles.rol` |
-| `estado_general` | `1=Activo, 2=Inactivo` (2026-07-29) — mínimo para desbloquear `empleados`/`usuarios`/`clientes`. **`mesa` y `pedido` van a necesitar estados más específicos** (libre/ocupada/reservada; pendiente/en preparación/listo/entregado/cancelado) — pendiente de decidir si se agregan acá o se separan en catálogos propios. |
+| `estado_general` | `1=Activo, 2=Inactivo` (2026-07-29) — mínimo para desbloquear `empleados`/`usuarios`/`clientes`. **Decidido (2026-08-01):** `mesa` separó su estado operativo en el catálogo propio `estado_mesa` — ver [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]]. `pedido` va a necesitar el mismo tratamiento cuando llegue la Fase 4. |
+| `estado_mesa` | `1=Libre, 2=Ocupada, 3=Reservada` (2026-08-01) — catálogo fijo, nadie escribe desde la app. |
 | `categoria` | `1=Entradas, 2=Platos fuertes, 3=Bebidas, 4=Postres` |
 | `platillo` | 5 filas de ejemplo, todas activas y **sin foto** (`ruta_imagen IS NULL`) |
 | `tipo_pedido` | ⬜ Vacío |
@@ -160,38 +163,72 @@ propósito, así listar el contenido del bucket queda bloqueado.
 
 ---
 
-## ⚠️ Hueco conocido: `mesa` y `clientes` no tienen su DDL documentado
+## ✅ DDL real de `mesa` y `clientes` (verificado 2026-08-01)
 
-> [!danger] Esto bloquea la Parte A de las Fases 2c y 2d
-> Las dos tablas existen y están en el diagrama, pero **nunca se registraron sus columnas,
-> tipos ni constraints**. [[Plan Fase 2c - CRUD de Mesas]] y
-> [[Plan Fase 2d - CRUD de Clientes]] tuvieron que escribir sus vistas sobre **nombres
-> supuestos** (`numero_mesa`, `capacidad`, `ubicacion`, `nombre`, `apellido`, `telefono`).
->
-> **El primer paso de la Parte A de cada uno de esos planes es listar el DDL real y
-> escribirlo acá**, en una sección propia, antes de escribir una sola migración. Si lo real
-> difiere de lo supuesto, **gana la base** y se corrige el plan.
->
-> Lo único confirmado hoy: `uq_clientes_identidad UNIQUE (identidad)` y que `pedido`
-> referencia `id_mesa` e `id_cliente`, ambos nullable.
+> [!success] Hueco cerrado
+> Hasta el 2026-08-01 estas dos tablas estaban en el diagrama pero nunca se habían
+> documentado sus columnas reales. [[Plan Fase 2c - CRUD de Mesas]] y
+> [[Plan Fase 2d - CRUD de Clientes]] tuvieron que escribir sus vistas sobre nombres
+> supuestos. Se verificó contra la base real (`list_tables` + `information_schema`) y
+> **dos supuestos no coincidían** — documentados abajo con la corrección aplicada.
 
-## Cambios planificados para las Fases 2c y 2d — Mesas y Clientes (2026-08-01)
+### `mesa` — DDL antes de la Parte A
 
-Todavía **no aplicados**. Detalle y justificación en los planes respectivos.
+```sql
+create table public.mesa (
+    id_mesa    int generated always as identity primary key,
+    capacidad  int not null,
+    id_estado  int not null references estado_general(id_estado)
+);
+```
 
-| Objeto | Para qué | Plan |
-|---|---|---|
-| Catálogo `estado_mesa` (Libre/Ocupada/Reservada) + `mesa.id_estado_mesa` | Separa el estado **operativo** de la baja lógica (`estado_general`). Son ortogonales, y separarlos es lo que permite que la RLS distinga quién puede qué | [[Plan Fase 2c - CRUD de Mesas]] |
-| `mesa.actualizado_en` · `clientes.actualizado_en` + triggers | Lo exige el sync delta de [[Plan Fase 2b - Offline-First con Room y Outbox]] | 2b / 3a / 3b |
-| `vista_mesas` · `vista_clientes` (`security_invoker = on`) | El contrato de lectura que programa el cliente Android | 3a / 3b |
-| `cambiar_estado_mesa()` — RPC `SECURITY DEFINER` | RLS autoriza filas, no columnas. Es la única forma de que el mesero cambie el estado **sin** poder editar capacidad ni número | [[Plan Fase 2c - CRUD de Mesas]] |
-| `buscar_o_crear_cliente()` — RPC `SECURITY DEFINER` | Implementa [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] de forma **atómica**: dos meseros a la vez no crean dos clientes con la misma identidad | [[Plan Fase 2d - CRUD de Clientes]] |
-| `uq_clientes_identidad` → único sobre la identidad **normalizada** | Hoy `0801-1990-1` y `080119901` son dos clientes distintos, y el buscar-o-crear falla justo cuando importa | [[Plan Fase 2d - CRUD de Clientes]] |
-| `trg_mesa_no_borrar` · `trg_clientes_no_borrar_con_pedidos` | `pedido` los referencia; borrarlos rompe el historial | 3a / 3b |
-| Índices sobre `actualizado_en` en `platillo` y `categoria` | Que el sync delta no haga seq scan cuando la tabla crezca | [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+Sin `numero_mesa` ni `ubicacion` — el plan los asumía. **Corrección aplicada:** se
+agregaron como columnas reales (`numero_mesa int not null unique`, `ubicacion
+varchar(100) null`) en vez de sacarlas del plan, porque las historias 1 y 3 del plan las
+tratan como datos de negocio genuinos que el admin ingresa, no como detalles
+inventables — ver el razonamiento completo en [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]].
+Las 4 mesas que ya existían se numeraron con su propio `id_mesa` (backfill sin inventar
+datos) y quedaron con `ubicacion` en `NULL`.
 
-`estado_pedido` va a necesitar el mismo tratamiento que `estado_mesa` cuando llegue la Fase 4
-— la decisión y su ADR quedan planteados en el plan de Mesas.
+### `clientes` — DDL antes de la Parte A
+
+```sql
+create table public.clientes (
+    id_cliente int generated always as identity primary key,
+    nombres    varchar not null,
+    apellidos  varchar not null,
+    identidad  varchar null unique,   -- uq_clientes_identidad, sobre el texto crudo
+    telefono   varchar null,
+    correo     varchar null,          -- no lo pidió ningún plan; existe, Android no lo usa
+    id_estado  int not null references estado_general(id_estado)
+);
+```
+
+`nombres`/`apellidos` van en **plural** — igual que `empleados`, y distinto de lo que el
+plan asumía (`nombre`/`apellido`, singular). **Corrección aplicada del lado Android, no
+de la base** (`ClienteDto`, `CrearClienteDto`, `ActualizarClienteDto` ahora serializan
+`nombres`/`apellidos`): es exactamente el caso que el protocolo describe — "si algo ya
+existe con otro nombre, gana lo que hay en la base". `correo` existe pero ningún plan lo
+pidió; se dejó fuera de `vista_clientes` a propósito.
+
+### Columnas y objetos agregados por la Parte A (2026-08-01)
+
+| Objeto | Para qué |
+|---|---|
+| Catálogo `estado_mesa` (`1=Libre, 2=Ocupada, 3=Reservada`) + `mesa.id_estado_mesa` | Separa el estado **operativo** de la baja lógica (`estado_general`) — ver [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]] |
+| `mesa.numero_mesa` (único), `mesa.ubicacion` | Ver corrección arriba |
+| `mesa.actualizado_en` · `clientes.actualizado_en` + triggers `tocar_actualizado_en()` | Lo exige el sync delta de [[Plan Fase 2b - Offline-First con Room y Outbox]] |
+| `vista_mesas` · `vista_clientes` (`security_invoker = on`) | El contrato de lectura que programa `MesaDto`/`ClienteDto` |
+| `cambiar_estado_mesa()` — RPC `SECURITY DEFINER` | RLS autoriza filas, no columnas. Es la única forma de que el mesero cambie el estado **sin** poder editar capacidad ni número — reemplazó una policy RLS preexistente que le daba `UPDATE` directo a mesero sobre `mesa` |
+| `buscar_o_crear_cliente()` — RPC `SECURITY DEFINER` | Implementa [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] de forma **atómica** |
+| `uq_clientes_identidad_norm` → único sobre la identidad **normalizada**, reemplaza a `uq_clientes_identidad` | Hoy `0801-1990-1` y `080119901` son dos clientes distintos, y el buscar-o-crear fallaba justo cuando importa. Verificado con 0 filas: la tabla estaba vacía, no hubo que resolver duplicados |
+| `trg_mesa_no_borrar` · `trg_clientes_no_borrar_con_pedidos` | `pedido` los referencia; borrarlos rompe el historial |
+| `revoke execute ... from public` en las funciones de trigger nuevas y en dos preexistentes del Menú (`impedir_borrado_platillo`, `impedir_borrado_categoria_con_platillos`) | Postgres le da `EXECUTE` a `PUBLIC` por default al crear una función — revocarle a `anon` puntualmente **no alcanza** si `PUBLIC` sigue teniendo el permiso. `get_advisors(security)` lo encontró después de la primera pasada de la migración |
+
+Las nueve pruebas de aceptación de Mesas (§2.7 del plan) y las diez de Clientes se
+corrieron simulando cada rol (`admin`/`mesero`/`cocina`) dentro de una transacción
+revertida, con los usuarios reales de `perfiles`. Las 19 pasaron. Detalle completo en
+[[Módulo Mesas]], [[Módulo Clientes]] y la nota de sesión del 2026-08-01.
 
 ---
 
