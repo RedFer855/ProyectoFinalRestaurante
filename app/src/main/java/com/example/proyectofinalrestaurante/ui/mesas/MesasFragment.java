@@ -9,33 +9,34 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.EstadoMesa;
+import com.example.proyectofinalrestaurante.domain.model.Mesa;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Módulo Mesas (Plan Fase 1c, Entregable 4). Cocina no accede a este módulo — ni
- * siquiera aparece en su menú. El mesero puede ocupar y liberar mesas, pero solo el
- * admin puede crearlas o eliminarlas.
+ * Módulo Mesas (Fase 2c). Cocina no accede a este módulo. El mesero puede
+ * cambiar el estado de las mesas; solo el admin puede crear, editar o dar de baja.
+ *
+ * <p>La grilla se lee mejor en cuadrícula ({@link GridLayoutManager}) y el color
+ * por estado sale de la paleta. El chip muestra color <b>+</b> etiqueta de texto
+ * para accesibilidad (ver Guía de Diseño Visual).</p>
  */
 public class MesasFragment extends Fragment {
 
+    private MesasViewModel viewModel;
     private MesaAdapter adapter;
     private TextView vacio;
-    private final List<DatosMaqueta.Mesa> mesas = new ArrayList<>();
-    private DatosMaqueta.EstadoMesa filtroEstado = null;
 
     @Nullable
     @Override
@@ -47,15 +48,14 @@ public class MesasFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        vacio = view.findViewById(R.id.txt_mesas_vacio);
 
-        if (mesas.isEmpty()) {
-            mesas.addAll(DatosMaqueta.mesas());
-        }
+        viewModel = new ViewModelProvider(this, new MesasViewModelFactory(
+                requireActivity().getApplication())).get(MesasViewModel.class);
+
+        vacio = view.findViewById(R.id.txt_mesas_vacio);
 
         adapter = new MesaAdapter(this::cambiarEstado);
         RecyclerView lista = view.findViewById(R.id.lista_mesas);
-        // Las columnas salen de integers.xml, con variante sw600dp para tablet.
         int columnas = getResources().getInteger(R.integer.columnas_mesas);
         lista.setLayoutManager(new GridLayoutManager(requireContext(), columnas));
         lista.setAdapter(adapter);
@@ -66,56 +66,82 @@ public class MesasFragment extends Fragment {
         VistaPorPermiso.aplicar(fab, Modulo.MESAS, Accion.CREAR);
         fab.setOnClickListener(v -> avisarMaqueta());
 
-        refrescar();
+        viewModel.getEstado().observe(getViewLifecycleOwner(), this::repintar);
     }
 
     private void configurarFiltroEstados(ChipGroup grupo) {
         grupo.removeAllViews();
         grupo.addView(crearChip(getString(R.string.filtro_todos), null, true));
-        for (DatosMaqueta.EstadoMesa estado : DatosMaqueta.EstadoMesa.values()) {
-            grupo.addView(crearChip(getString(estado.etiqueta), estado, false));
+        for (EstadoMesa estado : EstadoMesa.values()) {
+            grupo.addView(crearChip(getString(etiquetaDeEstado(estado)), estado, false));
         }
     }
 
-    private Chip crearChip(String etiqueta, @Nullable DatosMaqueta.EstadoMesa valor,
-                           boolean seleccionado) {
+    private Chip crearChip(String etiqueta, @Nullable EstadoMesa valor, boolean seleccionado) {
         Chip chip = new Chip(requireContext());
         chip.setText(etiqueta);
         chip.setCheckable(true);
         chip.setChecked(seleccionado);
         chip.setMinHeight(getResources().getDimensionPixelSize(R.dimen.altura_minima_tactil));
         chip.setOnClickListener(v -> {
-            filtroEstado = valor;
-            refrescar();
+            viewModel.filtrarPorEstado(valor);
+            actualizarSeleccionChips(requireView().findViewById(R.id.grupo_estados_mesa), valor);
         });
         return chip;
     }
 
-    private void cambiarEstado(DatosMaqueta.Mesa mesa) {
-        for (int i = 0; i < mesas.size(); i++) {
-            if (mesas.get(i).numero == mesa.numero) {
-                mesas.set(i, mesa.conEstado(mesa.estado.siguiente()));
-                break;
-            }
+    private void actualizarSeleccionChips(ChipGroup grupo, @Nullable EstadoMesa seleccionado) {
+        for (int i = 0; i < grupo.getChildCount(); i++) {
+            Chip chip = (Chip) grupo.getChildAt(i);
+            boolean debeEstarSeleccionado = (i == 0 && seleccionado == null)
+                    || (i > 0 && EstadoMesa.values()[i - 1] == seleccionado);
+            chip.setChecked(debeEstarSeleccionado);
         }
-        refrescar();
     }
 
-    private void refrescar() {
-        List<DatosMaqueta.Mesa> filtradas = new ArrayList<>();
-        for (DatosMaqueta.Mesa mesa : mesas) {
-            if (filtroEstado == null || mesa.estado == filtroEstado) {
-                filtradas.add(mesa);
+    private void cambiarEstado(Mesa mesa) {
+        viewModel.cambiarEstadoMesa(mesa.getIdLocal(), mesa.getEstadoMesa().siguiente());
+    }
+
+    private void repintar(EstadoMesas estado) {
+        if (estado == null) {
+            return;
+        }
+        adapter.submitList(estado.getMesas());
+        vacio.setVisibility(estado.isVacio() ? View.VISIBLE : View.GONE);
+
+        if (estado.getMensajeExito() != null) {
+            View raiz = getView();
+            if (raiz != null) {
+                Snackbar.make(raiz, estado.getMensajeExito(), Snackbar.LENGTH_SHORT).show();
+            }
+            viewModel.onMensajeConsumido();
+        }
+
+        if (estado.getError() != null) {
+            View raiz = getView();
+            if (raiz != null) {
+                Snackbar.make(raiz, estado.getError(), Snackbar.LENGTH_LONG).show();
             }
         }
-        adapter.submitList(filtradas);
-        vacio.setVisibility(filtradas.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void avisarMaqueta() {
         View raiz = getView();
         if (raiz != null) {
             Snackbar.make(raiz, R.string.maqueta_sin_funcion, Snackbar.LENGTH_SHORT).show();
+        }
+    }
+
+    private static int etiquetaDeEstado(EstadoMesa estado) {
+        switch (estado) {
+            case OCUPADA:
+                return R.string.estado_mesa_ocupada;
+            case RESERVADA:
+                return R.string.estado_mesa_reservada;
+            case LIBRE:
+            default:
+                return R.string.estado_mesa_libre;
         }
     }
 }

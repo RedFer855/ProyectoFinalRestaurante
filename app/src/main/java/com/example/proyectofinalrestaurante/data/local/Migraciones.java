@@ -60,4 +60,58 @@ public final class Migraciones {
                     + "ON `operaciones_pendientes` (`modulo`, `id`)");
         }
     };
+
+    /**
+     * v2 → v3: llega el módulo Mesas a la base local.
+     *
+     * <p>Tabla {@code mesas} con PK local autoincremental e índice único sobre
+     * {@code id_servidor} para evitar duplicados al bajar el delta.</p>
+     */
+    public static final Migration DE_2_A_3 = new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `mesas` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_servidor` INTEGER, "
+                    + "`numero_mesa` INTEGER NOT NULL, "
+                    + "`capacidad` INTEGER NOT NULL, "
+                    + "`ubicacion` TEXT, "
+                    + "`estado_mesa` TEXT NOT NULL, "
+                    + "`activo` INTEGER NOT NULL, "
+                    + "`estado_sync` TEXT, "
+                    + "`actualizado_en` TEXT)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_mesas_id_servidor` "
+                    + "ON `mesas` (`id_servidor`)");
+        }
+    };
+
+    /**
+     * v3 → v4: llega el módulo Clientes a la base local.
+     *
+     * <p>Tabla {@code clientes} con PK local autoincremental e índice único sobre
+     * {@code id_servidor}. Incluye {@code cantidad_pedidos} cacheado para que
+     * {@code ReglasCliente.puedeBorrarse} no necesite un viaje de red.</p>
+     */
+    public static final Migration DE_3_A_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `clientes` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_servidor` INTEGER, "
+                    + "`nombre` TEXT NOT NULL, "
+                    + "`apellido` TEXT NOT NULL, "
+                    + "`identidad` TEXT, "
+                    + "`telefono` TEXT, "
+                    + "`activo` INTEGER NOT NULL, "
+                    + "`cantidad_pedidos` INTEGER NOT NULL, "
+                    + "`estado_sync` TEXT, "
+                    + "`actualizado_en` TEXT)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_clientes_id_servidor` "
+                    + "ON `clientes` (`id_servidor`)");
+        }
+    };
 }

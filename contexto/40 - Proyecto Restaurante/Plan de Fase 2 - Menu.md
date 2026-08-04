@@ -34,8 +34,8 @@ entrega produce un cambio imposible de revisar y con dos fuentes de fallo mezcla
 |---|---|---|
 | **2a** | CRUD de **platillos y categorías** contra Supabase + foto en **Storage** | 🟢 **Implementada** 2026-07-31 — ver [[Módulo Menú]] |
 | **2b** | **Room + outbox + `SyncWorker`**: Menú **y** Empleados pasan a offline-first (**P-014**) | 🟢 **Implementada** 2026-08-01 — ver [[Módulo Menú]] y [[Módulo Empleados]] |
-| **2c** | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2c - CRUD de Mesas]] |
-| **2d** | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟡 **Planificada** 2026-08-01 — ver [[Plan Fase 2d - CRUD de Clientes]] |
+| **2c** | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟢 **Implementada** 2026-08-03 — ver [[Módulo Mesas]] |
+| **2d** | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟢 **Implementada** 2026-08-03 — ver [[Módulo Clientes]] |
 | **2e** | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
 
 > [!note] La Fase 2 creció el 2026-08-01

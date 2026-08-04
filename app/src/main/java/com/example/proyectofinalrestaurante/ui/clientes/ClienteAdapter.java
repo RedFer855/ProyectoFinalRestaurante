@@ -15,14 +15,16 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.Cliente;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 
-/** Lista de clientes. Mesero puede editar; solo admin puede eliminar. */
-public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAdapter.Holder> {
+/**
+ * Lista de clientes (Fase 2d). Mesero puede editar; solo admin puede eliminar.
+ */
+public class ClienteAdapter extends ListAdapter<Cliente, ClienteAdapter.Holder> {
 
     public interface AlElegirAccion {
-        void onAccion(DatosMaqueta.Cliente cliente, int accionId);
+        void onAccion(Cliente cliente, int accionId);
     }
 
     private final AlElegirAccion alElegirAccion;
@@ -32,18 +34,16 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
         this.alElegirAccion = alElegirAccion;
     }
 
-    private static final DiffUtil.ItemCallback<DatosMaqueta.Cliente> DIFF =
-            new DiffUtil.ItemCallback<DatosMaqueta.Cliente>() {
+    private static final DiffUtil.ItemCallback<Cliente> DIFF =
+            new DiffUtil.ItemCallback<Cliente>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull DatosMaqueta.Cliente a,
-                                               @NonNull DatosMaqueta.Cliente b) {
-                    return a.nombreCompleto().equals(b.nombreCompleto());
+                public boolean areItemsTheSame(@NonNull Cliente a, @NonNull Cliente b) {
+                    return a.getIdLocal() == b.getIdLocal();
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull DatosMaqueta.Cliente a,
-                                                  @NonNull DatosMaqueta.Cliente b) {
-                    return a.telefono.equals(b.telefono);
+                public boolean areContentsTheSame(@NonNull Cliente a, @NonNull Cliente b) {
+                    return a.equals(b);
                 }
             };
 
@@ -77,14 +77,13 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
             opciones = itemView.findViewById(R.id.btn_opciones_cliente);
         }
 
-        void enlazar(DatosMaqueta.Cliente cliente, AlElegirAccion alElegirAccion) {
-            nombre.setText(cliente.nombreCompleto());
+        void enlazar(Cliente cliente, AlElegirAccion alElegirAccion) {
+            nombre.setText(completo(cliente));
             iniciales.setText(inicialesDe(cliente));
-            // La identidad es opcional a propósito: la venta de mostrador no la pide (ADR-006).
-            identidad.setText(cliente.identidad != null
-                    ? cliente.identidad
+            identidad.setText(cliente.getIdentidad() != null
+                    ? cliente.getIdentidad()
                     : itemView.getContext().getString(R.string.clientes_sin_identidad));
-            telefono.setText(cliente.telefono);
+            telefono.setText(cliente.getTelefono());
 
             boolean puedeEditar = VistaPorPermiso.puede(Modulo.CLIENTES, Accion.EDITAR);
             boolean puedeEliminar = VistaPorPermiso.puede(Modulo.CLIENTES, Accion.ELIMINAR);
@@ -102,9 +101,18 @@ public class ClienteAdapter extends ListAdapter<DatosMaqueta.Cliente, ClienteAda
             });
         }
 
-        private String inicialesDe(DatosMaqueta.Cliente cliente) {
-            char primera = cliente.nombres.isEmpty() ? '?' : cliente.nombres.charAt(0);
-            char segunda = cliente.apellidos.isEmpty() ? ' ' : cliente.apellidos.charAt(0);
+        private static String completo(Cliente c) {
+            String n = c.getNombre() == null ? "" : c.getNombre();
+            String a = c.getApellido() == null ? "" : c.getApellido();
+            String completo = (n + " " + a).trim();
+            return completo.isEmpty() ? "?" : completo;
+        }
+
+        private static String inicialesDe(Cliente c) {
+            String n = c.getNombre() == null ? "" : c.getNombre();
+            String a = c.getApellido() == null ? "" : c.getApellido();
+            char primera = n.isEmpty() ? '?' : n.charAt(0);
+            char segunda = a.isEmpty() ? ' ' : a.charAt(0);
             return (String.valueOf(primera) + segunda).trim().toUpperCase();
         }
     }

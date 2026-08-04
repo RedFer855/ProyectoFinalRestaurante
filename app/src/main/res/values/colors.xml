@@ -30,6 +30,11 @@
     <color name="estado_entregado">#8a7a74</color>
     <color name="estado_cancelado">#9a4a42</color>
 
+    <!-- Estados de mesa: colores del catálogo fijo (Fase 2c). -->
+    <color name="estado_mesa_libre">#4f8a5b</color>
+    <color name="estado_mesa_ocupada">#b0762a</color>
+    <color name="estado_mesa_reservada">#5a6b7d</color>
+
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

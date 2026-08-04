@@ -2,7 +2,9 @@ package com.example.proyectofinalrestaurante.core;
 
 import com.example.proyectofinalrestaurante.BuildConfig;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseAuthApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabaseClienteApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseEmpleadoApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabaseMesaApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseMenuApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseStorageApi;
@@ -26,6 +28,8 @@ public final class SupabaseClient {
     private static volatile SupabasePerfilApi perfilApi;
     private static volatile SupabaseEmpleadoApi empleadoApi;
     private static volatile SupabaseMenuApi menuApi;
+    private static volatile SupabaseMesaApi mesaApi;
+    private static volatile SupabaseClienteApi clienteApi;
     private static volatile SupabaseStorageApi storageApi;
 
     private SupabaseClient() {
@@ -73,6 +77,28 @@ public final class SupabaseClient {
             }
         }
         return menuApi;
+    }
+
+    public static SupabaseMesaApi getMesaApi() {
+        if (mesaApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (mesaApi == null) {
+                    mesaApi = buildRetrofit().create(SupabaseMesaApi.class);
+                }
+            }
+        }
+        return mesaApi;
+    }
+
+    public static SupabaseClienteApi getClienteApi() {
+        if (clienteApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (clienteApi == null) {
+                    clienteApi = buildRetrofit().create(SupabaseClienteApi.class);
+                }
+            }
+        }
+        return clienteApi;
     }
 
     public static SupabaseStorageApi getStorageApi() {

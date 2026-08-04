@@ -3,7 +3,7 @@ package com.example.proyectofinalrestaurante.data.sync;
 import androidx.annotation.Nullable;
 
 /**
- * Resultado de una pasada del {@link SincronizadorMenu} (Plan Fase 2b, E5).
+ * Resultado de una pasada de un {@link Sincronizador} (Plan Fase 2b, E5).
  *
  * <p>El worker necesita tres salidas posibles: la pasada terminó bien ({@code OK}), un error
  * <b>transitorio</b> cortó el drenado (hay que reintentar con backoff), o un error

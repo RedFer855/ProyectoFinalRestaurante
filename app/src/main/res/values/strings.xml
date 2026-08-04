@@ -107,6 +107,12 @@
     <string name="mesas_numero">Mesa %1$d</string>
     <string name="mesas_capacidad">%1$d personas</string>
     <string name="mesas_vacio">No hay mesas en este estado.</string>
+    <string name="mesas_numero_hint">Número de mesa</string>
+    <string name="mesas_capacidad_hint">Capacidad</string>
+    <string name="mesas_ubicacion_hint">Ubicación (opcional)</string>
+    <string name="mesas_editar">Editar mesa</string>
+    <string name="mesas_guardar">Guardar</string>
+    <string name="mesas_numero_duplicado">Ya existe una mesa con ese número.</string>
 
     <string name="clientes_buscar">Buscar por nombre o identidad</string>
     <string name="clientes_agregar">Agregar cliente</string>

@@ -36,7 +36,8 @@ Respuesta: My Cat
 | **Fase 0 — Remediación contra el estándar** | 🟡 P-003/P-004/P-005/P-006/P-012/P-013/P-020 resueltos. Falta la verificación física (P-004) |
 | **Fase 2a — Menú (CRUD + Storage)** | 🟢 **Implementada** (2026-07-31). CRUD real de platillos y categorías + fotos en el bucket `platillos`. Tarjeta rediseñada y filtro corregido el 2026-08-01. 127 tests en verde — ver [[Módulo Menú]] |
 | **Fase 2b — Offline-first (Room + outbox)** | 🟢 **Implementada** (2026-08-01). Menú **y** Empleados local-first: Room v2 + outbox particionado + `SyncWorker` único. **217 tests** en verde. **P-014 cerrado** — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
-| **Fase 2c — Mesas** · **3b — Clientes** | 🟡 **Planificadas** (2026-08-01). Nacen offline-first sobre 2b — ver [[Plan Fase 2c - CRUD de Mesas]] y [[Plan Fase 2d - CRUD de Clientes]] |
+| **Fase 2c — Mesas** | 🟢 **Implementada** (2026-08-03). CRUD real de mesas con estados operativos y outbox — ver [[Módulo Mesas]] |
+| **Fase 2d — Clientes** | 🟢 **Implementada** (2026-08-03). CRUD real de clientes con datos personales y outbox — ver [[Módulo Clientes]] |
 | Usuarios y roles | 🟢 Adelantado (Fase 1c/1d) y migrado a offline-first el 2026-08-01 — ver [[Módulo Empleados]] |
 | Pedidos (Fase 4), Reportes (Fase 6) | ⬜ No iniciado |
 

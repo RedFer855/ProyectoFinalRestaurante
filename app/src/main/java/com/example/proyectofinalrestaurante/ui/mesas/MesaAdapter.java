@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import androidx.annotation.ColorRes;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
@@ -15,15 +16,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.EstadoMesa;
+import com.example.proyectofinalrestaurante.domain.model.Mesa;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.chip.Chip;
 
-/** Grilla de mesas. Tocar una cambia su estado, solo si el rol tiene CAMBIAR_ESTADO. */
-public class MesaAdapter extends ListAdapter<DatosMaqueta.Mesa, MesaAdapter.Holder> {
+/**
+ * Grilla de mesas (Fase 2c). Tocar una cambia su estado, solo si el rol tiene
+ * {@link Accion#CAMBIAR_ESTADO}. El ⋮ (solo admin) queda para editar y dar de baja.
+ */
+public class MesaAdapter extends ListAdapter<Mesa, MesaAdapter.Holder> {
 
     public interface AlTocarMesa {
-        void onTocar(DatosMaqueta.Mesa mesa);
+        void onTocar(Mesa mesa);
     }
 
     private final AlTocarMesa alTocarMesa;
@@ -33,18 +38,18 @@ public class MesaAdapter extends ListAdapter<DatosMaqueta.Mesa, MesaAdapter.Hold
         this.alTocarMesa = alTocarMesa;
     }
 
-    private static final DiffUtil.ItemCallback<DatosMaqueta.Mesa> DIFF =
-            new DiffUtil.ItemCallback<DatosMaqueta.Mesa>() {
+    private static final DiffUtil.ItemCallback<Mesa> DIFF =
+            new DiffUtil.ItemCallback<Mesa>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull DatosMaqueta.Mesa a,
-                                               @NonNull DatosMaqueta.Mesa b) {
-                    return a.numero == b.numero;
+                public boolean areItemsTheSame(@NonNull Mesa a, @NonNull Mesa b) {
+                    return a.getIdLocal() == b.getIdLocal();
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull DatosMaqueta.Mesa a,
-                                                  @NonNull DatosMaqueta.Mesa b) {
-                    return a.estado == b.estado && a.capacidad == b.capacidad;
+                public boolean areContentsTheSame(@NonNull Mesa a, @NonNull Mesa b) {
+                    return a.getEstadoMesa() == b.getEstadoMesa()
+                            && a.getCapacidad() == b.getCapacidad()
+                            && a.isActivo() == b.isActivo();
                 }
             };
 
@@ -74,22 +79,48 @@ public class MesaAdapter extends ListAdapter<DatosMaqueta.Mesa, MesaAdapter.Hold
             estado = itemView.findViewById(R.id.chip_estado_mesa);
         }
 
-        void enlazar(DatosMaqueta.Mesa mesa, AlTocarMesa alTocarMesa) {
-            numero.setText(itemView.getContext().getString(R.string.mesas_numero, mesa.numero));
-            capacidad.setText(itemView.getContext()
-                    .getString(R.string.mesas_capacidad, mesa.capacidad));
+        void enlazar(Mesa mesa, AlTocarMesa alTocarMesa) {
+            numero.setText(itemView.getContext().getString(R.string.mesas_numero,
+                    mesa.getNumeroMesa()));
+            capacidad.setText(itemView.getContext().getString(R.string.mesas_capacidad,
+                    mesa.getCapacidad()));
 
-            estado.setText(mesa.estado.etiqueta);
+            int etiquetaRes = etiquetaDeEstado(mesa.getEstadoMesa());
+            int colorRes = colorDeEstado(mesa.getEstadoMesa());
+            estado.setText(etiquetaRes);
             estado.setChipBackgroundColor(ColorStateList.valueOf(
-                    ContextCompat.getColor(itemView.getContext(), mesa.estado.color)));
+                    ContextCompat.getColor(itemView.getContext(), colorRes)));
             estado.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.white));
-            // El chip es solo indicador: quien recibe el toque es la tarjeta entera,
-            // que es un blanco mucho más cómodo.
             estado.setClickable(false);
 
             boolean puedeCambiar = VistaPorPermiso.puede(Modulo.MESAS, Accion.CAMBIAR_ESTADO);
             itemView.setClickable(puedeCambiar);
             itemView.setOnClickListener(puedeCambiar ? v -> alTocarMesa.onTocar(mesa) : null);
+        }
+
+        @ColorRes
+        private static int colorDeEstado(EstadoMesa estado) {
+            switch (estado) {
+                case OCUPADA:
+                    return R.color.estado_mesa_ocupada;
+                case RESERVADA:
+                    return R.color.estado_mesa_reservada;
+                case LIBRE:
+                default:
+                    return R.color.estado_mesa_libre;
+            }
+        }
+
+        private static int etiquetaDeEstado(EstadoMesa estado) {
+            switch (estado) {
+                case OCUPADA:
+                    return R.string.estado_mesa_ocupada;
+                case RESERVADA:
+                    return R.string.estado_mesa_reservada;
+                case LIBRE:
+                default:
+                    return R.string.estado_mesa_libre;
+            }
         }
     }
 }
