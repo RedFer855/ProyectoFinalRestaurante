@@ -118,6 +118,14 @@
     <string name="pedidos_mesa">Mesa %1$d</string>
     <string name="pedidos_para_llevar">Para llevar</string>
 
+    <!-- Buzón de notificaciones (Plan Fase 3, §4.6). -->
+    <string name="buzon_titulo">Buzón de notificaciones</string>
+    <string name="buzon_vacio">No hay notificaciones.</string>
+    <string name="buzon_cd_abrir">Abrir el buzón de notificaciones</string>
+    <string name="notif_pedido_nuevo">Pedido #%1$s nuevo</string>
+    <string name="notif_pedido_listo">Pedido #%1$s listo</string>
+    <string name="notif_error_sync">Hubo un problema de sincronización.</string>
+
     <string name="mesas_agregar">Agregar mesa</string>
     <string name="mesas_numero">Mesa %1$d</string>
     <string name="mesas_capacidad">%1$d personas</string>

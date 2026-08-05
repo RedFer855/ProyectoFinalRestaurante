@@ -20,6 +20,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.proyectofinalrestaurante.core.SesionActual;
 import com.example.proyectofinalrestaurante.core.SyncApplication;
@@ -27,6 +28,9 @@ import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.VisibilidadMenu;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
+import com.example.proyectofinalrestaurante.ui.buzon.BuzonHoja;
+import com.example.proyectofinalrestaurante.ui.buzon.BuzonViewModel;
+import com.example.proyectofinalrestaurante.ui.buzon.BuzonViewModelFactory;
 import com.example.proyectofinalrestaurante.ui.clientes.ClientesFragment;
 import com.example.proyectofinalrestaurante.ui.debug.SelectorRolDebug;
 import com.example.proyectofinalrestaurante.ui.empleados.EmpleadosFragment;
@@ -37,6 +41,8 @@ import com.example.proyectofinalrestaurante.ui.pedidos.PedidosFragment;
 import com.example.proyectofinalrestaurante.ui.principal.InicioFragment;
 import com.example.proyectofinalrestaurante.ui.principal.NavegacionModulos;
 import com.example.proyectofinalrestaurante.ui.reportes.ReportesFragment;
+import com.google.android.material.badge.BadgeDrawable;
+import com.google.android.material.badge.BadgeUtils;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -73,6 +79,9 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
     private NavigationView navView;
     private Toolbar toolbar;
     private int moduloActualId = R.id.nav_inicio;
+    private BuzonViewModel buzonViewModel;
+    private BadgeDrawable badgeBuzon;
+    private int noLeidasBuzon = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -102,6 +111,18 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
 
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        // Badge del buzón: una sola fuente (BuzonViewModel) para el indicador de la
+        // Toolbar y para la hoja (Plan Fase 3, E9).
+        buzonViewModel = new ViewModelProvider(this,
+                new BuzonViewModelFactory(getApplication())).get(BuzonViewModel.class);
+        buzonViewModel.getEstado().observe(this, estado -> {
+            noLeidasBuzon = estado.getNoLeidas();
+            if (badgeBuzon != null) {
+                badgeBuzon.setNumber(noLeidasBuzon);
+                badgeBuzon.setVisible(noLeidasBuzon > 0);
+            }
+        });
 
         drawer = findViewById(R.id.main_drawer);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -137,6 +158,15 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // El buzón va siempre (Plan Fase 3, E9); el badge se ancla a su ícono.
+        getMenuInflater().inflate(R.menu.menu_buzon, menu);
+        View ancla = toolbar == null ? null : toolbar.findViewById(R.id.accion_buzon);
+        if (ancla != null) {
+            badgeBuzon = BadgeDrawable.create(this);
+            badgeBuzon.setNumber(noLeidasBuzon);
+            badgeBuzon.setVisible(noLeidasBuzon > 0);
+            BadgeUtils.attachBadgeDrawable(badgeBuzon, ancla, null);
+        }
         // El menú de debug no existe siquiera en builds de release.
         if (SelectorRolDebug.estaDisponible()) {
             getMenuInflater().inflate(R.menu.menu_debug, menu);
@@ -146,6 +176,10 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.accion_buzon) {
+            abrirBuzon();
+            return true;
+        }
         if (item.getItemId() == R.id.accion_cambiar_rol_debug) {
             Sesion sesion = SesionActual.obtener();
             SelectorRolDebug.mostrar(this,
@@ -154,6 +188,13 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    /** Abre el buzón con el mismo ViewModel que alimenta el badge. */
+    private void abrirBuzon() {
+        BuzonHoja hoja = new BuzonHoja();
+        hoja.recibir(buzonViewModel);
+        hoja.show(getSupportFragmentManager(), BuzonHoja.TAG);
     }
 
     /**
