@@ -1,6 +1,7 @@
 package com.example.proyectofinalrestaurante.data.remote;
 
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 
 import java.util.List;
@@ -57,4 +58,15 @@ public interface SupabasePedidoApi {
     Call<Void> avanzarEstado(
             @Header("Authorization") String bearerToken,
             @Body AvanzarEstadoPedidoDto cuerpo);
+
+    /**
+     * RPC {@code crear_pedido(jsonb)} (Plan Fase 3b, §5.3): la <b>única</b> vía de alta de un
+     * pedido. El cuerpo es el JSONB con cabecera + líneas ({@code PayloadCrearPedido}); la
+     * respuesta trae el {@code id_pedido} — el mismo si la {@code clave_idempotencia} ya
+     * existía (idempotente, B2). El RPC es transaccional: o entra todo o no entra nada.
+     */
+    @POST("rest/v1/rpc/crear_pedido")
+    Call<CrearPedidoDto> crearPedido(
+            @Header("Authorization") String bearerToken,
+            @Body String cuerpoJson);
 }

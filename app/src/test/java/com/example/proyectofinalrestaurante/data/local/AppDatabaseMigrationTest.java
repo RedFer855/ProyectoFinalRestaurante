@@ -198,6 +198,41 @@ public class AppDatabaseMigrationTest {
         migrada.close();
     }
 
+    @Test
+    public void migracion5a6_creaDetalleYColumnaIdempotenciaYConservaLoExistente()
+            throws IOException {
+        MigrationTestHelper helper = helper();
+        SQLiteConnection base = helper.createDatabase(5);
+        // Un pedido de la v5 que debe sobrevivir con todos sus campos.
+        try (SQLiteStatement insercion = base.prepare("INSERT INTO pedidos "
+                + "(id_local, id_servidor, fecha, id_estado_pedido, numero_mesa, cliente, total, "
+                + "cantidad_items, id_auth_usuario, actualizado_en, estado_sync) "
+                + "VALUES (1, 10, '2026-08-04T12:05:00-06:00', 1, 4, 'Ana Cruz', 90.0, 2, "
+                + "'uuid-mesero', NULL, 'SINCRONIZADO')")) {
+            insercion.step();
+        }
+        base.close();
+
+        SQLiteConnection migrada = helper.runMigrationsAndValidate(
+                6, Collections.<Migration>singletonList(Migraciones.DE_5_A_6));
+
+        assertNotNull(migrada);
+        assertTrue(tablaExiste(migrada, "detalle_pedido"));
+        assertTrue(tablaExiste(migrada, "pedidos"));
+        // La columna clave_idempotencia quedó en pedidos (nullable).
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT clave_idempotencia FROM pedidos WHERE id_local = 1")) {
+            assertTrue("el pedido se perdió en la migración", sentencia.step());
+        }
+        // El pedido descargado no se pierde.
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT total FROM pedidos WHERE id_local = 1")) {
+            assertTrue("el pedido se perdió en la migración", sentencia.step());
+            assertEquals(90.0, sentencia.getDouble(0), 0.0001);
+        }
+        migrada.close();
+    }
+
     /**
      * El driver-based helper no borra el archivo previo (a diferencia del helper legacy);
      * el test debe garantizar una base limpia antes de {@code createDatabase}.

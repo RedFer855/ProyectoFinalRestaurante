@@ -9,6 +9,7 @@ import com.example.proyectofinalrestaurante.data.FakeCall;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.google.gson.Gson;
 
@@ -143,10 +144,13 @@ public class PedidoRemotoTest {
         Call<List<PedidoDto>> respuestaListar =
                 FakeCall.deRespuesta(Response.success(List.of()));
         Call<Void> respuestaAvanzar = FakeCall.deRespuesta(Response.success(null));
+        Call<CrearPedidoDto> respuestaCrear =
+                FakeCall.deRespuesta(Response.success(new CrearPedidoDto()));
 
         String ultimoFiltro;
         int ultimoOffset;
         AvanzarEstadoPedidoDto ultimoCuerpo;
+        String ultimoPayloadCrear;
 
         @Override
         public Call<List<PedidoDto>> listarPedidosDesde(String bearerToken, String select,
@@ -162,6 +166,12 @@ public class PedidoRemotoTest {
         public Call<Void> avanzarEstado(String bearerToken, AvanzarEstadoPedidoDto cuerpo) {
             ultimoCuerpo = cuerpo;
             return respuestaAvanzar;
+        }
+
+        @Override
+        public Call<CrearPedidoDto> crearPedido(String bearerToken, String cuerpoJson) {
+            ultimoPayloadCrear = cuerpoJson;
+            return respuestaCrear;
         }
     }
 }

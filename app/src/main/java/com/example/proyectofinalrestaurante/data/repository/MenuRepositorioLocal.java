@@ -18,7 +18,7 @@ import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
-import com.example.proyectofinalrestaurante.data.sync.PayloadOperacion;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.domain.ReglasMenu;
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;

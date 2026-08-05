@@ -38,6 +38,9 @@ public class PedidoAdapter extends ListAdapter<Pedido, PedidoAdapter.Holder> {
         void onAvanzarEstado(Pedido pedido);
 
         void onAccion(Pedido pedido, int accionId);
+
+        /** Abre el detalle del pedido (Plan Fase 3b, E9) al tocar la tarjeta. */
+        void onVerDetalle(Pedido pedido);
     }
 
     private final AlInteractuar alInteractuar;
@@ -96,6 +99,10 @@ public class PedidoAdapter extends ListAdapter<Pedido, PedidoAdapter.Holder> {
 
         void enlazar(Pedido pedido, AlInteractuar alInteractuar) {
             ContextoLocal contexto = new ContextoLocal(itemView);
+
+            itemView.setContentDescription(
+                    itemView.getContext().getString(R.string.detalle_cd_ver_detalle));
+            itemView.setOnClickListener(v -> alInteractuar.onVerDetalle(pedido));
 
             long numeroVisible = pedido.getIdServidor() != null
                     ? pedido.getIdServidor() : pedido.getIdLocal();

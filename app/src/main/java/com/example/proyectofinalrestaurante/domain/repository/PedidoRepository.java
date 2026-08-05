@@ -5,6 +5,8 @@ import androidx.lifecycle.LiveData;
 import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
+import com.example.proyectofinalrestaurante.domain.model.LineaPedido;
+import com.example.proyectofinalrestaurante.domain.model.NuevoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
 
 import java.util.List;
@@ -49,4 +51,20 @@ public interface PedidoRepository {
      * escritura del estado (Plan Fase 3, §2.5).
      */
     Result<Void> avanzarEstado(long idLocal, EstadoPedido nuevo);
+
+    /**
+     * Toma un pedido (Plan Fase 3b): escribe la cabecera {@code PENDIENTE} + las N líneas en
+     * <b>una</b> transacción de Room, encola una operación {@code CREAR_PEDIDO} y dispara la
+     * sincronización. Devuelve {@code Result<Long>} con el {@code idLocal} del pedido recién
+     * creado (la UI navega al detalle con él). Sin red no importa: es optimista (Plan Fase 3,
+     * §4.1) — si la escritura en Room tuvo éxito, {@code crear} tiene éxito.
+     */
+    Result<Long> crear(NuevoPedido nuevo);
+
+    /**
+     * Líneas de un pedido, observadas desde Room (Plan Fase 3b, §6.1). La carga del detalle
+     * es bajo demanda: el tablero no baja líneas hasta que el {@code DetallePedidoHoja} se
+     * abre. Mismo contrato que {@code MesaRepository} para sus lecturas — nunca falla.
+     */
+    LiveData<List<LineaPedido>> observarDetalle(long idLocal);
 }

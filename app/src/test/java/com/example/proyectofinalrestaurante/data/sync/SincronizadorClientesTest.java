@@ -14,6 +14,7 @@ import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseClienteApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.ActualizarClienteDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.BuscarOCrearClienteDto;

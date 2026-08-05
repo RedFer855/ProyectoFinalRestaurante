@@ -5,6 +5,7 @@ import androidx.annotation.Nullable;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.google.gson.Gson;
 
@@ -81,6 +82,32 @@ public final class PedidoRemoto {
     }
 
     // ------------------------------------------------------------------ escrituras
+
+    /**
+     * RPC {@code crear_pedido} (Plan Fase 3b, §5.3): sube cabecera + líneas en un solo
+     * {@code JSONB}. Devuelve el {@code id_pedido}; el mismo id si la clave de idempotencia
+     * ya se usó (B2). Un {@code raise exception} del RPC (rol inválido, carrito vacío, >50
+     * líneas, platillo inexistente o inactivo) llega como <b>400</b> → permanente en el
+     * {@code ClasificadorDeError}: el outbox lo descarta en vez de reintentar tres veces.
+     */
+    public ResultadoRed<CrearPedidoDto> crearPedido(String payloadJson) {
+        String bearer = bearer();
+        if (bearer == null) {
+            return ResultadoRed.fallo(401, SIN_SESION);
+        }
+        try {
+            Response<CrearPedidoDto> respuesta = api.crearPedido(bearer, payloadJson).execute();
+            if (!respuesta.isSuccessful() || respuesta.body() == null) {
+                return ResultadoRed.fallo(respuesta.code(),
+                        mensajeDeError(respuesta, "No se pudo tomar el pedido."));
+            }
+            return ResultadoRed.exito(respuesta.body());
+        } catch (IOException ex) {
+            return ResultadoRed.fallo(ClasificadorDeError.SIN_CODIGO, SIN_CONEXION);
+        } catch (SecurityException ex) {
+            return ResultadoRed.fallo(ClasificadorDeError.SIN_CODIGO, SIN_PERMISO_RED);
+        }
+    }
 
     /**
      * RPC {@code avanzar_estado_pedido}: la única vía de escritura del estado (Plan Fase 3,

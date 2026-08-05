@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
+import com.example.proyectofinalrestaurante.domain.model.Platillo;
 
 /**
  * Espejo en el cliente de la matriz que impone el RPC {@code avanzar_estado_pedido} del
@@ -17,6 +18,25 @@ import com.example.proyectofinalrestaurante.domain.model.Pedido;
 public final class ReglasPedido {
 
     private ReglasPedido() {
+    }
+
+    /**
+     * ¿El rol puede tomar pedidos? Es la matriz de {@link Permisos} tal cual: mesero tiene
+     * {@code PEDIDOS: {CREAR, EDITAR}} y admin todo; cocina no. El FAB del tablero usa esta
+     * regla para decidir si mostrarse (Plan Fase 3b, §6.3).
+     */
+    public static boolean puedeTomarPedido(@Nullable String rol) {
+        return Permisos.puede(rol, Modulo.PEDIDOS, Accion.CREAR);
+    }
+
+    /**
+     * ¿Se puede pedir este platillo? Solo si ya subió al servidor ({@code idServidor != null}),
+     * porque el payload de {@code crear_pedido} manda {@code id_platillo} — un platillo que
+     * todavía no se sincronizó no tendría a qué apuntar (§4.2). El selector lo usa para
+     * ocultar esos platillos; el chequeo del sincronizador es el cinturón de seguridad.
+     */
+    public static boolean puedePedirse(@Nullable Platillo platillo) {
+        return platillo != null && platillo.getIdServidor() != null && platillo.isActivo();
     }
 
     /**

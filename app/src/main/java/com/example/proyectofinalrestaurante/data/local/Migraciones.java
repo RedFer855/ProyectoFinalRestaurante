@@ -190,4 +190,42 @@ public final class Migraciones {
                     + "`index_notificaciones_clave_unica` ON `notificaciones` (`clave_unica`)");
         }
     };
+
+    /**
+     * v5 → v6: llega la <b>toma</b> de pedidos (Plan Fase 3b, §6.2). Dos cambios:
+     *
+     * <ol>
+     *   <li>{@code pedidos} gana {@code clave_idempotencia} — la columna que hace idempotente
+     *       al RPC {@code crear_pedido}: el outbox manda la misma clave en cada reintento y el
+     *       servidor devuelve el mismo {@code id_pedido} sin duplicar (§5.1). Es {@code null}
+     *       en las filas del delta, que el servidor ya tiene.</li>
+     *   <li>Tabla {@code detalle_pedido}: las N líneas de cada pedido, escritas en la misma
+     *       transacción que la cabecera. {@code id_pedido} apunta al {@code id_local} de la
+     *       cabecera, {@code id_platillo_local} al id de Room del platillo, y
+     *       {@code id_servidor} (el {@code id_detalle_pedido} del servidor) es {@code null}
+     *       mientras el {@code CREAR_PEDIDO} no drene.</li>
+     * </ol>
+     */
+    public static final Migration DE_5_A_6 = new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("ALTER TABLE `pedidos` "
+                    + "ADD COLUMN `clave_idempotencia` TEXT");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `detalle_pedido` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_pedido` INTEGER NOT NULL, "
+                    + "`id_platillo_local` INTEGER NOT NULL, "
+                    + "`cantidad` INTEGER NOT NULL, "
+                    + "`precio` REAL NOT NULL, "
+                    + "`id_servidor` INTEGER)");
+
+            base.execSQL("CREATE INDEX IF NOT EXISTS "
+                    + "`index_detalle_pedido_id_pedido` ON `detalle_pedido` (`id_pedido`)");
+
+            base.execSQL("CREATE INDEX IF NOT EXISTS "
+                    + "`index_detalle_pedido_id_pedido_id_platillo_local` "
+                    + "ON `detalle_pedido` (`id_pedido`, `id_platillo_local`)");
+        }
+    };
 }

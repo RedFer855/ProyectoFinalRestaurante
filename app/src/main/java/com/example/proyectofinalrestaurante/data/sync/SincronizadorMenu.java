@@ -13,6 +13,7 @@ import com.example.proyectofinalrestaurante.data.local.mapper.CategoriaMapper;
 import com.example.proyectofinalrestaurante.data.local.mapper.PlatilloMapper;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 import com.example.proyectofinalrestaurante.data.remote.dto.CategoriaDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PlatilloDto;

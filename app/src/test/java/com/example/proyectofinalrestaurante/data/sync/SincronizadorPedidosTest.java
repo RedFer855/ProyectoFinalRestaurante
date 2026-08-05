@@ -10,17 +10,24 @@ import androidx.lifecycle.LiveData;
 
 import com.example.proyectofinalrestaurante.data.FakeCall;
 import com.example.proyectofinalrestaurante.data.FakeOperacionPendienteDao;
+import com.example.proyectofinalrestaurante.data.local.dao.ClienteDao;
+import com.example.proyectofinalrestaurante.data.local.dao.MesaDao;
 import com.example.proyectofinalrestaurante.data.local.dao.NotificacionDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
+import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.MesaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.NotificacionEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.PedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadCrearPedido;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.example.proyectofinalrestaurante.data.repository.PedidoRemoto;
 import com.google.gson.Gson;
@@ -49,10 +56,13 @@ public class SincronizadorPedidosTest {
     private static final String MARCA_V2 = "2026-08-04T13:00:00.000+00:00";
 
     private final FakePedidoDao pedidos = new FakePedidoDao();
+    private final FakeClienteDao clientes = new FakeClienteDao();
+    private final FakeMesaDao mesas = new FakeMesaDao();
     private final FakeNotificacionDao notificaciones = new FakeNotificacionDao();
     private final FakeOperacionPendienteDao operaciones = new FakeOperacionPendienteDao();
     private final FakeSincronizacionDao sincronizacion = new FakeSincronizacionDao();
     private final Outbox outbox = new Outbox(operaciones, TipoOperacion.Modulo.PEDIDOS);
+    private final Outbox outboxDeClientes = new Outbox(operaciones, TipoOperacion.Modulo.CLIENTES);
     private final FakePedidoApi api = new FakePedidoApi();
 
     /** Cuenta transacciones abiertas, para verificar que el delta se aplica por página. */
@@ -65,7 +75,7 @@ public class SincronizadorPedidosTest {
     private SincronizadorPedidos sincronizador(String token) {
         PedidoRemoto remoto = new PedidoRemoto(api, () -> token);
         return new SincronizadorPedidos(remoto, outbox, pedidos, notificaciones, sincronizacion,
-                transacciones, () -> PISO, () -> 1000L);
+                transacciones, mesas, clientes, outboxDeClientes, () -> PISO, () -> 1000L);
     }
 
     // ------------------------------------------------------------------ helpers
@@ -141,7 +151,28 @@ public class SincronizadorPedidosTest {
 
         sincronizador().sincronizar();
 
-        assertEquals("gt." + MARCA_V1, api.ultimoFiltro);
+        // Solapamiento de la marca (Plan Fase 3b, §3.3): se pide `> marca − 2s` para
+        // cerrar la ventana del cursor reloj. La fecha pierde los microsegundos al
+        // reformatearse, pero el valor es el mismo instante menos dos segundos.
+        assertEquals("gt." + "2026-08-04T11:59:58Z", api.ultimoFiltro);
+    }
+
+    /**
+     * Plan Fase 3b, B8: el solapamiento de 2 s de la marca re-baja las filas de la frontera;
+     * reaplicarlas no duplica ni pisa con datos viejos (idempotente por id_servidor + LWW).
+     */
+    @Test
+    public void deltaConMarcaSolapadaDosSegundos_noDuplicaNiPisaDatosViejos() {
+        sincronizacion.guardar(marca(MARCA_V1));
+        // La misma fila ya está local y 'actualizada_en' en la frontera solapada.
+        pedidos.insertar(pedidoEn(1, 41, 1, "SINCRONIZADO", MARCA_V1));
+        responderPaginado(List.of(pedido(41, MARCA_V1, 1)));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        assertEquals(1, pedidos.porIdServidor.size());
+        assertEquals(0, contarNotificacionesTipo("PEDIDO_NUEVO"));
     }
 
     @Test
@@ -401,6 +432,180 @@ public class SincronizadorPedidosTest {
         assertEquals(0, operaciones.filas().size());
     }
 
+    // ------------------------------------------------------------------ drenado: CREAR_PEDIDO
+
+    /** Pedido local PENDIENTE sin idServidor (recién tomado offline). */
+    private PedidoEntity pedidoPendiente(int idLocal, String cliente) {
+        PedidoEntity e = new PedidoEntity();
+        e.setIdLocal(idLocal);
+        e.setIdServidor(null);
+        e.setFecha("2026-08-05T12:00:00.000+00:00");
+        e.setIdEstadoPedido(1);
+        e.setNumeroMesa(4);
+        e.setCliente(cliente);
+        e.setTotal(380.0);
+        e.setCantidadItems(3);
+        e.setIdAuthUsuario("uuid-mesero");
+        e.setActualizadoEn("2026-08-05T12:00:00.000+00:00");
+        e.setEstadoSync("PENDIENTE");
+        pedidos.insertar(e);
+        return e;
+    }
+
+    private void encolarCrear(int idLocal, PayloadCrearPedido.Cuerpo cuerpo) {
+        outbox.encolar(TipoOperacion.CREAR_PEDIDO, idLocal,
+                PayloadCrearPedido.serializar(cuerpo.getClaveIdempotencia(), cuerpo.getFecha(),
+                        cuerpo.getIdTipoPedido(), cuerpo.getMesaIdLocal(),
+                        cuerpo.getClienteIdLocal(), cuerpo.getLineas()), null);
+    }
+
+    private static PayloadCrearPedido.Cuerpo cuerpoDeCarrito(Integer idMesaLocal,
+                                                             Integer idClienteLocal) {
+        return PayloadCrearPedido.parsear(PayloadCrearPedido.serializar(
+                "uuid-idempotencia-1", "2026-08-05T12:00:00.000+00:00", 1,
+                idMesaLocal, idClienteLocal,
+                List.of(new PayloadCrearPedido.Linea(7, 2))));
+    }
+
+    /** B2: el mismo CREAR_PEDIDO drenado dos veces → una sola cabecera en el servidor. */
+    @Test
+    public void crearPedido_drenadoDosVeces_noGeneraDosCabeceras() {
+        pedidoPendiente(1, "Ana Cruz");
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(null, null);
+        encolarCrear(1, cuerpo);
+        api.respuestaCrear = FakeCall.deRespuesta(Response.success(crearPedido(41)));
+
+        ResultadoSync primera = sincronizador().sincronizar();
+        ResultadoSync segunda = sincronizador().sincronizar();
+
+        assertTrue(primera.esOk());
+        assertTrue(segunda.esOk());
+        assertEquals(0, operaciones.filas().size());
+        assertEquals(41, (int) pedidos.porIdServidor.get(41).getIdServidor());
+    }
+
+    /** B3: cliente creado offline que ya drenó → sube con el id_cliente real. */
+    @Test
+    public void crearPedido_conClienteSincronizado_resuelveIdClienteReal() {
+        pedidoPendiente(1, "Ana Cruz");
+        ClienteEntity cliente = new ClienteEntity();
+        cliente.setIdLocal(9);
+        cliente.setIdServidor(55);
+        clientes.porIdLocal.put(9L, cliente);
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(null, 9);
+        encolarCrear(1, cuerpo);
+        api.respuestaCrear = FakeCall.deRespuesta(Response.success(crearPedido(41)));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        assertTrue(api.ultimoPayloadCrear.contains("\"id_cliente\":55"));
+        assertFalse(api.ultimoPayloadCrear.contains("cliente_id_local"));
+    }
+
+    /** B5: el CREAR_CLIENTE no drenó todavía → transitorio, sin consumir intento. */
+    @Test
+    public void crearPedido_clientePendienteSinDrenar_esTransitorioSinConsumirIntento() {
+        pedidoPendiente(1, "Ana Cruz");
+        ClienteEntity cliente = new ClienteEntity();
+        cliente.setIdLocal(9);
+        cliente.setIdServidor(null);
+        clientes.porIdLocal.put(9L, cliente);
+        outboxDeClientes.encolar(TipoOperacion.CREAR_CLIENTE, 9, "{}", null);
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(null, 9);
+        encolarCrear(1, cuerpo);
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esTransitorio());
+        // La operación CREAR_PEDIDO queda intacta, con 0 intentos (no se consumió el intento).
+        OperacionPendienteEntity op = operaciones.filas().stream()
+                .filter(o -> TipoOperacion.CREAR_PEDIDO.equals(o.getTipo()))
+                .findFirst().orElseThrow();
+        assertEquals(0, op.getIntentos());
+    }
+
+    /** B4: el CREAR_CLIENTE se descartó → sube con id_cliente null + notificación. */
+    @Test
+    public void crearPedido_clienteDescartado_degradaIdClienteNullYNotifica() {
+        pedidoPendiente(1, "Ana Cruz");
+        ClienteEntity cliente = new ClienteEntity();
+        cliente.setIdLocal(9);
+        cliente.setIdServidor(null);
+        clientes.porIdLocal.put(9L, cliente);
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(null, 9);
+        encolarCrear(1, cuerpo);
+        api.respuestaCrear = FakeCall.deRespuesta(Response.success(crearPedido(41)));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        // Gson omite los campos null: id_cliente degradado no aparece (Postgres lo toma null).
+        assertFalse(api.ultimoPayloadCrear.contains("\"id_cliente\""));
+        assertFalse(api.ultimoPayloadCrear.contains("cliente_id_local"));
+        assertEquals(1, contarNotificacionesTipo("PEDIDO_SIN_CLIENTE"));
+    }
+
+    /** Mesa sin idServidor → sube con id_mesa null + notificación (Plan 3b §4.2). */
+    @Test
+    public void crearPedido_mesaSinIdServidor_degradaIdMesaNullYNotifica() {
+        pedidoPendiente(1, "Ana Cruz");
+        MesaEntity mesa = new MesaEntity();
+        mesa.setIdLocal(4);
+        mesa.setIdServidor(null);
+        mesas.porIdLocal.put(4L, mesa);
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(4, null);
+        encolarCrear(1, cuerpo);
+        api.respuestaCrear = FakeCall.deRespuesta(Response.success(crearPedido(41)));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        // Gson omite los campos null: id_mesa degradado no aparece (Postgres lo toma null).
+        assertFalse(api.ultimoPayloadCrear.contains("\"id_mesa\""));
+        assertEquals(1, contarNotificacionesTipo("PEDIDO_SIN_MESA"));
+    }
+
+    /** Mesa con idServidor → sube con el id_mesa real. */
+    @Test
+    public void crearPedido_mesaSincronizada_resuelveIdMesaReal() {
+        pedidoPendiente(1, "Ana Cruz");
+        MesaEntity mesa = new MesaEntity();
+        mesa.setIdLocal(4);
+        mesa.setIdServidor(12);
+        mesas.porIdLocal.put(4L, mesa);
+        PayloadCrearPedido.Cuerpo cuerpo = cuerpoDeCarrito(4, null);
+        encolarCrear(1, cuerpo);
+        api.respuestaCrear = FakeCall.deRespuesta(Response.success(crearPedido(41)));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        assertTrue(api.ultimoPayloadCrear.contains("\"id_mesa\":12"));
+    }
+
+    /** Un platillo sin idServidor (payload lo trae como 0) → pedido a ERROR, permanente. */
+    @Test
+    public void crearPedido_conPlatilloSinIdServidor_esPermanenteYPedidoAError() {
+        pedidoPendiente(1, "Ana Cruz");
+        PayloadCrearPedido.Cuerpo cuerpo = PayloadCrearPedido.parsear(
+                PayloadCrearPedido.serializar("uuid-idempotencia-1",
+                        "2026-08-05T12:00:00.000+00:00", 1, null, null,
+                        List.of(new PayloadCrearPedido.Linea(0, 2))));
+        encolarCrear(1, cuerpo);
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esPermanente());
+        assertEquals(0, operaciones.filas().size());
+        assertEquals("ERROR", pedidos.porIdLocal.get(1L).getEstadoSync());
+    }
+
+    /** Respuesta del RPC: el id_pedido creado. */
+    private static CrearPedidoDto crearPedido(int idPedido) {
+        return new Gson().fromJson("{\"id_pedido\":" + idPedido + "}", CrearPedidoDto.class);
+    }
+
     // ------------------------------------------------------------------ fakes
 
     private static final class EjecutorDeTransaccionEspia implements EjecutorDeTransaccion {
@@ -586,9 +791,12 @@ public class SincronizadorPedidosTest {
         BiFunction<String, Integer, Call<List<PedidoDto>>> respuestaListarDesde =
                 (filtro, offset) -> FakeCall.deRespuesta(Response.success(List.of()));
         Call<Void> respuestaAvanzar = FakeCall.deRespuesta(Response.success(null));
+        Call<CrearPedidoDto> respuestaCrear =
+                FakeCall.deRespuesta(Response.success(new CrearPedidoDto()));
 
         String ultimoFiltro;
         int ultimoOffset;
+        String ultimoPayloadCrear;
 
         @Override
         public Call<List<PedidoDto>> listarPedidosDesde(String bearerToken, String select,
@@ -603,6 +811,86 @@ public class SincronizadorPedidosTest {
         @Override
         public Call<Void> avanzarEstado(String bearerToken, AvanzarEstadoPedidoDto cuerpo) {
             return respuestaAvanzar;
+        }
+
+        @Override
+        public Call<CrearPedidoDto> crearPedido(String bearerToken, String cuerpoJson) {
+            ultimoPayloadCrear = cuerpoJson;
+            return respuestaCrear;
+        }
+    }
+
+    /** Fake mínimo de {@link ClienteDao}: solo lo que el sincronizador usa para resolver ids. */
+    private static final class FakeClienteDao implements ClienteDao {
+
+        final Map<Long, ClienteEntity> porIdLocal = new HashMap<>();
+
+        @Override
+        public LiveData<List<ClienteEntity>> observarTodos() {
+            return null;
+        }
+
+        @Override
+        public ClienteEntity porIdLocal(long idLocal) {
+            return porIdLocal.get(idLocal);
+        }
+
+        @Override
+        public ClienteEntity porIdServidor(int idServidor) {
+            return null;
+        }
+
+        @Override
+        public long insertar(ClienteEntity cliente) {
+            return 0;
+        }
+
+        @Override
+        public void actualizar(ClienteEntity cliente) {
+        }
+
+        @Override
+        public void borrar(ClienteEntity cliente) {
+        }
+
+        @Override
+        public int contarNoSincronizadas() {
+            return 0;
+        }
+    }
+
+    /** Fake mínimo de {@link MesaDao}: solo lo que el sincronizador usa para resolver ids. */
+    private static final class FakeMesaDao implements MesaDao {
+
+        final Map<Long, MesaEntity> porIdLocal = new HashMap<>();
+
+        @Override
+        public LiveData<List<MesaEntity>> observarTodas() {
+            return null;
+        }
+
+        @Override
+        public MesaEntity porIdLocal(long idLocal) {
+            return porIdLocal.get(idLocal);
+        }
+
+        @Override
+        public MesaEntity porIdServidor(int idServidor) {
+            return null;
+        }
+
+        @Override
+        public long insertar(MesaEntity mesa) {
+            return 0;
+        }
+
+        @Override
+        public void actualizar(MesaEntity mesa) {
+        }
+
+        @Override
+        public int contarNoSincronizadas() {
+            return 0;
         }
     }
 }

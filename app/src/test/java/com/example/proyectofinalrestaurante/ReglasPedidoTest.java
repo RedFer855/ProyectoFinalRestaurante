@@ -10,6 +10,7 @@ import com.example.proyectofinalrestaurante.domain.ReglasPedido;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
+import com.example.proyectofinalrestaurante.domain.model.Platillo;
 
 import org.junit.Test;
 
@@ -129,5 +130,45 @@ public class ReglasPedidoTest {
         assertNull(ReglasPedido.siguienteDe(EstadoPedido.ENTREGADO));
         assertNull(ReglasPedido.siguienteDe(EstadoPedido.CANCELADO));
         assertNull(ReglasPedido.siguienteDe(null));
+    }
+
+    // -------------------------------------------------- toma de pedido (Plan Fase 3b)
+
+    @Test
+    public void puedeTomarPedido_adminYMesero_si_cocinaYOtros_no() {
+        assertTrue(ReglasPedido.puedeTomarPedido(Permisos.ROL_ADMIN));
+        assertTrue(ReglasPedido.puedeTomarPedido(Permisos.ROL_MESERO));
+        assertFalse(ReglasPedido.puedeTomarPedido(Permisos.ROL_COCINA));
+        assertFalse(ReglasPedido.puedeTomarPedido("cajero"));
+        assertFalse(ReglasPedido.puedeTomarPedido(null));
+    }
+
+    @Test
+    public void puedePedirse_platiulleSincronizadoYActivo_true() {
+        assertTrue(ReglasPedido.puedePedirse(
+                platilloCon(5, 1042, true)));
+    }
+
+    @Test
+    public void puedePedirse_sinIdServidor_false() {
+        // Un platillo que no ha subido no tiene a qué apuntar (Plan Fase 3b, §4.2).
+        assertFalse(ReglasPedido.puedePedirse(
+                platilloCon(5, null, true)));
+    }
+
+    @Test
+    public void puedePedirse_platilloInactivo_false() {
+        assertFalse(ReglasPedido.puedePedirse(
+                platilloCon(5, 1042, false)));
+    }
+
+    @Test
+    public void puedePedirse_platilloNulo_false() {
+        assertFalse(ReglasPedido.puedePedirse(null));
+    }
+
+    private static Platillo platilloCon(int idLocal, Integer idServidor, boolean activo) {
+        return new Platillo(idLocal, idServidor, "Baleada", "Con mantequilla", 45.00, 1,
+                "Platos fuertes", null, activo, EstadoSync.SINCRONIZADO);
     }
 }

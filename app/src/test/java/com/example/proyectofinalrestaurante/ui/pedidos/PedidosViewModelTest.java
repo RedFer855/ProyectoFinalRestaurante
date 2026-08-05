@@ -14,6 +14,8 @@ import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
+import com.example.proyectofinalrestaurante.domain.model.LineaPedido;
+import com.example.proyectofinalrestaurante.domain.model.NuevoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
 import com.example.proyectofinalrestaurante.domain.repository.PedidoRepository;
 
@@ -398,6 +400,20 @@ public class PedidosViewModelTest {
             ultimoIdLocal = idLocal;
             ultimoEstado = nuevo;
             return resultadoOperacion;
+        }
+
+        Result<Long> resultadoCrear = Result.ok(1L);
+        NuevoPedido ultimoNuevo;
+
+        @Override
+        public Result<Long> crear(NuevoPedido nuevo) {
+            ultimoNuevo = nuevo;
+            return resultadoCrear;
+        }
+
+        @Override
+        public LiveData<List<LineaPedido>> observarDetalle(long idLocal) {
+            return new MutableLiveData<>();
         }
     }
 

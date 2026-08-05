@@ -10,6 +10,7 @@ import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEnti
 import com.example.proyectofinalrestaurante.data.local.mapper.ClienteMapper;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 import com.example.proyectofinalrestaurante.data.remote.dto.ClienteDto;
 import com.example.proyectofinalrestaurante.data.repository.ClienteRemoto;

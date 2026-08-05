@@ -60,6 +60,16 @@ public class PedidoEntity {
     @ColumnInfo(name = "id_auth_usuario")
     private String idAuthUsuario;
 
+    /**
+     * Clave de idempotencia (Plan Fase 3b, §5.1 / §6.2): la genera el dispositivo para que
+     * el RPC {@code crear_pedido} sea idempotente — un reintento del outbox manda la misma
+     * clave y el servidor devuelve el mismo id sin duplicar. Es {@code null} en las filas
+     * que bajan del delta (el servidor ya las tiene).
+     */
+    @Nullable
+    @ColumnInfo(name = "clave_idempotencia")
+    private String claveIdempotencia;
+
     @Nullable
     @ColumnInfo(name = "actualizado_en")
     private String actualizadoEn;
@@ -143,6 +153,15 @@ public class PedidoEntity {
 
     public void setIdAuthUsuario(@Nullable String idAuthUsuario) {
         this.idAuthUsuario = idAuthUsuario;
+    }
+
+    @Nullable
+    public String getClaveIdempotencia() {
+        return claveIdempotencia;
+    }
+
+    public void setClaveIdempotencia(@Nullable String claveIdempotencia) {
+        this.claveIdempotencia = claveIdempotencia;
     }
 
     @Nullable

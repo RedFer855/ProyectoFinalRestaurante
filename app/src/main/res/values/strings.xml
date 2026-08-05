@@ -113,6 +113,55 @@
     <string name="pedidos_mesa">Mesa %1$d</string>
     <string name="pedidos_para_llevar">Para llevar</string>
 
+    <!-- Toma del pedido (Plan Fase 3b, E7): la UI mapea ErrorPedido a estos mensajes. -->
+    <string name="nuevo_pedido_error_carrito_vacio">El carrito está vacío.</string>
+    <string name="nuevo_pedido_error_demasiadas_lineas">Demasiadas líneas: el máximo es 50.</string>
+    <string name="nuevo_pedido_error_cantidad_invalida">Hay una cantidad inválida en el carrito.</string>
+    <string name="nuevo_pedido_creado">Pedido #%1$d creado.</string>
+
+    <!-- Toma del pedido (Plan Fase 3b, E8): pantalla, hojas y selectores. -->
+    <string name="nuevo_pedido_titulo">Nuevo pedido</string>
+    <string name="nuevo_pedido_tipo_label">Tipo de pedido</string>
+    <string name="tipo_pedido_en_mesa">En mesa</string>
+    <string name="tipo_pedido_para_llevar">Para llevar</string>
+    <string name="nuevo_pedido_mesa_label">Mesa</string>
+    <string name="nuevo_pedido_sin_mesa">Sin asignar</string>
+    <string name="nuevo_pedido_cambiar_mesa">Cambiar mesa</string>
+    <string name="nuevo_pedido_mesa_numero">Mesa %1$d</string>
+    <string name="nuevo_pedido_cliente_label">Cliente</string>
+    <string name="nuevo_pedido_sin_cliente">Sin asignar</string>
+    <string name="nuevo_pedido_cambiar_cliente">Cambiar cliente</string>
+    <string name="nuevo_pedido_agregar_platillos">Agregar platillos</string>
+    <string name="nuevo_pedido_carrito_label">Carrito</string>
+    <string name="nuevo_pedido_ver_carrito">Ver carrito</string>
+    <string name="nuevo_pedido_total">Total</string>
+    <string name="nuevo_pedido_confirmar">Confirmar pedido</string>
+    <string name="nuevo_pedido_cancelar">Cancelar</string>
+    <string name="nuevo_pedido_sin_permiso">Tu rol no permite tomar pedidos.</string>
+    <plurals name="nuevo_pedido_items">
+        <item quantity="one">%1$d platillo</item>
+        <item quantity="other">%1$d platillos</item>
+    </plurals>
+
+    <string name="carrito_titulo">Carrito</string>
+    <string name="carrito_vacio">El carrito está vacío.</string>
+    <string name="carrito_total">Total</string>
+    <string name="carrito_confirmar">Confirmar pedido</string>
+    <string name="carrito_quitar">Quitar</string>
+    <string name="carrito_decrementar">−</string>
+    <string name="carrito_incrementar">+</string>
+    <string name="carrito_cd_decrementar">Disminuir cantidad</string>
+    <string name="carrito_cd_incrementar">Aumentar cantidad</string>
+    <string name="carrito_cd_quitar">Quitar del carrito</string>
+
+    <string name="selector_platillo_titulo">Elegir platillo</string>
+    <string name="selector_platillo_vacio">No hay platillos disponibles.</string>
+    <string name="selector_mesa_titulo">Elegir mesa</string>
+    <string name="selector_mesa_vacio">No hay mesas disponibles.</string>
+    <string name="selector_cliente_titulo">Elegir cliente</string>
+    <string name="selector_cliente_vacio">No hay clientes registrados.</string>
+    <string name="selector_cancelar">Cancelar</string>
+
     <!-- Buzón de notificaciones (Plan Fase 3, §4.6). -->
     <string name="buzon_titulo">Buzón de notificaciones</string>
     <string name="buzon_vacio">No hay notificaciones.</string>
@@ -247,4 +296,12 @@
     <string name="recuperacion_exito">Contraseña actualizada. Iniciá sesión.</string>
     <string name="recuperacion_error_codigo_invalido">Ingresá el código de 6 dígitos</string>
     <string name="recuperacion_error_contrasenas_no_coinciden">Las contraseñas no coinciden</string>
+
+    <!-- Detalle del pedido (Plan Fase 3b, E9): carga bajo demanda de las líneas. -->
+    <string name="detalle_titulo">Detalle del pedido</string>
+    <string name="detalle_numero">Pedido #%1$d</string>
+    <string name="detalle_total">Total</string>
+    <string name="detalle_vacio">No hay líneas en este pedido.</string>
+    <string name="detalle_cantidad">×%1$d</string>
+    <string name="detalle_cd_ver_detalle">Ver el detalle del pedido</string>
 </resources>
