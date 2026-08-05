@@ -325,6 +325,21 @@ corre dentro de la misma transacción del trigger. `get_advisors(security)` → 
 
 ---
 
+## ✅ RPC de la Parte A de [[Plan Fase 3c - Dashboard y Reportes]] (verificado 2026-08-05)
+
+`reporte_ventas(p_rango text)` — un solo RPC, no cuatro (ver
+[[ADR-012 - Reportes se agregan en el servidor, Room guarda una instantanea fechada]]). Rango
+`'HOY'|'SEMANA'|'MES'` calculado por el servidor en `America/Tegucigalpa` con `date_trunc`;
+excluye pedidos Cancelados; join `usuarios.id_empleado → empleados` para el nombre del mesero
+(`usuarios` no tiene columna de nombre propia). Devuelve `jsonb` con `total_ventas`,
+`cantidad_pedidos`, `ticket_promedio`, `top_platillos` (top 5) y `desempeno_meseros`.
+
+**Verificado:** 10/10 pruebas de §4.3 del plan, sembrando datos en `BEGIN…ROLLBACK` (sin dejar
+rastro — confirmado `pedido`/`detalle_pedido` en 0 filas después). `get_advisors(security)` →
+0 errores.
+
+---
+
 ## Pendiente inmediato
 
 1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. ~~Cargar `categoria`~~ ✅ Hecho. ~~Cargar `tipo_pedido`~~ ✅ Hecho (2026-08-05).

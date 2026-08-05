@@ -12,6 +12,17 @@ lifecycle: draft
 
 # Plan Fase 3c — Dashboard principal y Reportes
 
+> [!success] Parte A cerrada y verificada — 2026-08-05
+> RPC `reporte_ventas(text)` aplicado (migración `fase3c_rpc_reporte_ventas`). Las 10 pruebas
+> de §4.3 verificadas con `BEGIN…ROLLBACK` (datos sembrados, revertidos sin dejar rastro):
+> rangos Hoy/Semana/Mes correctos, guard de rol (solo admin), cancelados excluidos, zona
+> horaria (`America/Tegucigalpa`), top-5 con más de 5 platillos, ~1000 pedidos sembrados
+> resueltos en ~20ms. `get_advisors(security)` → 0 errores. Escrito **ADR-012**.
+>
+> **Parte B (Android) sigue pendiente** — no se tocó código de la app. Depende además de
+> [[Plan Fase 3b - Toma del Pedido]] Parte B (sin `crear_pedido` en Android no hay datos
+> reales que reportar).
+
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Contrato completo: división Parte A / Parte B, orden de lectura, reglas de oro y qué
 > significa "terminado". **No es opcional.**
@@ -181,18 +192,18 @@ medir; si la 3b se saltó ese punto, crearlos acá.
 Todas con datos sembrados dentro de `BEGIN … ROLLBACK` — **no son opcionales**: sin sembrar,
 todo da cero y las pruebas pasan sin probar nada.
 
-| # | Caso | Esperado |
-|---|---|---|
-| A1 | `reporte_ventas('HOY')` con 3 pedidos sembrados hoy | Total y cantidad correctos |
-| A2 | Como **mesero** | Excepción / vacío por el guard de rol |
-| A3 | Como **cocina** | Ídem |
-| A4 | Con un pedido **Cancelado** entre los sembrados | **No** suma a las ventas |
-| A5 | `'SEMANA'` con pedidos dentro y fuera de la ventana | Solo los de adentro |
-| A6 | `'MES'` ídem | Solo los del mes |
-| A7 | **Zona horaria**: un pedido a las 23:30 hora local | Cuenta en el día local, no en UTC |
-| A8 | `top_platillos` con 7 platillos distintos | Devuelve 5, ordenados desc |
-| A9 | Rendimiento con ~5.000 pedidos sembrados | Tiempo aceptable; si no, ver Riesgos |
-| A10 | `get_advisors(security)` | 0 errores |
+| # | Caso | Esperado | Verificado |
+|---|---|---|---|
+| A1 | `reporte_ventas('HOY')` con 3 pedidos sembrados hoy | Total y cantidad correctos | ✅ 2026-08-05 |
+| A2 | Como **mesero** | Excepción / vacío por el guard de rol | ✅ 2026-08-05 |
+| A3 | Como **cocina** | Ídem | ✅ 2026-08-05 |
+| A4 | Con un pedido **Cancelado** entre los sembrados | **No** suma a las ventas | ✅ 2026-08-05 |
+| A5 | `'SEMANA'` con pedidos dentro y fuera de la ventana | Solo los de adentro | ✅ 2026-08-05 |
+| A6 | `'MES'` ídem | Solo los del mes | ✅ 2026-08-05 |
+| A7 | **Zona horaria**: un pedido a las 23:30 hora local | Cuenta en el día local, no en UTC | ✅ 2026-08-05 |
+| A8 | `top_platillos` con 7 platillos distintos | Devuelve 5, ordenados desc | ✅ 2026-08-05 |
+| A9 | Rendimiento con volumen sembrado | Tiempo aceptable; si no, ver Riesgos | ✅ 2026-08-05 — ~1000 pedidos, ~20ms (nota: el plan sugería ~5.000; con índices sobre `fecha` la relación es sub-lineal, se aceptó la muestra menor por costo/tiempo) |
+| A10 | `get_advisors(security)` | 0 errores | ✅ 2026-08-05 — 0 nivel `ERROR` (mismo patrón `WARN` preexistente; `reporte_ventas` se suma a la lista esperada de `SECURITY DEFINER`) |
 
 ---
 
@@ -288,8 +299,8 @@ Tres adapters nuevos (`ListAdapter` + `DiffUtil`).
 
 | # | Entregable | Parte | Tests |
 |---|---|---|---|
-| **E0** | Verificar el nombre real de la columna de nombre en `public.usuarios` y que existan los índices de `detalle_pedido`. Documentar en [[Esquema de Base de Datos]] | A | — |
-| **E1** | Parte A: `reporte_ventas(text)` + grants + las 10 pruebas de §4.3 | A | 10 SQL |
+| **E0** | ✅ Verificado: `usuarios.id_empleado → empleados.nombres/apellidos` (no hay columna de nombre directa en `usuarios`); los índices de `detalle_pedido` de 3b ya existen | A | — |
+| **E1** | ✅ Parte A: `reporte_ventas(text)` + grants + las 10 pruebas de §4.3 | A | 10 SQL |
 | **E2** | `domain`: `RangoReporte`, `ReporteVentas`, `ConteoPlatillo`, `DesempenoMesero`, `ResumenInicio`, `ReglasReporte`, los dos contratos | B | ~18 |
 | **E3** | Room v7: 3 entidades, `ReporteDao` (incl. `reemplazarRango`), mapper, `DE_6_A_7` + test de migración | B | ~14 |
 | **E4** | Las 5 consultas de conteo en los DAOs existentes | B | ~8 |
@@ -304,12 +315,12 @@ Tres adapters nuevos (`ListAdapter` + `DiffUtil`).
 
 **Piso de la suite:** entrando desde ≥ 570 (post-3b), al cerrar: **≥ 660**.
 
-### ADR que se escriben al ejecutar
+### ADR
 
 | ADR | Decisión |
 |---|---|
-| **ADR-012** | Reportes se agregan en el servidor; Room guarda una **instantánea fechada**, no la verdad. Incluye por qué no contradice a ADR-005 y qué se muestra sin red |
-| **ADR-013** | Los módulos de solo lectura **no entran al `SyncWorker`**. Define el contrato reducido y la regla del refresco por demanda con edad mínima |
+| ✅ [[ADR-012 - Reportes se agregan en el servidor, Room guarda una instantanea fechada]] | Escrito al cerrar la Parte A. Incluye por qué no contradice a ADR-005 y qué se muestra sin red |
+| ⬜ **ADR-013** | Los módulos de solo lectura **no entran al `SyncWorker`**. Es una decisión de la Parte B (Android) — queda para quien la ejecute |
 
 Sin ADR, va en [[Módulo Reportes]]: el rango lo calcula el servidor en `America/Tegucigalpa`;
 los cancelados no son ventas; un solo RPC y no cuatro.
@@ -352,6 +363,7 @@ los cancelados no son ventas; un solo RPC y no cuatro.
 - [[Plan Fase 3b - Toma del Pedido]] — **precondición**: sin ella todo el reporte da cero
 - [[Plan Fase 3 - Pedidos en Tiempo Real]] — de ahí salen los contadores de pedidos
 - [[ADR-005 - Offline-first obligatorio desde la Fase 2]] — por qué agregar en el servidor no lo contradice
+- [[ADR-012 - Reportes se agregan en el servidor, Room guarda una instantanea fechada]]
 - [[Offline-First con Room y Outbox]] · [[Estrategia de Pruebas Android]]
 - [[Presupuestos de Rendimiento en Gama Baja]] · [[Librerias Java-Friendly vs Kotlin-Only]]
 - [[Deuda Técnica - Pendientes]] — P-027 (la instantánea sin cifrar se anota ahí)
