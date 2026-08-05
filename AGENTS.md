@@ -62,10 +62,12 @@ Detalle completo de convenciones de código: [`contexto/CLAUDE.md`](contexto/CLA
 ## Build y verificación
 
 ```bash
-./gradlew assembleDebug
+./gradlew testDebugUnitTest assembleDebug
 ```
 
-Debe terminar en **BUILD SUCCESSFUL**. No hay harness de tests de UI todavía: la verificación funcional es **build limpio + prueba manual** del flujo tocado (instalar el APK / usar un emulador).
+Debe terminar en **BUILD SUCCESSFUL**. No hay harness de tests de UI todavía: la verificación funcional de pantallas es **build limpio + prueba manual** del flujo tocado (instalar el APK / usar un emulador) — pero la lógica de `domain`/`data`/`core` sí tiene suite (420 tests a 2026-08-05) y **tiene que correr entera** antes de dar algo por terminado.
+
+**Mientras estás editando**, no esperes la suite completa después de cada cambio: filtrá a la clase que te importa con `--tests "paquete.Clase"` para feedback en segundos. Pero **antes de commitear o decir "esto funciona", corré la suite completa una vez** — es módulo único, cualquier cambio de firma puede romper un test en un paquete que no tocaste, y el filtro nunca lo va a ver. Detalle y por qué en [`Estrategia de Pruebas Android`](contexto/50%20-%20Referencia/Estrategia%20de%20Pruebas%20Android.md#cadencia-de-corridas--feedback-rápido-durante-el-trabajo-suite-completa-como-gate).
 
 ---
 
