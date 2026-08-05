@@ -46,7 +46,7 @@ public class ClienteRemotoTest {
         FakeSupabaseClienteApi api = new FakeSupabaseClienteApi();
         ClienteRemoto remoto = new ClienteRemoto(api, () -> null);
 
-        ResultadoRed<List<ClienteDto>> resultado = remoto.listarClientesDesde(null);
+        ResultadoRed<List<ClienteDto>> resultado = remoto.listarClientesDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         assertEquals(401, resultado.getCodigoHttp());
@@ -57,16 +57,27 @@ public class ClienteRemotoTest {
     // ------------------------------------------------------------------ delta
 
     @Test
-    public void listarClientesDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarca() {
+    public void listarClientesDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarcaConDesempatePorId() {
         FakeSupabaseClienteApi api = new FakeSupabaseClienteApi();
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         ClienteRemoto remoto = new ClienteRemoto(api, () -> "token");
 
-        remoto.listarClientesDesde("2026-08-01 09:00:00+00");
+        remoto.listarClientesDesde("2026-08-01 09:00:00+00", 0);
 
         assertEquals("gt.2026-08-01 09:00:00+00", api.ultimoFiltro);
-        assertEquals("actualizado_en.asc", api.ultimoOrden);
+        assertEquals("actualizado_en.asc,id_cliente.asc", api.ultimoOrden);
         assertEquals(ClienteRemoto.LIMITE_DELTA, api.ultimoLimite);
+    }
+
+    @Test
+    public void listarClientesDesde_propagaElOffset() {
+        FakeSupabaseClienteApi api = new FakeSupabaseClienteApi();
+        api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
+        ClienteRemoto remoto = new ClienteRemoto(api, () -> "token");
+
+        remoto.listarClientesDesde("2026-08-01 09:00:00+00", 50);
+
+        assertEquals(50, api.ultimoOffset);
     }
 
     @Test
@@ -75,7 +86,7 @@ public class ClienteRemotoTest {
         api.respuestaListarDesde = FakeCall.deFallo(new IOException("timeout"));
         ClienteRemoto remoto = new ClienteRemoto(api, () -> "token");
 
-        ResultadoRed<List<ClienteDto>> resultado = remoto.listarClientesDesde(null);
+        ResultadoRed<List<ClienteDto>> resultado = remoto.listarClientesDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         assertEquals(ClasificadorDeError.SIN_CODIGO, resultado.getCodigoHttp());
@@ -207,16 +218,19 @@ public class ClienteRemotoTest {
         String ultimoFiltro;
         String ultimoOrden;
         int ultimoLimite;
+        int ultimoOffset;
         ActualizarClienteDto ultimoCuerpo;
         String ultimoFiltroBorrar;
 
         @Override
         public Call<List<ClienteDto>> listarClientesDesde(String bearerToken, String select,
                                                            String actualizadoEnMayorQue,
-                                                           String orden, int limite) {
+                                                           String orden, int limite,
+                                                           int desplazamiento) {
             ultimoFiltro = actualizadoEnMayorQue;
             ultimoOrden = orden;
             ultimoLimite = limite;
+            ultimoOffset = desplazamiento;
             return respuestaListarDesde;
         }
 

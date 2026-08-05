@@ -51,7 +51,12 @@ public final class ClienteRemoto {
 
     // ------------------------------------------------------------------ delta
 
-    public ResultadoRed<List<ClienteDto>> listarClientesDesde(@Nullable String marcaAgua) {
+    /**
+     * Sync delta paginado (§4.3). La marca queda fija durante toda la pasada; lo que avanza
+     * entre páginas es {@code desplazamiento} (P-029, 2026-08-04).
+     */
+    public ResultadoRed<List<ClienteDto>> listarClientesDesde(@Nullable String marcaAgua,
+                                                               int desplazamiento) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
@@ -59,7 +64,8 @@ public final class ClienteRemoto {
         try {
             String filtro = marcaAgua == null ? null : "gt." + marcaAgua;
             Response<List<ClienteDto>> respuesta = api.listarClientesDesde(
-                    bearer, "*", filtro, "actualizado_en.asc", LIMITE_DELTA).execute();
+                    bearer, "*", filtro, "actualizado_en.asc,id_cliente.asc", LIMITE_DELTA,
+                    desplazamiento).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(),
                         "No se pudo sincronizar la lista de clientes.");

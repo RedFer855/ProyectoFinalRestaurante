@@ -619,7 +619,7 @@ Cuatro cosas, en orden de impacto:
 
 ---
 
-### P-029 · Tres de los cuatro sincronizadores todavía pierden filas al paginar el delta
+### ~~P-029~~ ✅ · Tres de los cuatro sincronizadores todavía pierden filas al paginar el delta
 
 **Archivos:** `data/sync/SincronizadorMesas.java`, `SincronizadorClientes.java`,
 `SincronizadorEmpleados.java`.
@@ -657,10 +657,34 @@ sola transacción (fila por fila son N `fsync` y N repintados del `RecyclerView`
 `ClienteRemoto` y `EmpleadoRemoto`. El test que lo cubre es el mismo en los tres: un delta con
 más filas que `LIMITE_DELTA` compartiendo `actualizado_en`, y verificar que llegan todas.
 
-**Descubierto:** 2026-08-04, planificando la Fase 3. Se registra en vez de arreglarlo porque
-toca tres módulos ya cerrados y verificados; [[Plan Fase 3 - Pedidos en Tiempo Real]] §4.4
-solo se compromete a **no reintroducirlo** en `SincronizadorPedidos`, donde el bug **se
+**Descubierto:** 2026-08-04, planificando la Fase 3. Se registró primero en vez de arreglarlo
+porque tocaba tres módulos ya cerrados y verificados; [[Plan Fase 3 - Pedidos en Tiempo Real]]
+§4.4 solo se comprometía a **no reintroducirlo** en `SincronizadorPedidos`, donde el bug **se
 manifiesta sí o sí** (una tanda de pedidos del mediodía comparte `actualizado_en`).
+
+**Estado:** `[x] Resuelto` (2026-08-04, [[Plan Fase 0b - Cierre de la deuda P0]] §3) — se portó
+el bucle de `SincronizadorMenu.bajarPlatillos()` a los tres: marca fija durante la pasada,
+`offset` que avanza, `order` con desempate por id (`actualizado_en.asc,id_X.asc`),
+`MAX_PAGINAS` como tope y `aplicarPagina` en una transacción vía `EjecutorDeTransaccion`
+(inyectado por constructor, igual que en el Menú). Se agregó `@Query("offset")` a
+`SupabaseMesaApi`/`SupabaseClienteApi`/`SupabaseEmpleadoApi.listarDesde` y se propagó en
+`MesaRemoto`/`ClienteRemoto`/`EmpleadoRemoto`. `SyncApplication` pasa `base::runInTransaction`
+a los tres constructores nuevos.
+
+| Sincronizador | `offset` | Tope de páginas | Página en una transacción |
+|---|---|---|---|
+| `SincronizadorMenu` | ✅ | ✅ `MAX_PAGINAS` | ✅ `enTransaccion` |
+| `SincronizadorEmpleados` | ✅ | ✅ `MAX_PAGINAS` | ✅ `enTransaccion` |
+| `SincronizadorMesas` | ✅ | ✅ `MAX_PAGINAS` | ✅ `enTransaccion` |
+| `SincronizadorClientes` | ✅ | ✅ `MAX_PAGINAS` | ✅ `enTransaccion` |
+
+**Verificado:** `SincronizadorMesasTest`/`SincronizadorClientesTest` (nuevos) y
+`SincronizadorEmpleadosTest` (ampliado) cubren los 5 casos del plan (C1-C5): delta con 50
+filas del mismo `actualizado_en` no pierde la 51.ª, página completa pide la siguiente con
+offset y la misma marca, una página que falla no avanza la marca, un servidor que siempre
+devuelve páginas llenas corta por `MAX_PAGINAS`, y cada página se aplica en una sola
+transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 401 tests (antes
+345).
 
 **Estado:** `[ ] Pendiente — arreglar antes de que cualquiera de esas tablas supere las 50 filas`
 
@@ -698,7 +722,7 @@ manifiesta sí o sí** (una tanda de pedidos del mediodía comparte `actualizado
 | P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 | P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
-| P-029 | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[ ]` Pendiente | [[Plan Fase 3 - Pedidos en Tiempo Real]] |
+| ~~P-029~~ | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
 
 ---
 

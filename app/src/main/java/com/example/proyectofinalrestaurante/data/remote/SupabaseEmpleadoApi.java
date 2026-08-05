@@ -30,11 +30,14 @@ public interface SupabaseEmpleadoApi {
 
     /**
      * Sync delta (Plan Fase 2b, §4.3): solo las filas modificadas después de la marca de
-     * agua, paginadas por {@code actualizado_en}. Retrofit codifica los valores, así que el
-     * {@code +} del offset del timestamp viaja como {@code %2B} y PostgREST lo decodifica.
+     * agua. Retrofit codifica los valores, así que el {@code +} del offset del timestamp
+     * viaja como {@code %2B} y PostgREST lo decodifica.
      *
      * <p>La marca de la vista es el máximo entre {@code empleados.actualizado_en} y
      * {@code perfiles.actualizado_en}: un cambio de rol o de estado también la mueve.</p>
+     *
+     * <p><b>Paginación por {@code offset}, no por marca de agua (P-029, 2026-08-04)</b> — ver
+     * el Javadoc de {@code SupabaseMesaApi.listarMesasDesde} para el porqué.</p>
      */
     @GET("rest/v1/vista_empleados")
     Call<List<EmpleadoDto>> listarDesde(
@@ -42,7 +45,8 @@ public interface SupabaseEmpleadoApi {
             @Query("select") String select,
             @Query("actualizado_en") String actualizadoEnMayorQue,
             @Query("order") String orden,
-            @Query("limit") int limite);
+            @Query("limit") int limite,
+            @Query("offset") int desplazamiento);
 
     @POST("functions/v1/crear-empleado")
     Call<CrearEmpleadoResponseDto> crear(

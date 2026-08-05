@@ -26,14 +26,19 @@ import retrofit2.http.Query;
  */
 public interface SupabaseClienteApi {
 
-    /** Sync delta (Plan Fase 2b, §4.3): igual firma que {@code listarMesasDesde}. */
+    /**
+     * Sync delta (Plan Fase 2b, §4.3): paginación por {@code offset}, igual firma que
+     * {@code listarMesasDesde} (P-029, 2026-08-04) — ver el Javadoc de
+     * {@code SupabaseMesaApi.listarMesasDesde} para el porqué.
+     */
     @GET("rest/v1/vista_clientes")
     Call<List<ClienteDto>> listarClientesDesde(
             @Header("Authorization") String bearerToken,
             @Query("select") String select,
             @Query("actualizado_en") String actualizadoEnMayorQue,
             @Query("order") String orden,
-            @Query("limit") int limite);
+            @Query("limit") int limite,
+            @Query("offset") int desplazamiento);
 
     /** {@code Prefer: return=representation}: devuelve un array de un elemento, no un objeto. */
     @Headers("Prefer: return=representation")

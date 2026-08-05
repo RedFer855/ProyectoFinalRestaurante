@@ -52,7 +52,7 @@ public class EmpleadoRemotoTest {
         FakeSupabaseEmpleadoApi api = new FakeSupabaseEmpleadoApi();
         EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> null);
 
-        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null);
+        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         assertEquals(401, resultado.getCodigoHttp());
@@ -63,18 +63,29 @@ public class EmpleadoRemotoTest {
     // ------------------------------------------------------------------ delta
 
     @Test
-    public void listarDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarca() {
+    public void listarDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarcaConDesempatePorId() {
         FakeSupabaseEmpleadoApi api = new FakeSupabaseEmpleadoApi();
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> "token");
 
-        remoto.listarDesde("2026-08-01 09:00:00+00");
+        remoto.listarDesde("2026-08-01 09:00:00+00", 0);
 
         // PostgREST espera el operador en el valor: `gt.<marca>`.
         assertEquals("gt.2026-08-01 09:00:00+00", api.ultimoFiltro);
-        // Sin orden ascendente por la marca, la paginación del delta se rompe.
-        assertEquals("actualizado_en.asc", api.ultimoOrden);
+        // Sin orden ascendente por la marca (con desempate por id) la paginación se rompe.
+        assertEquals("actualizado_en.asc,id_empleado.asc", api.ultimoOrden);
         assertEquals(EmpleadoRemoto.LIMITE_DELTA, api.ultimoLimite);
+    }
+
+    @Test
+    public void listarDesde_propagaElOffset() {
+        FakeSupabaseEmpleadoApi api = new FakeSupabaseEmpleadoApi();
+        api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
+        EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> "token");
+
+        remoto.listarDesde("2026-08-01 09:00:00+00", 50);
+
+        assertEquals(50, api.ultimoOffset);
     }
 
     @Test
@@ -83,7 +94,7 @@ public class EmpleadoRemotoTest {
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> "token");
 
-        remoto.listarDesde(null);
+        remoto.listarDesde(null, 0);
 
         // Retrofit omite el query cuando el valor es null: la primera sincronización trae
         // la tabla entera, que es justo lo que hace falta.
@@ -96,7 +107,7 @@ public class EmpleadoRemotoTest {
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> "token");
 
-        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null);
+        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null, 0);
 
         assertTrue(resultado.isExitoso());
         assertEquals(1, resultado.getValor().size());
@@ -111,7 +122,7 @@ public class EmpleadoRemotoTest {
         api.respuestaListarDesde = FakeCall.deFallo(new IOException("timeout"));
         EmpleadoRemoto remoto = new EmpleadoRemoto(api, () -> "token");
 
-        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null);
+        ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         // SIN_CODIGO es lo que hace que el outbox lo trate como transitorio y reintente.
@@ -223,6 +234,7 @@ public class EmpleadoRemotoTest {
         String ultimoFiltro;
         String ultimoOrden;
         int ultimoLimite;
+        int ultimoOffset;
         String ultimoFiltroEmpleado;
         String ultimoFiltroPerfil;
 
@@ -234,10 +246,11 @@ public class EmpleadoRemotoTest {
         @Override
         public Call<List<EmpleadoDto>> listarDesde(String bearerToken, String select,
                                                    String actualizadoEnMayorQue, String orden,
-                                                   int limite) {
+                                                   int limite, int desplazamiento) {
             ultimoFiltro = actualizadoEnMayorQue;
             ultimoOrden = orden;
             ultimoLimite = limite;
+            ultimoOffset = desplazamiento;
             return respuestaListarDesde;
         }
 

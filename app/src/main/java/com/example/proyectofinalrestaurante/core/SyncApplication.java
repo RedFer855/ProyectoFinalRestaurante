@@ -168,19 +168,19 @@ public final class SyncApplication extends Application implements Configuration.
                     SupabaseClient.getEmpleadoApi(), SyncApplication::tokenDeLaSesion);
             Sincronizador empleados = new SincronizadorEmpleados(empleadoRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.EMPLEADOS),
-                    base.empleadoDao(), base.sincronizacionDao());
+                    base.empleadoDao(), base.sincronizacionDao(), base::runInTransaction);
 
             MesaRemoto mesaRemoto = new MesaRemoto(
                     SupabaseClient.getMesaApi(), SyncApplication::tokenDeLaSesion);
             Sincronizador mesas = new SincronizadorMesas(mesaRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MESAS),
-                    base.mesaDao(), base.sincronizacionDao());
+                    base.mesaDao(), base.sincronizacionDao(), base::runInTransaction);
 
             ClienteRemoto clienteRemoto = new ClienteRemoto(
                     SupabaseClient.getClienteApi(), SyncApplication::tokenDeLaSesion);
             Sincronizador clientes = new SincronizadorClientes(clienteRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.CLIENTES),
-                    base.clienteDao(), base.sincronizacionDao());
+                    base.clienteDao(), base.sincronizacionDao(), base::runInTransaction);
 
             return new SyncWorker(contexto, parametros,
                     Arrays.asList(menu, empleados, mesas, clientes),
