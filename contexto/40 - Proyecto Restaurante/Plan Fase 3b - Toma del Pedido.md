@@ -12,6 +12,18 @@ lifecycle: draft
 
 # Plan Fase 3b — Toma del Pedido
 
+> [!success] Parte A cerrada y verificada — 2026-08-05
+> Las 3 migraciones (`fase3b_pedido_clave_idempotencia`, `fase3b_p025_clock_timestamp`,
+> `fase3b_rpc_crear_pedido`, `fase3b_cerrar_insert_directo_e_indices`) están aplicadas.
+> De las 13 pruebas de §5.7: **12 verificadas** con transacciones `BEGIN…ROLLBACK` (sin tocar
+> datos reales); **A12** (transaccionalidad de `realtime.send`) se resolvió por **inspección
+> de código** en vez de una prueba de dos sesiones — `pg_get_functiondef` muestra que es un
+> `INSERT` plano en `realtime.messages`, así que corre dentro de la misma transacción del
+> trigger y solo es visible tras el commit. `get_advisors(security)` → 0 errores.
+> Cierra **P-025** y **P-026**, abre **P-030**. Escritos **ADR-009, ADR-010 y ADR-011**.
+>
+> **Parte B (Android) sigue pendiente** — no se tocó código de la app en este pase.
+
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Contrato completo: división Parte A / Parte B, orden de lectura, reglas de oro y qué
 > significa "terminado". **No es opcional.**
@@ -330,21 +342,21 @@ Vista `vista_detalle_pedido` con `security_invoker = on`, que una `detalle_pedid
 
 Cada una dentro de `BEGIN … ROLLBACK`, simulando el rol con los usuarios reales de `perfiles`:
 
-| # | Caso | Esperado |
-|---|---|---|
-| A1 | `crear_pedido` como **mesero** con 2 líneas | 1 cabecera + 2 líneas, estado Pendiente |
-| A2 | **La misma clave de idempotencia dos veces** | Devuelve el mismo `id_pedido`; sigue habiendo 1 cabecera y 2 líneas |
-| A3 | `crear_pedido` como **cocina** | Excepción de rol |
-| A4 | Payload con `precio` manipulado | El precio guardado es el de `platillo`, no el del payload |
-| A5 | Carrito vacío | Excepción |
-| A6 | Carrito con 51 líneas | Excepción |
-| A7 | `fecha` de hace 3 días | Se acota a `now()` |
-| A8 | `fecha` de hace 2 horas | Se respeta |
-| A9 | Platillo inactivo | Excepción, y **no queda cabecera huérfana** |
-| A10 | `INSERT` directo en `pedido` como mesero | 0 filas (policy eliminada) |
-| A11 | `clock_timestamp()`: dos `UPDATE` en una transacción | `actualizado_en` distintos y crecientes |
-| A12 | **¿`realtime.send` es transaccional?** Insertar en una txn abierta y leer desde otra sesión | Ver Riesgos — es la prueba que hay que correr **antes** de escribir código Android |
-| A13 | `get_advisors(security)` | 0 errores |
+| # | Caso | Esperado | Verificado |
+|---|---|---|---|
+| A1 | `crear_pedido` como **mesero** con 2 líneas | 1 cabecera + 2 líneas, estado Pendiente | ✅ 2026-08-05 |
+| A2 | **La misma clave de idempotencia dos veces** | Devuelve el mismo `id_pedido`; sigue habiendo 1 cabecera y 2 líneas | ✅ 2026-08-05 |
+| A3 | `crear_pedido` como **cocina** | Excepción de rol | ✅ 2026-08-05 |
+| A4 | Payload con `precio` manipulado | El precio guardado es el de `platillo`, no el del payload | ✅ 2026-08-05 |
+| A5 | Carrito vacío | Excepción | ✅ 2026-08-05 |
+| A6 | Carrito con 51 líneas | Excepción | ✅ 2026-08-05 |
+| A7 | `fecha` de hace 3 días | Se acota a `now()` | ✅ 2026-08-05 |
+| A8 | `fecha` de hace 2 horas | Se respeta | ✅ 2026-08-05 |
+| A9 | Platillo inactivo | Excepción, y **no queda cabecera huérfana** | ✅ 2026-08-05 |
+| A10 | `INSERT` directo en `pedido` como mesero | 0 filas (policy eliminada) | ✅ 2026-08-05 — bloqueado por RLS |
+| A11 | `clock_timestamp()`: dos `UPDATE` en una transacción | `actualizado_en` distintos y crecientes | ✅ 2026-08-05 |
+| A12 | **¿`realtime.send` es transaccional?** | Ver Riesgos | ✅ **Por inspección de código**, no por prueba de dos sesiones: `pg_get_functiondef('realtime.send')` muestra un `INSERT` plano en `realtime.messages` dentro de un bloque `EXCEPTION WHEN OTHERS` que solo swallow-ea errores del propio insert. Al ser un `INSERT` de tabla normal (no `pg_notify`), corre **dentro** de la transacción del trigger y solo es visible al *stream* de replicación de Realtime tras el `COMMIT` — la misma garantía transaccional que cualquier fila. Nota aparte: si el `INSERT` a `realtime.messages` fallara, el `WARNING` no aborta ni el trigger ni la transacción del pedido — el broadcast puede fallar en silencio sin bloquear la escritura, propiedad deseable pero a tener presente |
+| A13 | `get_advisors(security)` | 0 errores | ✅ 2026-08-05 — 0 nivel `ERROR` (solo `WARN` preexistentes: exposición GraphQL y `SECURITY DEFINER` ya presentes desde Mesas/Clientes/Fase 3, `crear_pedido` se suma al mismo patrón esperado) |
 
 ---
 
@@ -413,8 +425,8 @@ outbox y dentro de `SincronizadorMenu`. Eso lo baja de "módulo nuevo" a **~35 t
 
 | # | Entregable | Parte | Tests |
 |---|---|---|---|
-| **E0** | Verificar en la base: índices reales de `detalle_pedido`, columnas de `complemento`, y **A12** (transaccionalidad de `realtime.send`). Documentar en [[Esquema de Base de Datos]] | A | — |
-| **E1** | Parte A completa (§5.1–§5.6) en migraciones nombradas + las 13 pruebas de §5.7 | A | 13 SQL |
+| **E0** | ✅ Verificado en la base: índices reales de `detalle_pedido` (solo la PK, faltaban los dos de §5.5), columnas de `complemento` (0 filas, confirmado), y **A12** por inspección de código | A | — |
+| **E1** | ✅ Parte A completa (§5.1–§5.6) en 4 migraciones nombradas + las 13 pruebas de §5.7 | A | 13 SQL |
 | **E2** | `domain`: `Carrito`, `LineaCarrito`, `NuevoPedido`, `TipoPedido`, `ErrorPedido`, `ValidadorPedido`, `ReglasPedido`, contrato de `PedidoRepository` | B | ~26 |
 | **E3** | Room v6: `DetallePedidoEntity`, DAO, mapper, columnas nuevas de `PedidoEntity`, `DE_5_A_6` + test de migración | B | ~16 |
 | **E4** | `PayloadCrearPedido` + DTOs + `PedidoRemoto.crearPedido` / `detalleDe` | B | ~14 |
@@ -429,13 +441,13 @@ outbox y dentro de `SincronizadorMenu`. Eso lo baja de "módulo nuevo" a **~35 t
 `./gradlew testDebugUnitTest assembleDebug` en BUILD SUCCESSFUL + el
 [[Gate de Autoverificación]] impreso ítem por ítem.
 
-### ADR que se escriben al ejecutar
+### ADR (escritos al cerrar la Parte A)
 
 | ADR | Decisión |
 |---|---|
-| **ADR-009** | Escrituras multi-tabla por RPC transaccional con clave de idempotencia. Por qué no N operaciones de outbox, por qué la clave es del cliente, y por qué el patrón debería retroalimentarse a `crearCliente`/`crearMesa`/`crearPlatillo` |
-| **ADR-010** | El servidor sella el precio; el del dispositivo es una estimación. Y qué se le muestra al usuario cuando difieren |
-| **ADR-011** | El cursor del sync delta es un reloj: `clock_timestamp()` + solapamiento, qué garantiza y qué no, y por qué se descarta por ahora la secuencia monótona. Cierra P-025, abre P-030 |
+| ✅ [[ADR-009 - Escrituras multi-tabla por RPC transaccional con clave de idempotencia]] | Por qué no N operaciones de outbox, por qué la clave es del cliente, y por qué el patrón debería retroalimentarse a `crearCliente`/`crearMesa`/`crearPlatillo` |
+| ✅ [[ADR-010 - El servidor sella el precio, el del dispositivo es una estimacion]] | Y qué se le muestra al usuario cuando difieren |
+| ✅ [[ADR-011 - El cursor del sync delta es un reloj]] | `clock_timestamp()` + solapamiento, qué garantiza y qué no, y por qué se difiere la secuencia monótona. Cierra P-025, abre P-030 |
 
 ---
 
@@ -478,6 +490,9 @@ outbox y dentro de `SincronizadorMenu`. Eso lo baja de "módulo nuevo" a **~35 t
 - [[Offline-First con Room y Outbox]] — la infraestructura que se reutiliza
 - [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]] — por qué el cliente es opcional
 - [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]]
+- [[ADR-009 - Escrituras multi-tabla por RPC transaccional con clave de idempotencia]]
+- [[ADR-010 - El servidor sella el precio, el del dispositivo es una estimacion]]
+- [[ADR-011 - El cursor del sync delta es un reloj]]
 - [[Deuda Técnica - Pendientes]] — cierra P-025 y P-026, abre P-030
 - [[Esquema de Base de Datos]] · [[Roadmap de Fases]] · [[Gate de Autoverificación]]
 - [[Módulo Menú]] — el módulo de referencia · [[Módulo Clientes]] · [[Módulo Mesas]]

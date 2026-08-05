@@ -588,7 +588,7 @@ se arme el harness de instrumentación, no antes.
 
 ---
 
-### P-025 · `actualizado_en` usa `now()`, que es la hora de **inicio** de la transacción
+### ~~P-025~~ ✅ · `actualizado_en` usa `now()`, que es la hora de **inicio** de la transacción
 
 **Alcance:** `tocar_actualizado_en()` en Supabase + el sync delta de
 [[Plan Fase 2b - Offline-First con Room y Outbox]].
@@ -619,11 +619,19 @@ momento. No es gratis: dos filas actualizadas en la misma transacción dejarían
 timestamp, lo que es más correcto pero cambia el orden observable. Alternativa más sólida y
 más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
 
-**Estado:** `[ ] Pendiente — revisar antes de que exista la primera escritura multi-sentencia (Pedidos, Fase 4)`
+**Estado:** `[x] Resuelto` (2026-08-05, Parte A de [[Plan Fase 3b - Toma del Pedido]] §3) —
+`tocar_actualizado_en()` pasa a `clock_timestamp()`, y también el `default` de la columna en
+las 5 tablas (`pedido`, `mesa`, `clientes`, `platillo`, `categoria`): el trigger es
+`BEFORE UPDATE`, y un pedido nuevo es un `INSERT` que toma el default — arreglar solo el
+trigger dejaba sin arreglar el caso que motiva la fase. `pedido.fecha` se queda con `now()`
+(hora de negocio, no cursor de sync). Verificado en vivo: dos `UPDATE` en la misma transacción
+dan `actualizado_en` distintos y crecientes. Mitigación complementaria (no elimina la ventana
+del todo, solo la reduce): solapamiento de la marca de agua de 2s en `SincronizadorPedidos`,
+pendiente en la Parte B. Abre **P-030**.
 
 ---
 
-### P-026 · El id de cliente offline para Pedidos sigue sin resolver
+### ~~P-026~~ ✅ · El id de cliente offline para Pedidos sigue sin resolver
 
 **Alcance:** `domain/repository/ClienteRepository.buscarOCrearCliente(...)`, Fase 4 (Pedidos).
 
@@ -642,7 +650,13 @@ diseñado.
 **Solución:** diseñarlo al abrir la Fase 4, con el caso de uso real de Pedidos delante en vez
 de anticiparlo en abstracto.
 
-**Estado:** `[ ] Pendiente — registrado al cerrar la Fase 2d (Parte B), 2026-08-01`
+**Estado:** `[x] Resuelto por disolución` (2026-08-05, [[Plan Fase 3b - Toma del Pedido]] §4) —
+**Pedidos no consume `buscar_o_crear_cliente`.** El selector de cliente del carrito reutiliza
+la lista y el alta del módulo Clientes, que ya es offline-first. El RPC queda sin consumidor y
+se marca deprecado (`comment on function`). Queda el caso legítimo — cliente creado sin red
+referenciado por un pedido — resuelto en la Parte B con `cliente_id_local` en el payload del
+outbox y resolución al drenar, con `SincronizadorClientes` antes que `SincronizadorPedidos`
+en el orden del `SyncWorker`.
 
 ---
 
@@ -770,7 +784,37 @@ devuelve páginas llenas corta por `MAX_PAGINAS`, y cada página se aplica en un
 transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 401 tests (antes
 345).
 
-**Estado:** `[ ] Pendiente — arreglar antes de que cualquiera de esas tablas supere las 50 filas`
+---
+
+### P-030 · El cursor del sync delta es un reloj, y `clock_timestamp()` no lo cambia del todo
+
+**Alcance:** `tocar_actualizado_en()` en Supabase + `SincronizadorPedidos`.
+
+Al resolver **P-025** (`now()` → `clock_timestamp()`, [[Plan Fase 3b - Toma del Pedido]] §3) la
+ventana de pérdida se redujo pero no desapareció: de *"toda la transacción"* pasa a *"desde la
+última escritura de esa fila hasta el commit"*. Para `crear_pedido()` (sub-100 ms) es
+despreciable, pero la ventana lógica **sigue existiendo** — el cursor del delta sigue siendo un
+reloj de pared, y dos relojes nunca están perfectamente sincronizados con el orden real de los
+commits bajo concurrencia alta.
+
+**Riesgo:** bajo mientras las transacciones sean cortas (una sentencia o un RPC rápido). Sube
+con cualquier operación multi-sentencia más lenta que las actuales, o con más concurrencia de
+la que hay hoy (25 dispositivos es el presupuesto de la Fase 3, no una medición real todavía).
+
+**Mitigación aplicada, no solución:** solapamiento de la marca de agua en
+`SincronizadorPedidos` — pedir `actualizado_en > marca − 2s` en vez de `> marca`. Es seguro
+porque aplicar cada fila ya es idempotente (upsert por `id_servidor` + LWW): el costo es
+re-bajar unas pocas filas por pasada, no perderlas.
+
+**Solución de fondo, diferida:** numerar los cambios con una secuencia monótona en vez de un
+reloj, lo que obliga a cambiar el tipo de la marca de agua en las 5 tablas (`pedido`, `mesa`,
+`clientes`, `platillo`, `categoria`) y sus 5 sincronizadores. Desproporcionado para una fase
+puntual; candidato natural cuando una fase ya esté tocando las 5 tablas por otro motivo (el
+pase de deuda P1/P2 es el más cercano).
+
+**Descubierto:** 2026-08-05, diseñando la Parte A de [[Plan Fase 3b - Toma del Pedido]] §3.3.
+
+**Estado:** `[ ] Pendiente — mitigado, no resuelto. Ver Plan Fase 3b §3.3`
 
 ---
 
@@ -802,11 +846,13 @@ transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 | P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
 | P-024 | `CompresorDeImagen` sin pruebas | 🟢 | `[ ]` Pendiente — **desbloqueado** 2026-08-01 (Robolectric ya está) | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
-| P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]] |
-| P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
+| ~~P-025~~ | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[x]` **Resuelto** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] |
+| ~~P-026~~ | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[x]` **Resuelto por disolución** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] |
+| P-030 | El cursor del sync delta es un reloj: `clock_timestamp()` reduce la ventana de P-025 pero no la elimina | 🟢 | `[ ]` Pendiente | [[Plan Fase 3b - Toma del Pedido]] |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 | P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
 | ~~P-029~~ | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
+| P-030 | El cursor del sync delta es un reloj; `clock_timestamp()` reduce la ventana de P-025 pero no la elimina | 🟢 | `[ ]` Pendiente — mitigado | [[Plan Fase 3b - Toma del Pedido]] |
 
 ---
 

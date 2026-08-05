@@ -303,6 +303,28 @@ Las 12 pruebas de aceptación de §2.9 del plan, corridas dentro de transaccione
 
 ---
 
+## ✅ DDL real de la Parte A de [[Plan Fase 3b - Toma del Pedido]] (verificado 2026-08-05)
+
+Cuatro migraciones (`fase3b_pedido_clave_idempotencia`, `fase3b_p025_clock_timestamp`,
+`fase3b_rpc_crear_pedido`, `fase3b_cerrar_insert_directo_e_indices`):
+
+| Objeto | Qué hace |
+|---|---|
+| `pedido.clave_idempotencia uuid` + `uq_pedido_clave_idempotencia` (índice parcial) | Idempotencia del alta — ver [[ADR-009 - Escrituras multi-tabla por RPC transaccional con clave de idempotencia]] |
+| `tocar_actualizado_en()` → `clock_timestamp()` + `default` en `pedido`/`mesa`/`clientes`/`platillo`/`categoria` | Cierra **P-025**, abre **P-030** — ver [[ADR-011 - El cursor del sync delta es un reloj]] |
+| RPC `crear_pedido(jsonb)` — `security definer` | Única vía de escritura de cabecera + líneas. Precio sellado por el servidor ([[ADR-010 - El servidor sella el precio, el del dispositivo es una estimacion]]), fecha acotada a `[now()-24h, now()]`, tope de 50 líneas, idempotente por clave |
+| Policies `INSERT` de `pedido` y `detalle_pedido` **eliminadas** | Con el RPC como única vía, el `INSERT` directo sobraba y era un agujero |
+| `ix_detalle_pedido_id_pedido` · `ix_detalle_pedido_id_platillo` | Faltaban; los necesitan `vista_pedidos`, la lectura del detalle y el "top platillos" de la Fase 3c |
+| `vista_detalle_pedido` (`security_invoker = on`) | Lectura del detalle de un pedido, con el nombre del platillo |
+| `buscar_o_crear_cliente()` marcado deprecado (`comment on function`) | Cierra **P-026** por disolución — Pedidos no lo consume, reutiliza el módulo Clientes |
+
+**Verificado:** 12 de las 13 pruebas de aceptación de §5.7 del plan, en `BEGIN…ROLLBACK`. A12
+(transaccionalidad de `realtime.send`) se resolvió por inspección de
+`pg_get_functiondef('realtime.send')`: es un `INSERT` plano en `realtime.messages`, así que
+corre dentro de la misma transacción del trigger. `get_advisors(security)` → 0 errores.
+
+---
+
 ## Pendiente inmediato
 
 1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. ~~Cargar `categoria`~~ ✅ Hecho. ~~Cargar `tipo_pedido`~~ ✅ Hecho (2026-08-05).
