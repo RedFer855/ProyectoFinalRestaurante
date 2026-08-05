@@ -282,9 +282,18 @@ public class MesasViewModelTest {
     }
 
     @Test
+    public void construir_sincronizaUnaVezSinEsperarElPullToRefresh() {
+        FakeMesaRepository repositorio = new FakeMesaRepository();
+        viewModelCon(repositorio);
+
+        assertEquals(1, repositorio.vecesSincronizo);
+    }
+
+    @Test
     public void sincronizar_pideAlRepositorio() {
         FakeMesaRepository repositorio = new FakeMesaRepository();
         MesasViewModel viewModel = viewModelCon(repositorio);
+        repositorio.vecesSincronizo = 0; // descarta el sync-on-launch del constructor
 
         viewModel.sincronizar();
 

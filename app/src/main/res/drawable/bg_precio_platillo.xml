@@ -8,6 +8,6 @@
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/brand_secondary" />
+    <solid android:color="@color/brand_primary" />
     <corners android:radius="@dimen/radio_pastilla" />
 </shape>

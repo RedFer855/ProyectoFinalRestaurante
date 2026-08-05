@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Campo de texto de las hojas modales: relleno crema con borde claro de 1.5dp y radio
+  12dp. El mockup usa campos rellenos con etiqueta *encima* del campo, no la etiqueta
+  flotante de Material — de ahí que sean EditText con este fondo y no TextInputLayout.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/brand_surface_variant" />
+    <stroke
+        android:width="@dimen/borde_control"
+        android:color="@color/brand_outline" />
+    <corners android:radius="@dimen/radio_esquina_tarjeta" />
+</shape>

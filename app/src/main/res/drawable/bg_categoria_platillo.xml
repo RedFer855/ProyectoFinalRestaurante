@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pastilla de la categoría: fondo claro sobre la tarjeta durazno, sin borde. -->
+<!-- Pastilla de la categoría: blanca sobre la tarjeta durazno, como en el mockup del ítem. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="@color/brand_surface_variant" />
+    <solid android:color="@color/brand_surface_card" />
     <corners android:radius="@dimen/radio_pastilla" />
 </shape>

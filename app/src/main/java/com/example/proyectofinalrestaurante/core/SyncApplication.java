@@ -5,6 +5,9 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.ProcessLifecycleOwner;
 import androidx.room.Room;
 import androidx.work.Configuration;
 import androidx.work.ListenableWorker;
@@ -25,6 +28,7 @@ import com.example.proyectofinalrestaurante.data.sync.SincronizadorClientes;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorEmpleados;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMenu;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMesas;
+import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.SyncWorker;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
 
@@ -89,6 +93,28 @@ public final class SyncApplication extends Application implements Configuration.
         };
     }
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // Casi-tiempo-real sin push (Sesión 2026-08-04, ver el Javadoc de SyncScheduler):
+        // sync de fondo cada 15 min mientras la app esté instalada...
+        SyncScheduler.programarPeriodico(this);
+        // ...y un empujón extra cada vez que la app vuelve a primer plano, para no esperar
+        // hasta el próximo tick periódico si el usuario reabre la app después de un rato.
+        ProcessLifecycleOwner.get().getLifecycle().addObserver(new DefaultLifecycleObserver() {
+            @Override
+            public void onStart(@NonNull LifecycleOwner owner) {
+                // Solo con sesión: en una instalación desde cero este onStart ocurre en la
+                // pantalla de login, y encolar ahí un trabajo que no puede hacer nada era
+                // parte de por qué el Menú no cargaba (ver el Javadoc de SyncWorker).
+                // MainActivity dispara la sincronización apenas hay sesión.
+                if (SesionActual.obtener() != null) {
+                    SyncScheduler.solicitar(SyncApplication.this);
+                }
+            }
+        });
+    }
+
     @NonNull
     @Override
     public Configuration getWorkManagerConfiguration() {
@@ -136,7 +162,7 @@ public final class SyncApplication extends Application implements Configuration.
             Sincronizador menu = new SincronizadorMenu(menuRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MENU),
                     base.platilloDao(), base.categoriaDao(), base.sincronizacionDao(),
-                    contexto.getFilesDir());
+                    contexto.getFilesDir(), base::runInTransaction);
 
             EmpleadoRemoto empleadoRemoto = new EmpleadoRemoto(
                     SupabaseClient.getEmpleadoApi(), SyncApplication::tokenDeLaSesion);

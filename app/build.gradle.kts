@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
+    // ProcessLifecycleOwner: resync al volver la app a primer plano (ver SyncApplication).
+    implementation(libs.lifecycle.process)
     // Carga y cache de las fotos de los platillos. Sin el annotationProcessor de Glide:
     // con Glide.with(...) alcanza y se evita un procesador de anotaciones en el build.
     implementation(libs.glide)
@@ -102,6 +104,8 @@ dependencies {
     testImplementation(libs.robolectric)
     // MigrationTestHelper: prueba cada migracion contra el esquema versionado.
     testImplementation(libs.room.testing)
+    // Verifica lo que SyncScheduler encola de verdad, contra un WorkManager real en memoria.
+    testImplementation(libs.work.testing)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
     coreLibraryDesugaring(libs.desugar.jdk.libs)

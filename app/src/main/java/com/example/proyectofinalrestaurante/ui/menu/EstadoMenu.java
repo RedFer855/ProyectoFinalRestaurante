@@ -42,12 +42,19 @@ public final class EstadoMenu {
     private final boolean sincronizando;
     private final int cambiosSinSubir;
     @Nullable private final String ultimoErrorSync;
+    /**
+     * Todavía no terminó ninguna pasada de sincronización desde que se abrió la pantalla.
+     * Distingue "el menú está vacío" de "todavía no sabemos si está vacío".
+     */
+    private final boolean esperandoPrimeraSincronizacion;
 
     private EstadoMenu(boolean cargando, List<Platillo> platillos, List<Categoria> categorias,
                        int filtroCategoria, String textoBusqueda,
                        @Nullable String error, @Nullable String mensajeExito,
                        boolean sincronizando, int cambiosSinSubir,
-                       @Nullable String ultimoErrorSync) {
+                       @Nullable String ultimoErrorSync,
+                       boolean esperandoPrimeraSincronizacion) {
+        this.esperandoPrimeraSincronizacion = esperandoPrimeraSincronizacion;
         this.cargando = cargando;
         this.platillos = platillos == null ? Collections.emptyList()
                 : Collections.unmodifiableList(platillos);
@@ -64,37 +71,42 @@ public final class EstadoMenu {
 
     public static EstadoMenu inicial() {
         return new EstadoMenu(false, Collections.emptyList(), Collections.emptyList(),
-                SIN_FILTRO, "", null, null, false, 0, null);
+                SIN_FILTRO, "", null, null, false, 0, null, true);
     }
 
     public static EstadoMenu cargando() {
         return new EstadoMenu(true, Collections.emptyList(), Collections.emptyList(),
-                SIN_FILTRO, "", null, null, false, 0, null);
+                SIN_FILTRO, "", null, null, false, 0, null, true);
     }
 
     public static EstadoMenu conDatos(List<Platillo> platillos, List<Categoria> categorias,
                                       int filtroCategoria, String textoBusqueda,
                                       boolean sincronizando, int cambiosSinSubir,
-                                      @Nullable String ultimoErrorSync) {
+                                      @Nullable String ultimoErrorSync,
+                                      boolean esperandoPrimeraSincronizacion) {
         return new EstadoMenu(false, platillos, categorias, filtroCategoria, textoBusqueda,
-                null, null, sincronizando, cambiosSinSubir, ultimoErrorSync);
+                null, null, sincronizando, cambiosSinSubir, ultimoErrorSync,
+                esperandoPrimeraSincronizacion);
     }
 
     public static EstadoMenu error(String mensaje) {
+        // Con un error que mostrar ya no se está esperando: hay algo concreto que decir.
         return new EstadoMenu(false, Collections.emptyList(), Collections.emptyList(),
-                SIN_FILTRO, "", mensaje, null, false, 0, null);
+                SIN_FILTRO, "", mensaje, null, false, 0, null, false);
     }
 
     /** Copia con un aviso de éxito pendiente de mostrar. */
     public EstadoMenu conMensaje(String mensaje) {
         return new EstadoMenu(cargando, platillos, categorias, filtroCategoria, textoBusqueda,
-                error, mensaje, sincronizando, cambiosSinSubir, ultimoErrorSync);
+                error, mensaje, sincronizando, cambiosSinSubir, ultimoErrorSync,
+                esperandoPrimeraSincronizacion);
     }
 
     /** Copia sin el aviso: se llama después de mostrarlo, para que no se repita. */
     public EstadoMenu sinMensaje() {
         return new EstadoMenu(cargando, platillos, categorias, filtroCategoria, textoBusqueda,
-                error, null, sincronizando, cambiosSinSubir, ultimoErrorSync);
+                error, null, sincronizando, cambiosSinSubir, ultimoErrorSync,
+                esperandoPrimeraSincronizacion);
     }
 
     public boolean isCargando() {
@@ -149,5 +161,21 @@ public final class EstadoMenu {
     /** El vacío es por el filtro o la búsqueda, no porque el menú esté realmente vacío. */
     public boolean isVacioPorFiltro() {
         return isVacio() && (filtroCategoria != SIN_FILTRO || !textoBusqueda.isEmpty());
+    }
+
+    /**
+     * Está vacío <b>porque todavía no sincronizó ni una vez</b>, no porque no haya platillos.
+     *
+     * <p>Es una distinción que la pantalla necesita hacer: en una instalación desde cero
+     * Room emite la lista vacía de inmediato, mucho antes de que el servidor conteste. Sin
+     * esto, el Menú anunciaba "Todavía no hay platillos en el menú" como estado terminal
+     * cuando en realidad todavía estaba esperando.</p>
+     *
+     * <p>Se deja aparte en vez de meterlo dentro de {@link #isVacio()} a propósito: ese
+     * método lo usa {@link #isVacioPorFiltro()}, y cambiarlo haría que un filtro sin
+     * resultados dejara de reportarse como tal mientras no hubiera sincronizado.</p>
+     */
+    public boolean isEsperandoPrimeraCarga() {
+        return isVacio() && esperandoPrimeraSincronizacion;
     }
 }

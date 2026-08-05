@@ -1,14 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Menú conectado a Supabase (Fase 2a). La misma pantalla para los tres roles: todos ven el
-  catálogo, pero solo admin ve el botón de agregar, el de categorías y el menú ⋮ de cada
-  platillo. Quien impide de verdad que un mesero cambie un precio es la RLS de Postgres.
+  Pantalla Menú — calcada de "Restaurant App v2.dc.html" (Claude Design), bloque
+  isMenuScreen. La misma pantalla para los tres roles: todos ven el catálogo, pero solo
+  admin ve el FAB, el acceso a categorías y las acciones de cada tarjeta. Eso es
+  experiencia de usuario, no seguridad: quien impide de verdad que un mesero cambie un
+  precio es la policy RLS de Postgres.
+
+  Dos desviaciones conscientes respecto del mockup:
+
+  - El acceso a "Categorías" no está en el mockup del menú (la v2 lo movió a una pantalla
+    de Ajustes que esta app no tiene). Se conserva acá como botón de icono a la derecha
+    del buscador, con el mismo relleno durazno y la misma altura, para que lea como parte
+    de la fila y no como un injerto.
+  - El banner de sincronización, el pull-to-refresh y el spinner no existen en el mockup
+    porque la demo no es offline-first. Acá son funcionales y se quedan.
 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/brand_surface">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -18,51 +30,66 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginHorizontal="@dimen/espaciado_menu"
             android:layout_marginTop="@dimen/espaciado_campo"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_buscar_platillo"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            <!--
+              La lupa va como drawableStart del propio campo en vez de ser un ImageView
+              aparte: el buscador queda en UNA vista en lugar de tres, que es un nivel
+              menos de jerarquía por pantalla (ver Presupuestos de Rendimiento en Gama
+              Baja). Es un EditText suelto y no un TextInputLayout porque el mockup usa
+              una pastilla rellena, sin la etiqueta flotante de Material.
+            -->
+            <EditText
+                android:id="@+id/txt_buscar_platillo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="@string/menu_buscar_platillo">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/txt_buscar_platillo"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:imeOptions="actionSearch"
-                    android:inputType="text"
-                    android:maxLines="1" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_categorias"
-                style="@style/Widget.Material3.Button.TonalButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/espaciado_minimo"
+                android:background="@drawable/bg_busqueda"
+                android:drawablePadding="10dp"
+                android:hint="@string/menu_buscar_platillo"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1"
                 android:minHeight="@dimen/altura_minima_tactil"
-                android:text="@string/menu_categorias"
+                android:paddingHorizontal="@dimen/espaciado_campo"
+                android:paddingVertical="13dp"
+                android:textAppearance="@style/TextAppearance.App.CampoBusqueda"
+                android:textColor="@color/brand_on_surface"
+                android:textColorHint="@color/brand_on_surface_variant"
+                app:drawableStartCompat="@drawable/ic_buscar"
+                app:drawableTint="@color/brand_secondary" />
+
+            <ImageButton
+                android:id="@+id/btn_categorias"
+                android:layout_width="@dimen/altura_minima_tactil"
+                android:layout_height="@dimen/altura_minima_tactil"
+                android:layout_marginStart="@dimen/espaciado_minimo"
+                android:background="@drawable/bg_busqueda"
+                android:contentDescription="@string/menu_categorias"
+                android:padding="@dimen/espaciado_campo"
+                android:src="@drawable/ic_menu"
                 android:visibility="gone"
+                app:tint="@color/brand_secondary"
                 tools:visibility="visible" />
         </LinearLayout>
 
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_minimo"
-            android:paddingHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginTop="14dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="@dimen/espaciado_menu"
             android:scrollbars="none">
 
             <com.google.android.material.chip.ChipGroup
                 android:id="@+id/grupo_categorias"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                app:chipSpacingHorizontal="@dimen/espaciado_minimo"
+                app:singleLine="true"
                 app:singleSelection="true" />
         </HorizontalScrollView>
 
@@ -75,11 +102,11 @@
             android:id="@+id/txt_estado_sync"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/espaciado_pantalla"
+            android:layout_marginHorizontal="@dimen/espaciado_menu"
             android:layout_marginTop="@dimen/espaciado_minimo"
             android:gravity="center"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
-            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="@style/TextAppearance.App.EstadoVacio"
+            android:textColor="@color/brand_on_surface_variant"
             android:visibility="gone"
             tools:text="Sincronizando cambios…"
             tools:visibility="visible" />
@@ -95,7 +122,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingHorizontal="@dimen/espaciado_pantalla"
+                android:paddingHorizontal="@dimen/espaciado_menu"
                 android:paddingTop="@dimen/espaciado_campo"
                 android:paddingBottom="@dimen/espaciado_lista_bajo_fab"
                 tools:itemCount="4"
@@ -110,10 +137,11 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:gravity="center"
-        android:padding="@dimen/espaciado_seccion"
+        android:paddingHorizontal="10dp"
+        android:paddingVertical="30dp"
         android:text="@string/menu_vacio"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textAppearance="@style/TextAppearance.App.EstadoVacio"
+        android:textColor="@color/brand_on_surface_variant"
         android:visibility="gone"
         tools:visibility="visible" />
 
@@ -126,13 +154,19 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+    <!--
+      FAB circular de 56dp abajo a la derecha, como la v2 del diseño (la v1 tenía una
+      pastilla ancha con texto, por eso ya no es un ExtendedFloatingActionButton).
+    -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_agregar_platillo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/espaciado_pantalla"
-        android:text="@string/menu_agregar_platillo"
-        app:icon="@drawable/ic_agregar" />
+        android:layout_margin="@dimen/espaciado_menu"
+        android:contentDescription="@string/menu_agregar_platillo"
+        android:src="@drawable/ic_agregar"
+        app:backgroundTint="@color/brand_primary"
+        app:tint="@color/brand_on_primary" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

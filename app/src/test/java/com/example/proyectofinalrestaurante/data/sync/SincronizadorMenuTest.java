@@ -42,7 +42,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import okhttp3.RequestBody;
 import okio.Buffer;
@@ -73,6 +73,9 @@ public class SincronizadorMenuTest {
     private final FakeMenuApi api = new FakeMenuApi();
     private final FakeStorageApi storage = new FakeStorageApi();
 
+    /** Cuenta transacciones abiertas, para verificar que el delta se aplica por página. */
+    private final EjecutorDeTransaccionEspia transacciones = new EjecutorDeTransaccionEspia();
+
     private SincronizadorMenu sincronizador() {
         return sincronizador("token-válido");
     }
@@ -80,7 +83,23 @@ public class SincronizadorMenuTest {
     private SincronizadorMenu sincronizador(String token) {
         MenuRemoto remoto = new MenuRemoto(api, storage, () -> token);
         return new SincronizadorMenu(remoto, outbox, platillos, categorias, sincronizacion,
-                temporal.getRoot());
+                temporal.getRoot(), transacciones);
+    }
+
+    /**
+     * Corre el bloque tal cual (los fakes de DAO no tienen transacciones reales) pero
+     * lleva la cuenta: lo que importa verificar es cuántas veces se agrupa, no que SQLite
+     * haga commit.
+     */
+    private static final class EjecutorDeTransaccionEspia implements EjecutorDeTransaccion {
+
+        private int veces;
+
+        @Override
+        public void enTransaccion(Runnable bloque) {
+            veces++;
+            bloque.run();
+        }
     }
 
     // ------------------------------------------------------------------ helpers
@@ -309,9 +328,9 @@ public class SincronizadorMenuTest {
     @Test
     public void delta_sinMarca_bajaTodaLaTablaEnLaPrimeraPasada() {
         // Sin marca de agua y sin outbox: la primera bajada trae todo (filtro null → sin query).
-        api.respuestaListarCategoriasDesde = filter -> FakeCall.deRespuesta(
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(
                 Response.success(List.of(categoriaServidor(5, MARCA_NUEVA))));
-        api.respuestaListarPlatillosDesde = filter -> FakeCall.deRespuesta(
+        api.respuestaListarPlatillosDesde = (filter, offset) -> FakeCall.deRespuesta(
                 Response.success(List.of(platilloServidor(50, MARCA_NUEVA, "Baleada"))));
 
         ResultadoSync resultado = sincronizador().sincronizar();
@@ -326,7 +345,7 @@ public class SincronizadorMenuTest {
     }
 
     @Test
-    public void delta_paginaCompleta_sigueConsultandoConLaMarcaDeAgua() {
+    public void delta_paginaCompleta_pideLaSiguienteConOffsetYLaMismaMarca() {
         // Primera página: exactamente LIMITE_DELTA (50) filas → hay que pedir la siguiente.
         // Segunda: menos de 50 → terminó.
         List<PlatilloDto> primeraPagina = new ArrayList<>();
@@ -335,10 +354,10 @@ public class SincronizadorMenuTest {
                     jsonPlatillo(1000 + i, String.format("2026-07-01T%02d:00:00+00:00", i),
                             "Platillo " + i), PlatilloDto.class));
         }
-        api.respuestaListarCategoriasDesde = filter -> FakeCall.deRespuesta(Response.success(
-                List.of()));
-        api.respuestaListarPlatillosDesde = filter -> {
-            if (filter == null) {
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(
+                Response.success(List.of()));
+        api.respuestaListarPlatillosDesde = (filter, offset) -> {
+            if (offset == 0) {
                 return FakeCall.deRespuesta(Response.success(primeraPagina));
             }
             return FakeCall.deRespuesta(Response.success(List.of(
@@ -348,11 +367,100 @@ public class SincronizadorMenuTest {
         ResultadoSync resultado = sincronizador().sincronizar();
 
         assertTrue(resultado.esOk());
-        // La segunda consulta usó el filtro con la marca más alta de la primera página.
-        assertEquals("gt.2026-07-01T49:00:00+00:00", api.ultimoFiltroPlatillos);
-        // La marca de agua quedó en el máximo de toda la bajada.
+        // Antes, la segunda consulta avanzaba el filtro a la marca más alta de la primera
+        // página. Ahora la marca queda fija en toda la pasada y lo que avanza es el offset:
+        // así, 50 filas con el mismo actualizado_en no esconden a las que vienen después.
+        assertNull(api.ultimoFiltroPlatillos);
+        assertEquals(MenuRemoto.LIMITE_DELTA, api.ultimoOffsetPlatillos);
+        // La marca de agua queda en el máximo de toda la bajada, guardada al final.
         assertEquals("2026-07-01T50:00:00+00:00",
                 sincronizacion.porTabla("platillos").getMarcaAgua());
+    }
+
+    @Test
+    public void delta_cincuentaFilasConLaMismaMarca_noPierdeLasQueSiguen() {
+        // El escenario de "instalación desde cero" contra un catálogo sembrado con un
+        // INSERT masivo: TODAS las filas comparten actualizado_en. Con la paginación vieja
+        // (avanzar por marca de agua), la página 2 pedía gt.<esa misma marca> y las filas
+        // 51 en adelante no se bajaban NUNCA.
+        String mismaMarca = "2026-07-01T10:00:00+00:00";
+        List<PlatilloDto> primeraPagina = new ArrayList<>();
+        for (int i = 0; i < MenuRemoto.LIMITE_DELTA; i++) {
+            primeraPagina.add(new Gson().fromJson(
+                    jsonPlatillo(1000 + i, mismaMarca, "Platillo " + i), PlatilloDto.class));
+        }
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(
+                Response.success(List.of()));
+        api.respuestaListarPlatillosDesde = (filter, offset) -> {
+            if (offset == 0) {
+                return FakeCall.deRespuesta(Response.success(primeraPagina));
+            }
+            return FakeCall.deRespuesta(Response.success(List.of(
+                    platilloServidor(2000, mismaMarca, "El que se perdía"))));
+        };
+
+        assertTrue(sincronizador().sincronizar().esOk());
+
+        // Las 51: las 50 de la primera página más la que antes quedaba invisible.
+        assertEquals(MenuRemoto.LIMITE_DELTA + 1, platillos.porIdLocal.size());
+    }
+
+    @Test(timeout = 10_000)
+    public void delta_servidorQueSiempreDevuelvePaginasLlenas_cortaPorElTopeDePaginas() {
+        // Con la paginación vieja, una página llena cuyas filas no traen actualizado_en
+        // dejaba la marca sin avanzar y el while(true) no tenía salida: el worker giraba
+        // hasta que WorkManager lo mataba por tiempo. Ahora el que avanza es el offset y
+        // MAX_PAGINAS pone un techo duro.
+        //
+        // El fake simula el peor caso: páginas llenas, siempre, sin marca.
+        int[] pedidos = {0};
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(
+                Response.success(List.of()));
+        api.respuestaListarPlatillosDesde = (filter, offset) -> {
+            pedidos[0]++;
+            List<PlatilloDto> pagina = new ArrayList<>();
+            for (int i = 0; i < MenuRemoto.LIMITE_DELTA; i++) {
+                pagina.add(new Gson().fromJson(
+                        "{\"id_platillo\":" + (offset + i) + ",\"nombre\":\"Fila " + i + "\","
+                                + "\"precio\":40.0,\"id_categoria\":1,\"id_estado\":1}",
+                        PlatilloDto.class));
+            }
+            return FakeCall.deRespuesta(Response.success(pagina));
+        };
+
+        sincronizador().sincronizar();
+
+        // Lo que se protege es que termine y que lo haga por el tope, no por agotar la
+        // paciencia de WorkManager. El @Test(timeout) cubre el "no se cuelga".
+        assertEquals(SincronizadorMenu.MAX_PAGINAS, pedidos[0]);
+    }
+
+    @Test
+    public void delta_aplicaCadaPaginaEnUnaSolaTransaccion() {
+        // 50 platillos en una página: sin agrupar serían 50 transacciones SQLite y 50
+        // invalidaciones de tabla, o sea 50 re-emisiones de Room y 50 repintados del
+        // RecyclerView. Eso es lo que se veía como "los items cargaron de a poco".
+        List<PlatilloDto> pagina = new ArrayList<>();
+        for (int i = 0; i < MenuRemoto.LIMITE_DELTA; i++) {
+            pagina.add(new Gson().fromJson(
+                    jsonPlatillo(1000 + i, String.format("2026-07-01T%02d:00:00+00:00", i),
+                            "Platillo " + i), PlatilloDto.class));
+        }
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(
+                Response.success(List.of()));
+        api.respuestaListarPlatillosDesde = (filter, offset) -> {
+            if (offset == 0) {
+                return FakeCall.deRespuesta(Response.success(pagina));
+            }
+            return FakeCall.deRespuesta(Response.success(List.of()));
+        };
+
+        assertTrue(sincronizador().sincronizar().esOk());
+
+        // Una por página, no una por fila: categorías (1) + platillos llenos (1) +
+        // platillos vacíos que cierran la paginación (1).
+        assertEquals(3, transacciones.veces);
+        assertEquals(MenuRemoto.LIMITE_DELTA, platillos.porIdLocal.size());
     }
 
     // ------------------------------------------------------------------ conflicto LWW (§4.6)
@@ -362,9 +470,9 @@ public class SincronizadorMenuTest {
         PlatilloEntity local = platillo(1, 50, "ERROR");
         local.setActualizadoEn(MARCA_VIEJA);
         platillos.insertar(local);
-        api.respuestaListarCategoriasDesde = filter -> FakeCall.deRespuesta(Response.success(
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(Response.success(
                 List.of()));
-        api.respuestaListarPlatillosDesde = filter -> FakeCall.deRespuesta(Response.success(
+        api.respuestaListarPlatillosDesde = (filter, offset) -> FakeCall.deRespuesta(Response.success(
                 List.of(platilloServidor(50, MARCA_NUEVA, "Versión del servidor"))));
 
         ResultadoSync resultado = sincronizador().sincronizar();
@@ -383,9 +491,9 @@ public class SincronizadorMenuTest {
         PlatilloEntity local = platillo(1, 50, "ERROR");
         local.setActualizadoEn(MARCA_NUEVA);
         platillos.insertar(local);
-        api.respuestaListarCategoriasDesde = filter -> FakeCall.deRespuesta(Response.success(
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(Response.success(
                 List.of()));
-        api.respuestaListarPlatillosDesde = filter -> FakeCall.deRespuesta(Response.success(
+        api.respuestaListarPlatillosDesde = (filter, offset) -> FakeCall.deRespuesta(Response.success(
                 List.of(platilloServidor(50, MARCA_VIEJA, "Versión vieja"))));
 
         ResultadoSync resultado = sincronizador().sincronizar();
@@ -399,7 +507,7 @@ public class SincronizadorMenuTest {
     @Test
     public void sincronizar_sinToken_esTransitorio() {
         // Con token nulo, MenuRemoto responde 401 (SIN_SESION): transitorio, se reintenta.
-        api.respuestaListarCategoriasDesde = filter -> FakeCall.deRespuesta(Response.success(
+        api.respuestaListarCategoriasDesde = (filter, offset) -> FakeCall.deRespuesta(Response.success(
                 List.of()));
 
         ResultadoSync resultado = sincronizador(null).sincronizar();
@@ -536,13 +644,18 @@ public class SincronizadorMenuTest {
         Call<Void> respuestaActualizarCategoria = FakeCall.deRespuesta(Response.success(null));
         Call<Void> respuestaBorrarCategoria = FakeCall.deRespuesta(Response.success(null));
 
-        Function<String, Call<List<CategoriaDto>>> respuestaListarCategoriasDesde =
-                filter -> FakeCall.deRespuesta(Response.success(List.of()));
-        Function<String, Call<List<PlatilloDto>>> respuestaListarPlatillosDesde =
-                filter -> FakeCall.deRespuesta(Response.success(List.of()));
+        // BiFunction y no Function: desde que la paginación va por offset, un fake que
+        // solo mira el filtro no puede distinguir la página 1 de la 2 (el filtro es el
+        // mismo en toda la pasada).
+        BiFunction<String, Integer, Call<List<CategoriaDto>>> respuestaListarCategoriasDesde =
+                (filter, offset) -> FakeCall.deRespuesta(Response.success(List.of()));
+        BiFunction<String, Integer, Call<List<PlatilloDto>>> respuestaListarPlatillosDesde =
+                (filter, offset) -> FakeCall.deRespuesta(Response.success(List.of()));
 
         String ultimoFiltroPlatillos;
         String ultimoFiltroCategorias;
+        int ultimoOffsetPlatillos;
+        int ultimoOffsetCategorias;
         String ultimoFiltroPlatillo;
         String ultimoFiltroCategoria;
         String cuerpoCrudoEnviado;
@@ -561,17 +674,21 @@ public class SincronizadorMenuTest {
         @Override
         public Call<List<PlatilloDto>> listarPlatillosDesde(String bearerToken, String select,
                                                             String actualizadoEnMayorQue,
-                                                            String orden, int limite) {
+                                                            String orden, int limite,
+                                                            int desplazamiento) {
             ultimoFiltroPlatillos = actualizadoEnMayorQue;
-            return respuestaListarPlatillosDesde.apply(actualizadoEnMayorQue);
+            ultimoOffsetPlatillos = desplazamiento;
+            return respuestaListarPlatillosDesde.apply(actualizadoEnMayorQue, desplazamiento);
         }
 
         @Override
         public Call<List<CategoriaDto>> listarCategoriasDesde(String bearerToken, String select,
                                                               String actualizadoEnMayorQue,
-                                                              String orden, int limite) {
+                                                              String orden, int limite,
+                                                              int desplazamiento) {
             ultimoFiltroCategorias = actualizadoEnMayorQue;
-            return respuestaListarCategoriasDesde.apply(actualizadoEnMayorQue);
+            ultimoOffsetCategorias = desplazamiento;
+            return respuestaListarCategoriasDesde.apply(actualizadoEnMayorQue, desplazamiento);
         }
 
         @Override

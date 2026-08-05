@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Línea delgada arriba de la fila de acciones — border-top:1px rgba(36,28,25,0.08) del
+     mockup del ítem, aquí como una franja de 1dp pegada al borde superior. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="top" android:height="1dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#14241C19" />
+        </shape>
+    </item>
+</layer-list>

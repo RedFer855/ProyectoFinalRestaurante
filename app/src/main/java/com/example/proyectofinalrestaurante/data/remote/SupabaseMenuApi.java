@@ -40,8 +40,16 @@ public interface SupabaseMenuApi {
 
     /**
      * Sync delta (Plan Fase 2b, §4.3): solo las filas modificadas después de la marca de
-     * agua, paginadas por {@code actualizado_en}. Retrofit codifica los valores, así que el
-     * {@code +} del offset del timestamp viaja como {@code %2B} y PostgREST lo decodifica.
+     * agua. Retrofit codifica los valores, así que el {@code +} del offset del timestamp
+     * viaja como {@code %2B} y PostgREST lo decodifica.
+     *
+     * <p><b>La paginación va por {@code offset}, no por marca de agua (2026-08-04).</b>
+     * Antes, cada página avanzaba la marca al máximo visto y la siguiente pedía
+     * {@code gt.<esa marca>}. Con ≥50 filas compartiendo el mismo {@code actualizado_en}
+     * —el caso normal de un catálogo sembrado con un INSERT masivo— la página 2 empezaba
+     * <em>después</em> de esas filas y las 51.ª en adelante no se bajaban nunca. El
+     * {@code order} incluye el id como desempate porque sin un orden total el
+     * {@code offset} puede repetir o saltear filas entre pedidos.</p>
      */
     @GET("rest/v1/vista_platillos")
     Call<List<PlatilloDto>> listarPlatillosDesde(
@@ -49,7 +57,8 @@ public interface SupabaseMenuApi {
             @Query("select") String select,
             @Query("actualizado_en") String actualizadoEnMayorQue,
             @Query("order") String orden,
-            @Query("limit") int limite);
+            @Query("limit") int limite,
+            @Query("offset") int desplazamiento);
 
     @GET("rest/v1/vista_categorias")
     Call<List<CategoriaDto>> listarCategoriasDesde(
@@ -57,7 +66,8 @@ public interface SupabaseMenuApi {
             @Query("select") String select,
             @Query("actualizado_en") String actualizadoEnMayorQue,
             @Query("order") String orden,
-            @Query("limit") int limite);
+            @Query("limit") int limite,
+            @Query("offset") int desplazamiento);
 
     /**
      * {@code Prefer: return=representation} hace que PostgREST devuelva la fila creada con

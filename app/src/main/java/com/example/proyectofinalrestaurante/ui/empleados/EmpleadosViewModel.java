@@ -60,6 +60,9 @@ public class EmpleadosViewModel extends ViewModel {
         estado.addSource(repositorio.observarEmpleados(), this::cuandoLleganEmpleados);
         estado.addSource(repositorio.getEstadoSincronizacion(), this::cuandoCambiaSincronizacion);
         estado.setValue(EstadoEmpleados.cargando());
+        // Sync-on-launch: no depender del pull-to-refresh para la primera bajada de datos.
+        // Ver el mismo comentario en MesasViewModel.
+        sincronizar();
     }
 
     public LiveData<EstadoEmpleados> getEstado() {

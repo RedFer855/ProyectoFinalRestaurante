@@ -22,6 +22,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
 import com.example.proyectofinalrestaurante.core.SesionActual;
+import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.VisibilidadMenu;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
@@ -85,6 +86,17 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
+        }
+
+        // Primera sincronización del arranque, acá y no antes: este es el primer punto del
+        // ciclo de vida donde hay token garantizado. El empujón de ProcessLifecycleOwner
+        // ocurre en la pantalla de login, cuando todavía no hay sesión y el worker no
+        // puede hacer nada (ver SyncApplication.onCreate y el Javadoc de SyncWorker).
+        //
+        // Solo en el arranque real: con savedInstanceState != null esto es una rotación o
+        // una recreación por cambio de configuración, y ahí ya se sincronizó.
+        if (savedInstanceState == null) {
+            SyncScheduler.solicitar(getApplicationContext());
         }
 
         toolbar = findViewById(R.id.toolbar);

@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Formulario de alta/edición de un platillo (Fase 2a). El mismo diálogo para las dos
-  operaciones: al editar solo cambia que los campos vienen llenos y que aparece la opción
-  de quitar la foto que ya tiene.
+  Formulario de alta/edición de platillo — hoja modal inferior, calcada del bloque
+  modalIsDish de "Restaurant App v2.dc.html" (Claude Design).
+
+  Del mockup: cabecera con título y aspa circular de 32, campos apilados con separación
+  de 14 y la etiqueta ENCIMA de cada uno, foto de 130 de alto y radio 14, y un pie con
+  Cancelar / Guardar al 50% cada uno.
+
+  El orden de los campos sigue el del diseño (foto → nombre → categoría → precio →
+  descripción), que no es el que tenía antes esta pantalla.
+
+  Va dentro de un NestedScrollView porque la hoja se limita al 85% del alto: sin scroll,
+  con el teclado abierto los últimos campos quedarían fuera de alcance.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -14,82 +23,82 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="@dimen/espaciado_pantalla"
-        android:paddingTop="@dimen/espaciado_campo">
+        android:paddingHorizontal="@dimen/espaciado_menu"
+        android:paddingTop="@dimen/espaciado_menu"
+        android:paddingBottom="26dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_platillo_nombre"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/menu_platillo_nombre">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_platillo_nombre"
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/txt_titulo_platillo"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="textCapSentences"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:textAppearance="@style/TextAppearance.App.TituloModal"
+                android:textColor="@color/brand_on_surface"
+                tools:text="Nuevo platillo" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            <ImageButton
+                android:id="@+id/btn_cerrar_platillo"
+                android:layout_width="@dimen/altura_minima_tactil"
+                android:layout_height="@dimen/altura_minima_tactil"
+                android:background="@drawable/bg_boton_cerrar_modal"
+                android:contentDescription="@string/cd_cerrar"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:padding="17dp"
+                android:src="@drawable/ic_cerrar"
+                app:tint="@color/brand_secondary" />
+        </LinearLayout>
+
+        <!-- ===== Foto ===== -->
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="18dp"
+            android:text="@string/menu_platillo_foto" />
+
+        <!--
+          El hueco de la foto es un FrameLayout y no solo el ImageView porque el estado
+          vacío del mockup no es una imagen: es una caja punteada con un texto que invita
+          a tocar. El aviso se superpone a la previsualización y desaparece en cuanto hay
+          foto.
+
+          Ojo con scaleType: acá arranca en centerInside. Con centerCrop, el ícono
+          cuadrado de 24dp del placeholder se escalaba ~12x para cubrir una caja mucho más
+          ancha que alta y se veía como una franja horizontal — el código cambia a
+          centerCrop recién cuando hay una foto de verdad, que es cuando recortar sirve.
+        -->
+        <FrameLayout
+            android:id="@+id/caja_foto_platillo"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_campo"
-            android:hint="@string/menu_platillo_descripcion">
+            android:layout_height="130dp"
+            android:background="?attr/selectableItemBackground">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_platillo_descripcion"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/img_platillo_previsualizacion"
                 android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_foto_vacia"
+                android:contentDescription="@string/menu_cd_previsualizacion"
+                android:padding="@dimen/espaciado_campo"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_platillo_sin_foto"
+                app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto" />
+
+            <TextView
+                android:id="@+id/txt_aviso_foto"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:inputType="textCapSentences|textMultiLine"
-                android:maxLines="3" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_platillo_precio"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_campo"
-            android:hint="@string/menu_platillo_precio">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_platillo_precio"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/til_platillo_categoria"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_campo"
-            android:hint="@string/menu_platillo_categoria">
-
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/txt_platillo_categoria"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                tools:text="Platos fuertes" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/img_platillo_previsualizacion"
-            android:layout_width="match_parent"
-            android:layout_height="@dimen/foto_platillo_formulario"
-            android:layout_marginTop="@dimen/espaciado_campo"
-            android:background="@color/brand_surface_variant"
-            android:contentDescription="@string/menu_cd_previsualizacion"
-            android:padding="@dimen/espaciado_seccion"
-            android:scaleType="centerCrop"
-            android:src="@drawable/ic_platillo_sin_foto"
-            app:shapeAppearanceOverlay="@style/EsquinaRedondeadaFoto" />
+                android:layout_gravity="center_horizontal|bottom"
+                android:layout_marginBottom="14dp"
+                android:text="@string/menu_tocar_para_subir_foto"
+                android:textAppearance="@style/TextAppearance.App.LabelCampo"
+                android:textColor="@color/brand_on_surface_variant" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -119,17 +128,117 @@
                 tools:visibility="visible" />
         </LinearLayout>
 
+        <!-- ===== Nombre ===== -->
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="14dp"
+            android:text="@string/menu_platillo_nombre" />
+
+        <EditText
+            android:id="@+id/txt_platillo_nombre"
+            style="@style/Widget.App.CampoModal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/menu_platillo_nombre_ejemplo"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences"
+            android:maxLines="1" />
+
+        <!-- ===== Categoría ===== -->
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="14dp"
+            android:text="@string/menu_platillo_categoria" />
+
+        <!--
+          Se mantiene MaterialAutoCompleteTextView (sin TextInputLayout) porque es el
+          equivalente del <select> del mockup: inputType="none" lo vuelve solo-selección
+          y setSimpleItems() le carga las opciones desde el código.
+        -->
+        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+            android:id="@+id/txt_platillo_categoria"
+            style="@style/Widget.App.CampoModal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/menu_platillo_categoria"
+            android:importantForAutofill="no"
+            android:inputType="none"
+            tools:text="Platos fuertes" />
+
+        <!-- ===== Precio ===== -->
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="14dp"
+            android:text="@string/menu_platillo_precio" />
+
+        <EditText
+            android:id="@+id/txt_platillo_precio"
+            style="@style/Widget.App.CampoModal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/menu_platillo_precio_ejemplo"
+            android:importantForAutofill="no"
+            android:inputType="numberDecimal"
+            android:maxLines="1" />
+
+        <!-- ===== Descripción ===== -->
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="14dp"
+            android:text="@string/menu_platillo_descripcion" />
+
+        <EditText
+            android:id="@+id/txt_platillo_descripcion"
+            style="@style/Widget.App.CampoModal"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:gravity="top|start"
+            android:hint="@string/menu_platillo_descripcion_ejemplo"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences|textMultiLine"
+            android:maxLines="3" />
+
         <TextView
             android:id="@+id/txt_platillo_error"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/espaciado_campo"
+            android:layout_marginTop="14dp"
             android:accessibilityLiveRegion="polite"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorError"
+            android:textAppearance="@style/TextAppearance.App.EstadoVacio"
+            android:textColor="@color/brand_error"
             android:visibility="gone"
             tools:text="El precio tiene que ser mayor que cero"
             tools:visibility="visible" />
+
+        <!-- ===== Pie ===== -->
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_menu"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_cancelar_platillo"
+                style="@style/Widget.App.Boton.Modal.Secundario"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/empleado_cancelar" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_guardar_platillo"
+                style="@style/Widget.App.Boton.Modal"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:text="@string/empleado_guardar" />
+        </LinearLayout>
 
     </LinearLayout>
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Círculo durazno detrás del aspa de cerrar de las hojas modales.
+
+  Va envuelto en un <inset> de 8dp a propósito: el botón mide 48dp para cumplir el
+  mínimo tocable, pero el mockup dibuja el círculo de 32. 48 − 8 − 8 = 32, así que el
+  área tocable y la figura visible pueden diferir sin meter una vista extra.
+-->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+    android:insetBottom="@dimen/espaciado_minimo"
+    android:insetLeft="@dimen/espaciado_minimo"
+    android:insetRight="@dimen/espaciado_minimo"
+    android:insetTop="@dimen/espaciado_minimo">
+
+    <shape android:shape="oval">
+        <solid android:color="@color/brand_primary_container" />
+    </shape>
+
+</inset>

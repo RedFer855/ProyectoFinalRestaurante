@@ -6,6 +6,8 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -24,12 +26,10 @@ import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 
@@ -86,18 +86,18 @@ public class MenuFragment extends Fragment
 
         configurarBusqueda(view.findViewById(R.id.txt_buscar_platillo));
 
-        ExtendedFloatingActionButton fab = view.findViewById(R.id.fab_agregar_platillo);
+        FloatingActionButton fab = view.findViewById(R.id.fab_agregar_platillo);
         VistaPorPermiso.aplicar(fab, Modulo.MENU, Accion.CREAR);
         fab.setOnClickListener(v -> abrirFormulario(null));
 
-        MaterialButton botonCategorias = view.findViewById(R.id.btn_categorias);
+        ImageButton botonCategorias = view.findViewById(R.id.btn_categorias);
         VistaPorPermiso.aplicar(botonCategorias, Modulo.MENU, Accion.CREAR);
         botonCategorias.setOnClickListener(v -> abrirCategorias());
 
         viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
     }
 
-    private void configurarBusqueda(TextInputEditText campo) {
+    private void configurarBusqueda(EditText campo) {
         campo.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {
@@ -126,6 +126,12 @@ public class MenuFragment extends Fragment
             vacio.setVisibility(View.VISIBLE);
             vacio.setText(estado.getError());
             mostrarReintentar(estado.getError());
+        } else if (estado.isEsperandoPrimeraCarga()) {
+            // Va ANTES de isVacio(): en una instalación desde cero Room emite la lista
+            // vacía mucho antes de que conteste el servidor, y anunciar "no hay platillos"
+            // ahí es mentirle al usuario sobre un estado que todavía no se conoce.
+            vacio.setVisibility(View.VISIBLE);
+            vacio.setText(R.string.menu_cargando_primera_vez);
         } else if (estado.isVacio()) {
             vacio.setVisibility(View.VISIBLE);
             vacio.setText(estado.isVacioPorFiltro()
@@ -210,12 +216,16 @@ public class MenuFragment extends Fragment
         return true;
     }
 
+    /**
+     * El chip se infla en vez de construirse con {@code new Chip(context)}: un Chip
+     * creado por constructor no toma el estilo, y sin estilo pierde los colores por
+     * estado del diseño (activo terracota / inactivo blanco con borde).
+     */
     private Chip crearChip(String etiqueta, int idCategoria) {
-        Chip chip = new Chip(requireContext());
+        Chip chip = (Chip) LayoutInflater.from(requireContext())
+                .inflate(R.layout.item_chip_filtro, grupoCategorias, false);
         chip.setText(etiqueta);
-        chip.setCheckable(true);
         chip.setTag(idCategoria);
-        chip.setMinHeight(getResources().getDimensionPixelSize(R.dimen.altura_minima_tactil));
         chip.setOnClickListener(v -> viewModel.filtrarPorCategoria(idCategoria));
         return chip;
     }

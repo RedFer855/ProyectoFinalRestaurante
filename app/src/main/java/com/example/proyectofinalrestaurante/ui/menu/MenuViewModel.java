@@ -59,6 +59,12 @@ public class MenuViewModel extends ViewModel {
     private String textoBusqueda = "";
     private boolean sincronizando = false;
     @Nullable private String ultimoErrorSync = null;
+    /**
+     * Se enciende cuando termina la primera pasada de sincronización de esta pantalla.
+     * Mientras esté en {@code false}, una lista vacía significa "todavía no sabemos", no
+     * "no hay platillos" — ver {@link EstadoMenu#isEsperandoPrimeraCarga()}.
+     */
+    private boolean primeraSincronizacionHecha = false;
 
     public MenuViewModel(@NonNull MenuRepository repositorio, @NonNull ExecutorService executor) {
         this.repositorio = repositorio;
@@ -67,6 +73,9 @@ public class MenuViewModel extends ViewModel {
         estado.addSource(repositorio.observarCategorias(), this::cuandoLleganCategorias);
         estado.addSource(repositorio.getEstadoSincronizacion(), this::cuandoCambiaSincronizacion);
         estado.setValue(EstadoMenu.cargando());
+        // Sync-on-launch: no depender del pull-to-refresh para la primera bajada de datos.
+        // Ver el mismo comentario en MesasViewModel.
+        sincronizar();
     }
 
     public LiveData<EstadoMenu> getEstado() {
@@ -100,6 +109,12 @@ public class MenuViewModel extends ViewModel {
     }
 
     private void cuandoCambiaSincronizacion(EstadoSincronizacion estadoSync) {
+        // El flanco de bajada (estaba sincronizando y dejó de estarlo) es lo que marca que
+        // ya hubo una pasada completa. No alcanza con mirar isSincronizando()==false: ese
+        // es también el valor inicial, antes de que el worker haya corrido siquiera.
+        if (sincronizando && !estadoSync.isSincronizando()) {
+            primeraSincronizacionHecha = true;
+        }
         sincronizando = estadoSync.isSincronizando();
         ultimoErrorSync = estadoSync.getUltimoError();
         recalcular();
@@ -239,7 +254,8 @@ public class MenuViewModel extends ViewModel {
 
     private EstadoMenu estadoConDatos() {
         return EstadoMenu.conDatos(filtrados(), new ArrayList<>(categoriasActuales),
-                filtroCategoria, textoBusqueda, sincronizando, cambiosSinSubir(), ultimoErrorSync);
+                filtroCategoria, textoBusqueda, sincronizando, cambiosSinSubir(), ultimoErrorSync,
+                !primeraSincronizacionHecha);
     }
 
     private List<Platillo> filtrados() {

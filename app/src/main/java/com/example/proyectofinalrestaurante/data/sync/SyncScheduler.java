@@ -4,9 +4,11 @@ import android.content.Context;
 
 import androidx.work.BackoffPolicy;
 import androidx.work.Constraints;
+import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import java.util.concurrent.TimeUnit;
@@ -26,6 +28,18 @@ import java.util.concurrent.TimeUnit;
  * <p>Las restricciones y el backoff son la segunda línea de defensa: la primera es que el
  * propio sincronizador corta la pasada ante un error transitorio y el worker devuelve
  * {@code Result.retry()} (el outbox agota intentos por operación antes de darla por perdida).</p>
+ *
+ * <p><b>Casi-tiempo-real, no push (Sesión 2026-08-04):</b> el usuario pidió "escuchar
+ * cambios" en vez de depender de que alguien entre a la pantalla. Un push real (Supabase
+ * Realtime) es una decisión de fondo que además contradice
+ * {@code ADR-002 - Supabase Auth via REST directo}: necesitaría el SDK que ese ADR evitó a
+ * propósito, y una conexión persistente encaja mal con el requisito no funcional #1 ("Wi-Fi
+ * intermitente", P-014). En su lugar: {@link #programarPeriodico} deja un
+ * {@code PeriodicWorkRequest} corriendo mientras la app esté instalada, y
+ * {@code SyncApplication} llama a {@link #solicitar} cada vez que la app vuelve a primer
+ * plano ({@code ProcessLifecycleOwner}). Con eso ningún módulo depende ya de que el usuario
+ * entre a su pantalla o deslice hacia abajo — la primera sincronización sí, sigue siendo
+ * automática vía {@code XxxViewModel} (sync-on-launch), esto cubre lo que pasa después.</p>
  */
 public final class SyncScheduler {
 
@@ -35,22 +49,49 @@ public final class SyncScheduler {
      */
     static final String NOMBRE_UNICO = "sync-menu";
 
+    /** Trabajo periódico, separado del de arriba: son namespaces distintos en WorkManager. */
+    static final String NOMBRE_UNICO_PERIODICO = "sync-periodico";
+
     private static final long BACKOFF_INICIAL_SEGUNDOS = 15;
+
+    /** 15 minutos es el mínimo que WorkManager admite para trabajo periódico. */
+    private static final long INTERVALO_PERIODICO_MINUTOS = 15;
 
     private SyncScheduler() {
     }
 
     /** Encola (o mantiene) la sincronización pendiente. Se llama tras cada escritura local. */
     public static void solicitar(Context contexto) {
-        Constraints restricciones = new Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build();
         OneTimeWorkRequest trabajo = new OneTimeWorkRequest.Builder(SyncWorker.class)
-                .setConstraints(restricciones)
+                .setConstraints(restriccionDeRed())
                 .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_INICIAL_SEGUNDOS,
                         TimeUnit.SECONDS)
                 .build();
         WorkManager.getInstance(contexto)
                 .enqueueUniqueWork(NOMBRE_UNICO, ExistingWorkPolicy.KEEP, trabajo);
+    }
+
+    /**
+     * Deja una sincronización de fondo corriendo cada {@link #INTERVALO_PERIODICO_MINUTOS}
+     * mientras la app esté instalada. Se llama una sola vez, desde
+     * {@code SyncApplication.onCreate()}; {@code ExistingPeriodicWorkPolicy.KEEP} hace que
+     * reinstalarla en cada arranque de proceso no la duplique ni le reinicie el conteo.
+     */
+    public static void programarPeriodico(Context contexto) {
+        PeriodicWorkRequest trabajo = new PeriodicWorkRequest.Builder(
+                SyncWorker.class, INTERVALO_PERIODICO_MINUTOS, TimeUnit.MINUTES)
+                .setConstraints(restriccionDeRed())
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, BACKOFF_INICIAL_SEGUNDOS,
+                        TimeUnit.SECONDS)
+                .build();
+        WorkManager.getInstance(contexto)
+                .enqueueUniquePeriodicWork(NOMBRE_UNICO_PERIODICO,
+                        ExistingPeriodicWorkPolicy.KEEP, trabajo);
+    }
+
+    private static Constraints restriccionDeRed() {
+        return new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
     }
 }

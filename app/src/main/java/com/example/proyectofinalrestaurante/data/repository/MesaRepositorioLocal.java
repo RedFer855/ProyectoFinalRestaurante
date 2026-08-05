@@ -28,6 +28,7 @@ import com.example.proyectofinalrestaurante.domain.repository.MesaRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Implementación local-first de {@link MesaRepository} (Plan Fase 2c, E4). Mismo patrón que
@@ -56,12 +57,18 @@ public final class MesaRepositorioLocal implements MesaRepository, ObservadorSin
     private final MutableLiveData<EstadoSincronizacion> estadoSincronizacion =
             new MutableLiveData<>(new EstadoSincronizacion(false, null));
 
-    public MesaRepositorioLocal(AppDatabase base, Outbox outbox, Context contexto) {
+    /**
+     * El {@link Executor} se inyecta (regla de oro #6) para poder sembrar el catálogo fuera
+     * del hilo principal: este constructor corre dentro de {@code MesasViewModelFactory.create()},
+     * que Room ejecuta en el hilo de UI, y {@code insertarTodos} es una escritura bloqueante.
+     */
+    public MesaRepositorioLocal(AppDatabase base, Outbox outbox, Context contexto,
+                                 Executor executor) {
         this.mesaDao = base.mesaDao();
         this.estadoMesaDao = base.estadoMesaDao();
         this.outbox = outbox;
         this.contexto = contexto;
-        sembrarCatalogoEstados();
+        executor.execute(this::sembrarCatalogoEstados);
     }
 
     // ------------------------------------------------------------------ lecturas

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fondo del chip de filtro por categoría. El mockup solo distingue dos estados: el
+  filtro activo se rellena de terracota, el resto queda en blanco.
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/brand_primary" android:state_checked="true" />
+    <item android:color="@color/brand_surface_card" />
+</selector>

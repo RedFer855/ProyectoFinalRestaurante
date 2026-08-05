@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chip de filtro por categoría del menú. Vive en su propio layout porque un Chip creado
+  con `new Chip(context)` no toma estilos: hay que inflarlo para que Material aplique
+  Widget.App.Chip.Filtro (colores por estado, borde de 1.5dp y área tocable de 48dp).
+-->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.App.Chip.Filtro"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:checkable="true" />

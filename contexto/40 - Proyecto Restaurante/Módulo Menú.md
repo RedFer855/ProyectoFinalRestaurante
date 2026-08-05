@@ -233,8 +233,82 @@ que el modo oscuro sale de `values-night/colors.xml` sin trabajo extra.
 
 ---
 
+## Rediseño completo contra el diseño aprobado v2 (2026-08-04)
+
+Todo el módulo se rehízo para que coincida con `Restaurant App v2.dc.html` (Claude
+Design, proyecto `3f58f5fc-cf82-4509-9b37-978984f85107`), leído directo con el MCP de
+diseño. El método y las trampas quedaron en [[Traducir un Diseño Web a Views de Android]].
+
+**Qué cambió respecto de la v1 del mockup** (la que se había implementado el 2026-08-01):
+
+| | v1 | v2 (lo que hay ahora) |
+|---|---|---|
+| Agregar platillo | Pastilla ancha con texto | **FAB circular de 56 dp** abajo a la derecha |
+| Categorías | Sección al pie de la pantalla Menú | El mockup las movió a "Ajustes" |
+| Descripción de la tarjeta | 2 líneas | **3 líneas**, interlineado 1.35 |
+
+**Piezas nuevas de infraestructura visual:**
+
+- `values/styles.xml` — **no existía**. Trece `TextAppearance.App.*` con los tamaños
+  exactos del mockup (21/19/14/13.5/13/12/11.5/11/10.5/9.5), en `sp` para que escalen.
+- `res/color/` — **no existía**. Los tres selectores del chip de filtro.
+- Tokens propios del diseño en `colors.xml` **y su contraparte en `values-night/`**:
+  `brand_tarjeta_platillo`, `brand_borde_cancelar`, `brand_borde_punteado`,
+  `brand_separador`.
+
+**Decisiones que se apartan del mockup, a propósito:**
+
+| Decisión | Por qué |
+|---|---|
+| Categorías siguen accesibles desde Menú (botón junto al buscador) | La v2 las movió a una pantalla "Ajustes" que esta app no tiene. Crearla es navegación, no diseño |
+| La tarjeta usa `minHeight`, no el alto fijo de 150 px del mockup | Con alto fijo, subir la fuente del sistema recorta el texto en vez de agrandar la tarjeta |
+| La segunda acción sigue diciendo "Desactivar" con círculo tachado | Se mantiene lo de 2026-08-01: `trg_platillo_no_borrar` rechaza el `DELETE`; el mockup dibuja un basurero que prometería lo imposible |
+| Las filas de categoría conservan el menú ⋮ | El mockup muestra dos íconos (editar/borrar); acá hay tres acciones y "borrar" se oculta si la categoría tiene platillos |
+| Alta de categoría en la misma hoja, no en un modal aparte | Evita anidar una hoja modal dentro de otra, incómodo de descartar en Android, y ahorra un toque |
+
+**Cambios estructurales:**
+
+- `FormularioPlatilloDialog` y `CategoriasDialog` pasaron de `MaterialAlertDialogBuilder`
+  a **`BottomSheetDialogFragment`**. Las interfaces `AlGuardar` y `AlOperar` no se
+  tocaron, así que `MenuFragment` y `MenuViewModel` quedaron intactos.
+- Las acciones de la tarjeta pasaron de `MaterialButton` a `TextView` con
+  `drawableStart`: el botón de Material trae insets propios que impedían clavar el
+  10.5 sp del diseño, y se ahorran dos niveles de jerarquía por fila de lista.
+- El buscador pasó de `TextInputLayout.OutlinedBox` a un `EditText` con
+  `drawableStart` — de tres vistas a una.
+- `Glide` ahora carga con `override()` al tamaño real del hueco (150 dp) en vez de
+  decodificar el bitmap completo. Ver [[Presupuestos de Rendimiento en Gama Baja]].
+- `dialog_categoria_nombre.xml` es nuevo: antes renombrar reusaba el layout de la lista
+  escondiéndole vistas, algo que se rompía cada vez que ese layout cambiaba.
+
+---
+
+## Arreglo de la carga inicial (2026-08-04)
+
+El Menú no cargaba nada en una instalación desde cero. La causa **no estaba en este
+módulo**: el trabajo único de WorkManager quedaba envenenado desde la pantalla de login
+(detalle completo en
+[[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]]).
+
+Lo que cambió acá:
+
+| Cambio | Por qué |
+|---|---|
+| `MenuViewModel` + `EstadoMenu` distinguen "vacío" de "esperando la primera sincronización" | La pantalla anunciaba "Todavía no hay platillos" como estado terminal mientras todavía esperaba al servidor |
+| `SincronizadorMenu` aplica cada página del delta en **una transacción** (`EjecutorDeTransaccion`) | Fila por fila eran 50 invalidaciones de Room y 50 repintados del `RecyclerView` |
+| Paginación del delta por **offset**, no por marca de agua | Con ≥50 filas del mismo `actualizado_en` se perdían las siguientes **para siempre** |
+| `PlatilloAdapter` fija `timeout(20 s)` y `diskCacheStrategy(ALL)` en Glide | Sin `AppGlideModule`, Glide usa 2500 ms por defecto: en 3G expiraba la primera tanda de fotos |
+
+**Nota para quien toque el sincronizador:** `EstadoMenu.isVacio()` se dejó intacto a
+propósito al agregar `isEsperandoPrimeraCarga()`. Meter la espera adentro de `isVacio()`
+rompería `isVacioPorFiltro()`, que lo usa.
+
+---
+
 ## Relaciones
 
+- [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]]
+- [[Traducir un Diseño Web a Views de Android]] — el método usado en el rediseño de 2026-08-04
 - [[Plan Fase 2a - CRUD de Platillos y Categorias]] — el plan que lo define
 - [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]]
 - [[Plan de Fase 2 - Menu]] — por qué 2a, 2b, 2c, 2d y 2e van separadas

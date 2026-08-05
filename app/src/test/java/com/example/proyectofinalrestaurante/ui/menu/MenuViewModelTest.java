@@ -104,6 +104,46 @@ public class MenuViewModelTest {
     }
 
     @Test
+    public void sinPlatillosYSinHaberSincronizado_esEsperaYNoMenuVacio() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        repositorio.platillos.setValue(new ArrayList<>());
+
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        // Regresión de la Sesión 2026-08-04: en instalación desde cero Room emite la lista
+        // vacía enseguida, mucho antes de que conteste el servidor. Anunciar ahí "Todavía
+        // no hay platillos" era un estado terminal falso.
+        assertTrue(viewModel.getEstado().getValue().isEsperandoPrimeraCarga());
+    }
+
+    @Test
+    public void trasLaPrimeraPasada_conListaVacia_reciensSeAnunciaComoVacio() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        repositorio.platillos.setValue(new ArrayList<>());
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        // Un ciclo completo de sincronización: arranca y termina.
+        repositorio.sincronizacion.setValue(new EstadoSincronizacion(true, null));
+        repositorio.sincronizacion.setValue(new EstadoSincronizacion(false, null));
+
+        EstadoMenu estado = viewModel.getEstado().getValue();
+        assertFalse(estado.isEsperandoPrimeraCarga());
+        // Ahora sí: el servidor contestó y de verdad no hay platillos.
+        assertTrue(estado.isVacio());
+    }
+
+    @Test
+    public void conPlatillos_nuncaSeReportaComoEsperandoLaPrimeraCarga() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+
+        MenuViewModel viewModel = viewModelCon(repositorio);
+
+        // isEsperandoPrimeraCarga() deriva de isVacio(): con datos en pantalla no aplica,
+        // aunque todavía no haya terminado ninguna pasada.
+        assertFalse(viewModel.getEstado().getValue().isEsperandoPrimeraCarga());
+    }
+
+    @Test
     public void errorDeSincronizacion_terminaEnElEstado() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         repositorio.sincronizacion.setValue(
@@ -357,9 +397,18 @@ public class MenuViewModelTest {
     }
 
     @Test
+    public void construir_sincronizaUnaVezSinEsperarElPullToRefresh() {
+        FakeMenuRepository repositorio = new FakeMenuRepository();
+        viewModelCon(repositorio);
+
+        assertEquals(1, repositorio.vecesSincronizo);
+    }
+
+    @Test
     public void sincronizar_pideAlRepositorio() {
         FakeMenuRepository repositorio = new FakeMenuRepository();
         MenuViewModel viewModel = viewModelCon(repositorio);
+        repositorio.vecesSincronizo = 0; // descarta el sync-on-launch del constructor
 
         viewModel.sincronizar();
 

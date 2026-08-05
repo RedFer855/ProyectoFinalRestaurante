@@ -1,18 +1,17 @@
 package com.example.proyectofinalrestaurante.ui.menu;
 
-import android.app.Dialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
-import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -20,8 +19,8 @@ import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.ReglasMenu;
 import com.example.proyectofinalrestaurante.domain.model.Categoria;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
+import com.example.proyectofinalrestaurante.ui.comun.HojaModal;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +33,12 @@ import java.util.List;
  * después de cada operación, y mantener abierta una lista que ya quedó vieja —con
  * contadores de platillos desactualizados, que son justo lo que decide si una categoría se
  * puede borrar— llevaría a ofrecer acciones que el servidor va a rechazar.</p>
+ *
+ * <p>Es una <b>hoja modal inferior</b>, siguiendo el diseño aprobado ("Restaurant App
+ * v2.dc.html"). Renombrar y confirmar un borrado siguen siendo diálogos centrados: son
+ * confirmaciones cortas, y el diseño no define hojas para ellas.</p>
  */
-public class CategoriasDialog extends DialogFragment {
+public class CategoriasDialog extends HojaModal {
 
     public static final String TAG = "Categorias";
 
@@ -56,7 +59,7 @@ public class CategoriasDialog extends DialogFragment {
     private static final String ARG_ACTIVAS = "activas";
 
     private AlOperar alOperar;
-    private TextInputEditText campoNueva;
+    private EditText campoNueva;
     private TextView textoError;
     private List<Categoria> categorias = new ArrayList<>();
 
@@ -86,13 +89,18 @@ public class CategoriasDialog extends DialogFragment {
         this.alOperar = alOperar;
     }
 
-    @NonNull
+    @Nullable
     @Override
-    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.dialog_categorias, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View vista, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(vista, savedInstanceState);
         categorias = reconstruirCategorias();
 
-        View vista = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_categorias, null, false);
         campoNueva = vista.findViewById(R.id.txt_categoria_nueva);
         textoError = vista.findViewById(R.id.txt_categorias_error);
 
@@ -102,12 +110,7 @@ public class CategoriasDialog extends DialogFragment {
 
         vista.findViewById(R.id.btn_agregar_categoria)
                 .setOnClickListener(v -> intentarCrear());
-
-        return new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.menu_titulo_categorias)
-                .setView(vista)
-                .setNegativeButton(R.string.menu_categoria_cerrar, null)
-                .create();
+        cerrarAlTocar(vista, R.id.btn_cerrar_categorias);
     }
 
     /** Rearma los objetos de dominio desde los arreglos paralelos del Bundle. */
@@ -161,11 +164,9 @@ public class CategoriasDialog extends DialogFragment {
 
     private void pedirNuevoNombre(Categoria categoria) {
         View vista = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_categorias, null, false);
-        vista.findViewById(R.id.lista_categorias).setVisibility(View.GONE);
-        vista.findViewById(R.id.btn_agregar_categoria).setVisibility(View.GONE);
+                .inflate(R.layout.dialog_categoria_nombre, null, false);
 
-        TextInputEditText campo = vista.findViewById(R.id.txt_categoria_nueva);
+        EditText campo = vista.findViewById(R.id.txt_categoria_nombre);
         campo.setText(categoria.getDescripcion());
 
         new MaterialAlertDialogBuilder(requireContext())

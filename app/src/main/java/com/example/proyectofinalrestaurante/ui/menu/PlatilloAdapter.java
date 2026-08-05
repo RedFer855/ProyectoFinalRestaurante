@@ -7,18 +7,20 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
+import androidx.core.widget.TextViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.imageview.ShapeableImageView;
 
 import java.util.Objects;
@@ -39,6 +41,13 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
     /** Opacidad de un platillo desactivado: sigue siendo legible pero se distingue. */
     private static final float ALPHA_INACTIVO = 0.45f;
     private static final float ALPHA_ACTIVO = 1f;
+
+    /**
+     * Tope para bajar la foto de un platillo. El de Glide por defecto son 2500 ms, pensados
+     * para banda ancha; acá el objetivo es una red 3G intermitente, donde ese valor hace
+     * fallar la descarga antes de que llegue a empezar.
+     */
+    private static final int TIMEOUT_FOTO_MS = 20_000;
 
     /**
      * El Fragment decide qué hacer con la acción elegida.
@@ -103,8 +112,8 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
         private final TextView descripcion;
         private final TextView precio;
         private final LinearLayout grupoAcciones;
-        private final MaterialButton botonEditar;
-        private final MaterialButton botonEstado;
+        private final TextView botonEditar;
+        private final TextView botonEstado;
 
         Holder(@NonNull View itemView) {
             super(itemView);
@@ -165,10 +174,26 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             }
 
             foto.setPadding(0, 0, 0, 0);
+            // override() al tamaño real del hueco (150dp): Glide decodifica a esa medida
+            // en vez de traerse el bitmap completo a memoria y escalarlo después. En gama
+            // baja esa diferencia es la que evita el jank al hacer scroll —
+            // ver Presupuestos de Rendimiento en Gama Baja.
+            int lado = itemView.getResources()
+                    .getDimensionPixelSize(R.dimen.foto_platillo_tarjeta);
             Glide.with(foto)
                     .load(url)
                     .placeholder(R.drawable.ic_platillo_sin_foto)
                     .error(R.drawable.ic_platillo_sin_foto)
+                    .override(lado, lado)
+                    // Sin AppGlideModule, Glide baja por HttpURLConnection con un timeout
+                    // por defecto de 2500 ms. Con red intermitente la primera tanda de
+                    // fotos expiraba entera y recién se reintentaba al re-bindear la fila:
+                    // eso era lo que se veía como "las imágenes cargaron al rato".
+                    .timeout(TIMEOUT_FOTO_MS)
+                    // ALL y no el AUTOMATIC implícito: con override() ya presente, esto
+                    // guarda además el bitmap ya escalado a 150dp, así que el próximo
+                    // arranque en frío no vuelve a decodificar el archivo original.
+                    .diskCacheStrategy(DiskCacheStrategy.ALL)
                     .centerCrop()
                     .into(foto);
         }
@@ -194,8 +219,15 @@ public class PlatilloAdapter extends ListAdapter<Platillo, PlatilloAdapter.Holde
             // La misma acción en los dos sentidos: el texto y el ícono dicen cuál toca.
             botonEstado.setText(platillo.isActivo()
                     ? R.string.accion_desactivar : R.string.accion_activar);
-            botonEstado.setIconResource(platillo.isActivo()
-                    ? R.drawable.ic_desactivar : R.drawable.ic_reactivar);
+            botonEstado.setCompoundDrawablesRelativeWithIntrinsicBounds(
+                    platillo.isActivo()
+                            ? R.drawable.ic_desactivar_tarjeta : R.drawable.ic_reactivar_tarjeta,
+                    0, 0, 0);
+            // El tinte se reaplica a mano: cambiar el drawable compuesto descarta el que
+            // venía de app:drawableTint en el layout, y el ícono saldría negro.
+            TextViewCompat.setCompoundDrawableTintList(botonEstado,
+                    ContextCompat.getColorStateList(
+                            itemView.getContext(), R.color.brand_secondary));
             botonEstado.setOnClickListener(
                     puedeDesactivar ? v -> alElegirAccion.onAlternarEstadoPlatillo(platillo) : null);
         }

@@ -90,7 +90,9 @@ Semánticos, no decorativos. **Nunca comunicar estado solo con color** — siemp
 
 ## Tipografía
 
-**Solo la fuente del sistema** (Roboto). Cero fuentes custom: cada `.ttf` son cientos de KB en el APK y tiempo de carga en gama baja. La jerarquía se logra con tamaño y peso, vía atributos del tema — nunca `sp` hardcodeado.
+**Solo la fuente del sistema** (Roboto). Cero fuentes custom: cada `.ttf` son cientos de KB en el APK y tiempo de carga en gama baja. La jerarquía se logra con tamaño y peso — nunca `sp` hardcodeado dentro de un layout.
+
+Escala base del tema, para pantallas sin diseño específico:
 
 | Uso | Atributo |
 |---|---|
@@ -98,6 +100,17 @@ Semánticos, no decorativos. **Nunca comunicar estado solo con color** — siemp
 | Título de sección / card | `?attr/textAppearanceTitleMedium` |
 | Cuerpo | `?attr/textAppearanceBodyMedium` |
 | Etiquetas, chips, captions | `?attr/textAppearanceLabelMedium` |
+
+> [!info] Cuando el diseño pide tamaños que la escala Material no tiene (desde 2026-08-04)
+> El mockup aprobado especifica tamaños al medio punto (`13.5`, `10.5`, `9.5`) que ningún `?attr/textAppearance*` reproduce. La salida **no** es hardcodear `android:textSize` en el layout, sino declarar estilos propios en **`values/styles.xml`**:
+> ```xml
+> <style name="TextAppearance.App.NombrePlatillo" parent="TextAppearance.Material3.TitleSmall">
+>     <item name="android:textSize">13.5sp</item>
+> </style>
+> ```
+> Siguen en `sp` (escalan con la fuente del sistema) y siguen teniendo nombre (subir el piso tipográfico es una edición por estilo). El catálogo `TextAppearance.App.*` vive en `values/styles.xml`; ver [[Traducir un Diseño Web a Views de Android]].
+>
+> **Corolario:** si el diseño fija un alto en píxeles para un bloque con texto, en Android va como `minHeight`. Con alto fijo, subir la fuente recorta en vez de crecer.
 
 ---
 
@@ -146,7 +159,7 @@ Toda pantalla que cargue datos maneja **cuatro** estados, no dos. Es la lección
 ## Accesibilidad — mínimos no negociables
 
 - Contraste de texto ≥ 4.5:1 (la paleta de arriba ya lo cumple)
-- Todo tocable ≥ 48×48 dp
+- Todo tocable ≥ 48×48 dp — **el área tocable y la figura visible son cosas distintas**: si el diseño dibuja un control más chico, se cumplen las dos (`app:ensureMinTouchTargetSize` en chips, `<inset>` en botones circulares). Recetas en [[Traducir un Diseño Web a Views de Android]]
 - `contentDescription` en todo icono que comunique algo (los decorativos: `null`)
 - Errores con `accessibilityLiveRegion="polite"` para que TalkBack los anuncie
 - La app debe seguir siendo usable con **fuente al 200 %** — de ahí que nada tenga altura fija en `dp`
@@ -169,6 +182,7 @@ El prompt completo y detallado, pantalla por pantalla, está en la nota de sesi�
 
 ## Relaciones
 
+- [[Traducir un Diseño Web a Views de Android]] — cómo se implementa este contrato desde el mockup
 - [[Plan de Fase 1 - Roles, Autenticación y Recuperación]]
 - [[Módulo Login]]
 - [[Accesibilidad Android]]

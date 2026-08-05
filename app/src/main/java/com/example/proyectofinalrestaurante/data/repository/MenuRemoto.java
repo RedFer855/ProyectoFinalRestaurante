@@ -120,15 +120,19 @@ public final class MenuRemoto {
      * traduce en "sin filtro": Retrofit omite el query {@code actualizado_en} cuando el
      * valor es {@code null}, así que la primera sincronización baja la tabla entera.
      */
-    public ResultadoRed<List<PlatilloDto>> listarPlatillosDesde(@Nullable String marcaAgua) {
+    public ResultadoRed<List<PlatilloDto>> listarPlatillosDesde(@Nullable String marcaAgua,
+                                                                int desplazamiento) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
         }
         try {
             String filtro = marcaAgua == null ? null : "gt." + marcaAgua;
+            // El id desempata: sin un orden total, dos pedidos con el mismo offset pueden
+            // devolver filas distintas y perderse alguna entre páginas.
             Response<List<PlatilloDto>> respuesta = api.listarPlatillosDesde(
-                    bearer, "*", filtro, "actualizado_en.asc", LIMITE_DELTA).execute();
+                    bearer, "*", filtro, "actualizado_en.asc,id_platillo.asc",
+                    LIMITE_DELTA, desplazamiento).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(), "No se pudo cargar el menú.");
             }
@@ -140,7 +144,8 @@ public final class MenuRemoto {
         }
     }
 
-    public ResultadoRed<List<CategoriaDto>> listarCategoriasDesde(@Nullable String marcaAgua) {
+    public ResultadoRed<List<CategoriaDto>> listarCategoriasDesde(@Nullable String marcaAgua,
+                                                                  int desplazamiento) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
@@ -148,7 +153,8 @@ public final class MenuRemoto {
         try {
             String filtro = marcaAgua == null ? null : "gt." + marcaAgua;
             Response<List<CategoriaDto>> respuesta = api.listarCategoriasDesde(
-                    bearer, "*", filtro, "actualizado_en.asc", LIMITE_DELTA).execute();
+                    bearer, "*", filtro, "actualizado_en.asc,id_categoria.asc",
+                    LIMITE_DELTA, desplazamiento).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(), "No se pudieron cargar las categorías.");
             }

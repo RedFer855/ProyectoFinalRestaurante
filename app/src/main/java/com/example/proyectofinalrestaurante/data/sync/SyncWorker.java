@@ -17,9 +17,23 @@ import java.util.function.Supplier;
  * explícita en que debe haber uno solo, para que nunca haya dos drenando la misma cola en
  * paralelo. Cada módulo aporta su {@link Sincronizador} y se corren en orden.</p>
  *
- * <p>Sin sesión no toca la cola: si no hay token, devuelve {@code Result.retry()} sin llamar
- * a ningún sincronizador (si se llamara, la primera llamada de red devolvería 401 y le
- * quemaría un intento a la operación sin necesidad).</p>
+ * <p>Sin sesión no toca la cola: si no hay token, termina sin llamar a ningún sincronizador
+ * (si se llamara, la primera llamada de red devolvería 401 y le quemaría un intento a la
+ * operación sin necesidad).</p>
+ *
+ * <p><b>Y termina con {@code success()}, no con {@code retry()} (2026-08-04).</b> Devolver
+ * {@code retry()} dejaba el trabajo único vivo en estado {@code ENQUEUED} con backoff, y
+ * como {@code SyncScheduler} encola con {@link androidx.work.ExistingWorkPolicy#KEEP},
+ * <b>todo pedido posterior se descartaba en silencio</b>: el sync-on-launch de cada
+ * ViewModel y hasta el pull-to-refresh. En una instalación desde cero eso se veía como un
+ * Menú que nunca cargaba, porque el trabajo se encolaba en la pantalla de login —todavía
+ * sin sesión— y envenenaba el slot antes de que el usuario llegara a ninguna pantalla.</p>
+ *
+ * <p>El invariante correcto es: <b>un worker que no puede hacer nada no debe retener el
+ * trabajo único.</b> Sin token no hay trabajo posible, así que la pasada terminó. No se
+ * pierde nada: las operaciones viven en {@code operaciones_pendientes} (Room), lo que se
+ * descarta es el disparador, y hay cuatro caminos que lo recrean (foreground, periódico,
+ * el {@code sincronizar()} de cada ViewModel y cada escritura local).</p>
  *
  * <p>No depende de {@code SesionActual}: el token entra por un {@link Supplier} que inyecta
  * la factory. Tampoco conoce a la UI: el estado se avisa por
@@ -45,7 +59,11 @@ public final class SyncWorker extends Worker {
     @Override
     public Result doWork() {
         if (proveedorToken.get() == null) {
-            return Result.retry();
+            // Ver el Javadoc: success() y no retry(), para no dejar el trabajo único
+            // ocupado y hacer que KEEP descarte los pedidos que sí van a tener sesión.
+            // El return va antes de alIniciar(), así que la UI nunca ve un
+            // "sincronizado" que no ocurrió.
+            return Result.success();
         }
         observador.alIniciar();
 

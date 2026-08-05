@@ -146,7 +146,7 @@ public class MenuRemotoTest {
         api.respuestaListarPlatillosDesde = FakeCall.deRespuesta(Response.success(List.of()));
 
         ResultadoRed<List<PlatilloDto>> resultado =
-                remotoCon(api, new FakeStorageApi()).listarPlatillosDesde(null);
+                remotoCon(api, new FakeStorageApi()).listarPlatillosDesde(null, 0);
 
         assertTrue(resultado.isExitoso());
         // Sin marca, la primera bajada pide la tabla entera: sin query actualizado_en.
@@ -158,9 +158,23 @@ public class MenuRemotoTest {
         FakeMenuApi api = new FakeMenuApi();
         api.respuestaListarPlatillosDesde = FakeCall.deRespuesta(Response.success(List.of()));
 
-        remotoCon(api, new FakeStorageApi()).listarPlatillosDesde("2026-01-01T10:00:00+00:00");
+        remotoCon(api, new FakeStorageApi())
+                .listarPlatillosDesde("2026-01-01T10:00:00+00:00", 0);
 
         assertEquals("gt.2026-01-01T10:00:00+00:00", api.ultimoFiltroDesdePlatillos);
+    }
+
+    @Test
+    public void listarPlatillosDesde_propagaElOffsetYOrdenaConDesempate() {
+        FakeMenuApi api = new FakeMenuApi();
+        api.respuestaListarPlatillosDesde = FakeCall.deRespuesta(Response.success(List.of()));
+
+        remotoCon(api, new FakeStorageApi()).listarPlatillosDesde(null, 50);
+
+        assertEquals(50, api.ultimoOffsetPlatillos);
+        // Sin el id como desempate, dos pedidos con el mismo offset pueden devolver filas
+        // distintas y alguna se pierde entre páginas.
+        assertEquals("actualizado_en.asc,id_platillo.asc", api.ultimoOrdenPlatillos);
     }
 
     // ------------------------------------------------------------------ crear
@@ -445,6 +459,8 @@ public class MenuRemotoTest {
         String ultimoFiltroPlatillo;
         String ultimoFiltroCategoria;
         String ultimoFiltroDesdePlatillos;
+        String ultimoOrdenPlatillos;
+        int ultimoOffsetPlatillos;
         String cuerpoCrudoEnviado;
         ActualizarPlatilloDto ultimoActualizarPlatillo;
         CrearPlatilloDto ultimoCrearPlatillo;
@@ -463,15 +479,19 @@ public class MenuRemotoTest {
         @Override
         public Call<List<PlatilloDto>> listarPlatillosDesde(String bearerToken, String select,
                                                             String actualizadoEnMayorQue,
-                                                            String orden, int limite) {
+                                                            String orden, int limite,
+                                                            int desplazamiento) {
             ultimoFiltroDesdePlatillos = actualizadoEnMayorQue;
+            ultimoOrdenPlatillos = orden;
+            ultimoOffsetPlatillos = desplazamiento;
             return respuestaListarPlatillosDesde;
         }
 
         @Override
         public Call<List<CategoriaDto>> listarCategoriasDesde(String bearerToken, String select,
                                                               String actualizadoEnMayorQue,
-                                                              String orden, int limite) {
+                                                              String orden, int limite,
+                                                              int desplazamiento) {
             return respuestaListarCategoriasDesde;
         }
 

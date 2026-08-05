@@ -11,6 +11,7 @@ import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
 import com.example.proyectofinalrestaurante.data.repository.MesaRepositorioLocal;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -35,9 +36,10 @@ public class MesasViewModelFactory implements ViewModelProvider.Factory {
         SyncApplication app = (SyncApplication) aplicacion;
         Outbox outbox = new Outbox(app.baseDeDatos().operacionPendienteDao(),
                 TipoOperacion.Modulo.MESAS);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
         MesaRepositorioLocal repositorio =
-                new MesaRepositorioLocal(app.baseDeDatos(), outbox, app);
+                new MesaRepositorioLocal(app.baseDeDatos(), outbox, app, executor);
         SyncApplication.registrarObservador(TipoOperacion.Modulo.MESAS, repositorio);
-        return (T) new MesasViewModel(repositorio, Executors.newSingleThreadExecutor());
+        return (T) new MesasViewModel(repositorio, executor);
     }
 }

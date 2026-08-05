@@ -246,9 +246,18 @@ public class ClientesViewModelTest {
     }
 
     @Test
+    public void construir_sincronizaUnaVezSinEsperarElPullToRefresh() {
+        FakeClienteRepository repositorio = new FakeClienteRepository();
+        viewModelCon(repositorio);
+
+        assertEquals(1, repositorio.vecesSincronizo);
+    }
+
+    @Test
     public void sincronizar_pideAlRepositorio() {
         FakeClienteRepository repositorio = new FakeClienteRepository();
         ClientesViewModel viewModel = viewModelCon(repositorio);
+        repositorio.vecesSincronizo = 0; // descarta el sync-on-launch del constructor
 
         viewModel.sincronizar();
 

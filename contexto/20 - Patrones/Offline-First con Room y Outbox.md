@@ -53,6 +53,20 @@ operaciones_pendientes(
 
 Un **`SyncWorker` único** (`ExistingWorkPolicy.KEEP`) la drena con `Constraints.NETWORK_CONNECTED` y backoff exponencial. Único = nunca dos workers compitiendo por la misma cola.
 
+> [!danger] El trabajo único es un recurso compartido: no lo retengas si no podés trabajar
+> Aprendido a los golpes el **2026-08-04** (ver [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]]).
+>
+> Con `KEEP`, mientras exista un trabajo vivo con ese nombre, **todo `enqueueUniqueWork` posterior se descarta en silencio**. Un worker que devuelve `Result.retry()` queda `ENQUEUED` con backoff — vivo. Entonces:
+>
+> **Un worker que no puede hacer nada debe terminar con `success()`, nunca con `retry()`.** Si falta el token, el usuario todavía no inició sesión: no hay trabajo posible, la pasada terminó. Devolver `retry()` ahí envenena el slot y hace que se descarten los pedidos que *sí* van a tener sesión — incluido el "sync-on-launch" de cada pantalla y el pull-to-refresh. La app queda muda hasta que el backoff se digne a disparar (15 s, 45 s, 1:45, 3:45…).
+>
+> No se pierde nada al no reintentar: **las operaciones viven en la tabla, el disparador no**. Encolar es barato y hay muchos caminos que lo recrean.
+>
+> Corolario: **encolá solo cuando el trabajo sea posible.** Si el disparador depende de la sesión, chequeala antes de encolar.
+
+> [!warning] `ExistingWorkPolicy.REPLACE` está prohibido mientras el outbox no tenga clave de idempotencia
+> Suena a la solución obvia para "el trabajo anterior quedó pegado", pero **`REPLACE` cancela el worker en ejecución**. Si lo mata entre el `POST` y el `marcarExito`, la operación sigue en la cola y se vuelve a postear: registro duplicado. Choca de frente con la regla de la tabla de abajo ("POST no idempotente: nunca reintentar sin *idempotency key*"). Y si el pull-to-refresh usa ese camino, cada gesto del usuario es una oportunidad de duplicar.
+
 ### 4. Sync delta, no full
 
 El cliente guarda `last_sync_at` y pide **solo los cambios**:
@@ -62,6 +76,22 @@ GET /rest/v1/productos?select=id,nombre,precio&updated_at=gt.{last_sync_at}
 ```
 
 **Nunca descargar la tabla completa.** En 3G, bajar 500 productos cada vez que se abre la app es la diferencia entre 2 segundos y 40.
+
+> [!danger] Paginar el delta por marca de agua pierde filas
+> Encontrado el 2026-08-04. La forma intuitiva —traer una página, avanzar la marca al máximo visto, pedir `gt.<esa marca>`— **tiene un agujero**: si hay más filas que el tamaño de página **compartiendo el mismo `updated_at`**, la siguiente consulta las excluye por definición, y esas filas no se bajan **nunca**.
+>
+> No es un caso raro: es exactamente lo que produce sembrar un catálogo con un `INSERT` masivo, donde todas las filas quedan con el mismo timestamp. O sea que se rompe justo en la instalación desde cero.
+>
+> **Dentro de una pasada, la marca queda fija y lo que avanza es el `offset`**; la marca máxima se guarda **al final**. Y el `order` necesita un desempate estable (`updated_at.asc,id.asc`): sin orden total, el `offset` puede repetir o saltear filas entre pedidos.
+>
+> Guardar la marca al final significa que un corte a mitad de camino re-baja desde la marca vieja. Es el precio correcto: aplicar filas es idempotente (se busca por `id_servidor`), perder filas no se arregla solo.
+>
+> Riesgo hermano del mismo bucle: si el progreso depende de que la marca avance, una página llena cuyas filas traigan `updated_at` nulo lo deja girando para siempre. Con `offset` el progreso está garantizado, y conviene igual un tope de páginas como cinturón.
+
+> [!tip] Aplicá cada página en una sola transacción
+> Insertar fila por fila son N transacciones SQLite con su `fsync` **y** N invalidaciones de tabla. Cada invalidación hace que Room vuelva a correr las consultas observadas, se remapee la lista completa y el `RecyclerView` se repinte entero. Con 50 filas eso son 50 repintados; agrupando, Room difiere las notificaciones hasta el commit y queda **una sola re-emisión por página**. En gama baja la diferencia se ve como "los ítems cargaron de a poco".
+>
+> Si el sincronizador recibe DAOs sueltos (para poder testearlo con fakes), no le pases la base entera: pasale una interfaz funcional de una línea que envuelva `runInTransaction`.
 
 ### 5. Resolución de conflictos declarada
 

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fondo del buscador del menú: bloque durazno de esquinas suaves, sin borde. El mockup
+  no usa un campo con contorno flotante, sino una pastilla rellena — por eso el buscador
+  no es un TextInputLayout OutlinedBox.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/brand_primary_container" />
+    <corners android:radius="@dimen/radio_busqueda" />
+</shape>

@@ -1,66 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Gestión de categorías (Fase 2a). Alta arriba, lista abajo con sus opciones.
-  Cada acción cierra el diálogo: al volver, la lista ya está releída del servidor.
+  Gestión de categorías — hoja modal inferior, con el aspecto del bloque "Categorías del
+  menú" de "Restaurant App v2.dc.html" (Claude Design): tarjetas blancas de radio 14 y,
+  al final, el botón de borde punteado "+ Agregar categoría".
+
+  El mockup abre un modal aparte para dar de alta. Acá el campo va en la misma hoja y el
+  botón punteado es el que confirma: evita anidar una hoja modal dentro de otra, que en
+  Android es incómodo de descartar, y ahorra un toque.
+
+  Cada acción cierra la hoja: quien la abrió recarga después de cada operación, y dejar a
+  la vista una lista ya vieja —con contadores desactualizados, que son justo los que
+  deciden si una categoría se puede borrar— llevaría a ofrecer acciones condenadas a
+  fallar.
 -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingHorizontal="@dimen/espaciado_pantalla"
-    android:paddingTop="@dimen/espaciado_campo">
+    android:layout_height="wrap_content">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/espaciado_menu"
+        android:paddingTop="@dimen/espaciado_menu"
+        android:paddingBottom="26dp">
 
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="@string/menu_categoria_nueva">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/txt_categoria_nueva"
-                android:layout_width="match_parent"
+            <TextView
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:inputType="textCapSentences"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:text="@string/menu_titulo_categorias"
+                android:textAppearance="@style/TextAppearance.App.TituloModal"
+                android:textColor="@color/brand_on_surface" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_agregar_categoria"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
+            <ImageButton
+                android:id="@+id/btn_cerrar_categorias"
+                android:layout_width="@dimen/altura_minima_tactil"
+                android:layout_height="@dimen/altura_minima_tactil"
+                android:background="@drawable/bg_boton_cerrar_modal"
+                android:contentDescription="@string/cd_cerrar"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:padding="17dp"
+                android:src="@drawable/ic_cerrar"
+                app:tint="@color/brand_secondary" />
+        </LinearLayout>
+
+        <!--
+          La lista va sin scroll propio: ya está dentro del NestedScrollView de la hoja, y
+          anidar dos scrolls verticales hace que el gesto se pelee entre ambos.
+        -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/lista_categorias"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/espaciado_minimo"
+            android:layout_marginTop="18dp"
+            android:nestedScrollingEnabled="false"
+            tools:itemCount="4"
+            tools:listitem="@layout/item_categoria" />
+
+        <TextView
+            style="@style/Widget.App.EtiquetaCampo"
+            android:layout_marginTop="14dp"
+            android:text="@string/menu_categoria_nueva" />
+
+        <EditText
+            android:id="@+id/txt_categoria_nueva"
+            style="@style/Widget.App.CampoModal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/menu_categoria_nueva_ejemplo"
+            android:importantForAutofill="no"
+            android:inputType="textCapSentences"
+            android:maxLines="1" />
+
+        <TextView
+            android:id="@+id/txt_categorias_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/espaciado_minimo"
+            android:accessibilityLiveRegion="polite"
+            android:textAppearance="@style/TextAppearance.App.EstadoVacio"
+            android:textColor="@color/brand_error"
+            android:visibility="gone"
+            tools:text="Ya existe una categoría con ese nombre"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/btn_agregar_categoria"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/bg_boton_punteado"
+            android:gravity="center"
             android:minHeight="@dimen/altura_minima_tactil"
-            android:text="@string/menu_categoria_agregar" />
+            android:paddingVertical="12dp"
+            android:text="@string/menu_categoria_agregar"
+            android:textAppearance="@style/TextAppearance.App.ChipFiltro"
+            android:textColor="@color/brand_primary" />
+
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/txt_categorias_error"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/espaciado_minimo"
-        android:accessibilityLiveRegion="polite"
-        android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textColor="?attr/colorError"
-        android:visibility="gone"
-        tools:text="Ya existe una categoría con ese nombre"
-        tools:visibility="visible" />
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/lista_categorias"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/espaciado_campo"
-        tools:itemCount="4"
-        tools:listitem="@layout/item_categoria" />
-
-</LinearLayout>
+</androidx.core.widget.NestedScrollView>

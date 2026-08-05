@@ -1,6 +1,5 @@
 package com.example.proyectofinalrestaurante.ui.menu;
 
-import android.app.Dialog;
 import android.content.ContentResolver;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,6 +7,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -15,8 +17,6 @@ import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.DialogFragment;
 
 import com.bumptech.glide.Glide;
 import com.example.proyectofinalrestaurante.R;
@@ -27,11 +27,10 @@ import com.example.proyectofinalrestaurante.domain.model.Categoria;
 import com.example.proyectofinalrestaurante.domain.model.ImagenPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPlatillo;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
+import com.example.proyectofinalrestaurante.ui.comun.HojaModal;
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
-import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.List;
 import java.util.Locale;
@@ -45,8 +44,14 @@ import java.util.concurrent.Executors;
  * <p>Un mismo diálogo para las dos operaciones, igual que {@code FormularioEmpleadoDialog}:
  * lo único que cambia al editar es que los campos vienen llenos y que aparece la opción de
  * quitar la foto guardada.</p>
+ *
+ * <p>Es una <b>hoja modal inferior</b> y ya no un diálogo centrado, siguiendo el diseño
+ * aprobado ("Restaurant App v2.dc.html", bloque {@code modalIsDish}). El cambio es de
+ * presentación: la interfaz {@link AlGuardar} no se tocó, así que quien lo abre no se
+ * entera. De {@link HojaModal} hereda el abrirse expandida — si no, este formulario
+ * abría a medias y los botones de guardar quedaban abajo de la pantalla.</p>
  */
-public class FormularioPlatilloDialog extends DialogFragment {
+public class FormularioPlatilloDialog extends HojaModal {
 
     public static final String TAG = "FormularioPlatillo";
 
@@ -90,11 +95,13 @@ public class FormularioPlatilloDialog extends DialogFragment {
 
     private AlGuardar alGuardar;
 
-    private TextInputEditText campoNombre;
-    private TextInputEditText campoDescripcion;
-    private TextInputEditText campoPrecio;
+    private EditText campoNombre;
+    private EditText campoDescripcion;
+    private EditText campoPrecio;
     private MaterialAutoCompleteTextView campoCategoria;
     private ShapeableImageView previsualizacion;
+    /** Aviso "Tocá para subir una foto"; solo se ve mientras no hay ninguna. */
+    private TextView avisoFoto;
     private MaterialButton botonQuitarFoto;
     private TextView textoError;
 
@@ -149,27 +156,17 @@ public class FormularioPlatilloDialog extends DialogFragment {
         return getArguments() != null && getArguments().containsKey(ARG_PLATILLO_ID);
     }
 
-    @NonNull
+    @Nullable
     @Override
-    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        View vista = LayoutInflater.from(requireContext())
-                .inflate(R.layout.dialog_platillo, null, false);
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.dialog_platillo, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View vista, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(vista, savedInstanceState);
         enlazarVistas(vista);
-
-        AlertDialog dialogo = new MaterialAlertDialogBuilder(requireContext())
-                .setTitle(esEdicion() ? R.string.menu_titulo_editar_platillo
-                        : R.string.menu_titulo_nuevo_platillo)
-                .setView(vista)
-                .setPositiveButton(R.string.empleado_guardar, null)
-                .setNegativeButton(R.string.empleado_cancelar, null)
-                .create();
-
-        // El listener se asigna después de mostrar para poder validar sin que el diálogo
-        // se cierre solo cuando los datos están mal.
-        dialogo.setOnShowListener(d ->
-                dialogo.getButton(AlertDialog.BUTTON_POSITIVE)
-                        .setOnClickListener(v -> intentarGuardar()));
-        return dialogo;
     }
 
     private void enlazarVistas(View vista) {
@@ -178,6 +175,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
         campoPrecio = vista.findViewById(R.id.txt_platillo_precio);
         campoCategoria = vista.findViewById(R.id.txt_platillo_categoria);
         previsualizacion = vista.findViewById(R.id.img_platillo_previsualizacion);
+        avisoFoto = vista.findViewById(R.id.txt_aviso_foto);
         botonQuitarFoto = vista.findViewById(R.id.btn_quitar_foto);
         textoError = vista.findViewById(R.id.txt_platillo_error);
 
@@ -187,9 +185,26 @@ public class FormularioPlatilloDialog extends DialogFragment {
         campoCategoria.setSimpleItems(categoriaNombres);
         campoCategoria.setOnItemClickListener((padre, v, posicion, id) ->
                 idCategoriaElegida = categoriaIds[posicion]);
+        // Fuera de un TextInputLayout.ExposedDropdownMenu nadie abre la lista por vos: el
+        // campo no es editable (inputType="none"), así que sin esto un toque no hace nada.
+        campoCategoria.setOnClickListener(v -> campoCategoria.showDropDown());
 
         vista.findViewById(R.id.btn_elegir_foto).setOnClickListener(v -> abrirSelectorDeFotos());
+        // El hueco entero abre el selector, no solo el botón: es un blanco mucho más
+        // grande y es lo que la caja punteada está prometiendo con "Tocá para subir".
+        vista.findViewById(R.id.caja_foto_platillo)
+                .setOnClickListener(v -> abrirSelectorDeFotos());
         botonQuitarFoto.setOnClickListener(v -> quitarFoto());
+
+        // El título y las acciones ahora viven en el layout, no en los botones que antes
+        // ponía MaterialAlertDialogBuilder. "Guardar" valida primero: solo cierra la hoja
+        // si los datos pasan, igual que hacía el viejo setOnShowListener.
+        ((TextView) vista.findViewById(R.id.txt_titulo_platillo)).setText(
+                esEdicion() ? R.string.menu_titulo_editar_platillo
+                        : R.string.menu_titulo_nuevo_platillo);
+        cerrarAlTocar(vista, R.id.btn_cerrar_platillo);
+        cerrarAlTocar(vista, R.id.btn_cancelar_platillo);
+        vista.findViewById(R.id.btn_guardar_platillo).setOnClickListener(v -> intentarGuardar());
 
         if (esEdicion()) {
             campoNombre.setText(args.getString(ARG_NOMBRE));
@@ -251,9 +266,8 @@ public class FormularioPlatilloDialog extends DialogFragment {
 
         imagenElegida = comprimida;
         ocultarError();
-        previsualizacion.setPadding(0, 0, 0, 0);
+        mostrarEstadoConFoto();
         Glide.with(this).load(uri).centerCrop().into(previsualizacion);
-        botonQuitarFoto.setVisibility(View.VISIBLE);
     }
 
     private void mostrarFotoGuardada(@Nullable String rutaImagen) {
@@ -261,14 +275,42 @@ public class FormularioPlatilloDialog extends DialogFragment {
         if (url == null) {
             return;
         }
-        previsualizacion.setPadding(0, 0, 0, 0);
+        mostrarEstadoConFoto();
         Glide.with(this)
                 .load(url)
-                .placeholder(R.drawable.ic_platillo_sin_foto)
                 .error(R.drawable.ic_platillo_sin_foto)
                 .centerCrop()
                 .into(previsualizacion);
+    }
+
+    /**
+     * Hueco con foto: se recorta para llenar, se saca la caja punteada y aparece la
+     * opción de quitarla.
+     */
+    private void mostrarEstadoConFoto() {
+        previsualizacion.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        previsualizacion.setPadding(0, 0, 0, 0);
+        previsualizacion.setBackground(null);
+        avisoFoto.setVisibility(View.GONE);
         botonQuitarFoto.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Hueco vacío: caja punteada con el ícono centrado y el aviso de tocar.
+     *
+     * <p>El {@code CENTER_INSIDE} es lo que arregla la "franja horizontal": el ícono del
+     * placeholder es un vector cuadrado de 24dp y con {@code CENTER_CROP} se escalaba
+     * hasta cubrir una caja mucho más ancha que alta, de la que solo se veía una banda
+     * del medio. Recortar sirve para una foto real, no para un ícono.</p>
+     */
+    private void mostrarEstadoSinFoto() {
+        Glide.with(this).clear(previsualizacion);
+        previsualizacion.setImageResource(R.drawable.ic_platillo_sin_foto);
+        previsualizacion.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+        int margen = getResources().getDimensionPixelSize(R.dimen.espaciado_campo);
+        previsualizacion.setPadding(margen, margen, margen, margen);
+        previsualizacion.setBackgroundResource(R.drawable.bg_foto_vacia);
+        avisoFoto.setVisibility(View.VISIBLE);
     }
 
     /**
@@ -278,10 +320,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
     private void quitarFoto() {
         if (imagenElegida != null) {
             imagenElegida = null;
-            Glide.with(this).clear(previsualizacion);
-            previsualizacion.setImageResource(R.drawable.ic_platillo_sin_foto);
-            int margen = getResources().getDimensionPixelSize(R.dimen.espaciado_seccion);
-            previsualizacion.setPadding(margen, margen, margen, margen);
+            mostrarEstadoSinFoto();
             if (!esEdicion() || requireArguments().getString(ARG_RUTA_IMAGEN) == null) {
                 botonQuitarFoto.setVisibility(View.GONE);
             }
@@ -345,7 +384,7 @@ public class FormularioPlatilloDialog extends DialogFragment {
         textoError.setVisibility(View.GONE);
     }
 
-    private String texto(TextInputEditText campo) {
+    private String texto(EditText campo) {
         return campo.getText() == null ? "" : campo.getText().toString().trim();
     }
 

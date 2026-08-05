@@ -571,6 +571,42 @@ de rendimiento en Room. Ver [[Seguridad y Privacidad Android]].
 
 ---
 
+### P-028 · Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché y con timeouts incompletos
+
+**Alcance:** `core/SupabaseClient.java:115-131`, `ui/menu/UrlDeImagen.java`.
+
+Salió a la luz investigando la carga lenta del Menú
+([[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]]). Se
+arregló lo que tocaba al Menú y **esto quedó afuera a propósito**, porque toca los siete
+APIs y por lo tanto todos los módulos.
+
+Cuatro cosas, en orden de impacto:
+
+1. **`buildRetrofit()` construye un `OkHttpClient` nuevo en cada una de sus 7 invocaciones.**
+   Son 7 `ConnectionPool` y 7 pools de hilos independientes contra el mismo host: la bajada
+   del menú y la subida a Storage no reutilizan la conexión TLS.
+2. **Sin `Cache` HTTP.** [[Presupuestos de Rendimiento en Gama Baja]] pide ~10 MB con
+   `max-stale`. Ojo: hoy no serviría de mucho —PostgREST no manda `Cache-Control` y las
+   imágenes ni siquiera pasan por OkHttp—, así que va después de los otros puntos.
+3. **Timeouts incompletos:** hay `connect` y `read` (15 s), faltan `write` y `callTimeout`.
+   El presupuesto pide connect 15 / read 30 / write 30 / callTimeout 45. Sin `callTimeout`,
+   una subida lenta puede colgarse indefinidamente.
+4. **Una sola resolución de imagen para todos los usos.** `CompresorDeImagen` sube a 1024 px
+   (dentro del presupuesto de 1600), pero la tarjeta del menú mide 150 dp: se bajan archivos
+   5-9× más grandes de lo necesario. Las dos salidas —el endpoint de transformación de
+   Supabase o subir un thumbnail aparte— son decisiones de fondo: **la primera es función de
+   plan pago** (en Free devolvería imágenes rotas), la segunda arrastra columna nueva,
+   migración de Room y backfill.
+
+**Riesgo:** bajo en Wi-Fi; medio en la red 3G intermitente que es el objetivo del proyecto.
+
+**Solución:** empezar por (1) y (3), que son contenidos y testeables
+(`SupabaseClientTest` ya existe). (2) y (4) recién después de medir.
+
+**Estado:** `[ ] Pendiente — fuera del alcance acordado del arreglo del Menú`
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -602,6 +638,7 @@ de rendimiento en Room. Ver [[Seguridad y Privacidad Android]].
 | P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]] |
 | P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
+| P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
 
 ---
 

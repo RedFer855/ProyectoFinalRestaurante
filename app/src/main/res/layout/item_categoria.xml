@@ -1,53 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fila de una categoría dentro del diálogo de gestión (Fase 2a). -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Fila de una categoría — calcada del bloque categoryRows de "Restaurant App v2.dc.html"
+  (Claude Design): tarjeta blanca de radio 14 con sombra apenas perceptible, nombre
+  arriba y "N platillos" debajo.
+
+  Desviación consciente: el mockup pone dos íconos sueltos (lápiz y basurero) porque solo
+  contempla editar y borrar. Acá hay tres acciones —renombrar, activar/desactivar y
+  borrar— y la tercera aparece o no según si la categoría tiene platillos colgando, así
+  que se conserva el menú ⋮, que es el que puede ocultar opciones.
+-->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
-    android:minHeight="@dimen/altura_minima_tactil"
-    android:orientation="horizontal"
-    android:paddingVertical="@dimen/espaciado_minimo">
+    android:layout_marginBottom="@dimen/espaciado_minimo"
+    app:cardBackgroundColor="@color/brand_surface_card"
+    app:cardCornerRadius="@dimen/radio_tarjeta_categoria"
+    app:cardElevation="1dp"
+    app:strokeWidth="0dp">
 
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/altura_minima_tactil"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="12dp">
 
-        <TextView
-            android:id="@+id/txt_nombre_categoria"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorOnSurface"
-            tools:text="Platos fuertes" />
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/txt_conteo_categoria"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="12 platillos" />
+            <TextView
+                android:id="@+id/txt_nombre_categoria"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAppearance="@style/TextAppearance.App.NombreCategoria"
+                android:textColor="@color/brand_on_surface"
+                tools:text="Platos fuertes" />
 
-        <TextView
-            android:id="@+id/txt_estado_categoria"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/menu_categoria_desactivada"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorError"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            <TextView
+                android:id="@+id/txt_conteo_categoria"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textAppearance="@style/TextAppearance.App.ConteoCategoria"
+                android:textColor="@color/brand_on_surface_variant"
+                tools:text="12 platillos" />
+
+            <TextView
+                android:id="@+id/txt_estado_categoria"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:text="@string/menu_categoria_desactivada"
+                android:textAppearance="@style/TextAppearance.App.ConteoCategoria"
+                android:textColor="@color/brand_error"
+                android:textStyle="bold"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_opciones_categoria"
+            android:layout_width="@dimen/altura_minima_tactil"
+            android:layout_height="@dimen/altura_minima_tactil"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_mas_opciones"
+            android:src="@drawable/ic_mas_opciones"
+            app:tint="@color/brand_on_primary_container" />
+
     </LinearLayout>
 
-    <ImageButton
-        android:id="@+id/btn_opciones_categoria"
-        android:layout_width="@dimen/altura_minima_tactil"
-        android:layout_height="@dimen/altura_minima_tactil"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/cd_mas_opciones"
-        android:src="@drawable/ic_mas_opciones" />
-
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>

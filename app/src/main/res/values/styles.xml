@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Estilos de componente y tipografía del módulo Menú, calcados de
+  "Restaurant App v2.dc.html" (Claude Design, proyecto 3f58f5fc-…).
+
+  Por qué existe este archivo y no se hardcodean tamaños en el layout:
+
+  1. El mockup especifica tamaños al medio punto (13.5px, 10.5px, 9.5px). La escala
+     Material del tema (?attr/textAppearance*) no los tiene, así que copiarla no daba
+     el mismo resultado visual.
+  2. Los tamaños van en `sp`, no en `dp`: escalan cuando el usuario sube la fuente del
+     sistema. Un diseño "exacto" que se vuelve ilegible al 200% no es exacto, es frágil.
+  3. Al estar centralizados acá, subir el piso tipográfico es una edición de una línea
+     por estilo — no una cacería por todos los layouts.
+
+  El mockup vive en un lienzo de 402 px, el ancho lógico de un teléfono moderno:
+  1 px del diseño = 1 sp/dp acá, sin conversión.
+-->
+<resources>
+
+    <!-- ============================================================ Tipografía -->
+
+    <!-- Nombre del platillo en la tarjeta (13.5px/800, line-height 1.15). -->
+    <style name="TextAppearance.App.NombrePlatillo" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">13.5sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Insignia circular del precio (11px/800). -->
+    <style name="TextAppearance.App.PrecioPlatillo" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Pastilla blanca de categoría dentro de la tarjeta (9.5px/700). -->
+    <style name="TextAppearance.App.EtiquetaCategoria" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">9.5sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Descripción del platillo (10.5px, line-height 1.35). -->
+    <style name="TextAppearance.App.DescripcionPlatillo" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">10.5sp</item>
+    </style>
+
+    <!-- "Editar" / "Desactivar" al pie de la tarjeta (10.5px/700). -->
+    <style name="TextAppearance.App.AccionTarjeta" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">10.5sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Chips de filtro por categoría (13px/700). -->
+    <style name="TextAppearance.App.ChipFiltro" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Texto y placeholder del buscador (14px). -->
+    <style name="TextAppearance.App.CampoBusqueda" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <!-- Etiqueta encima de cada campo de formulario (12px/700). -->
+    <style name="TextAppearance.App.LabelCampo" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Título de una hoja modal (19px/800). -->
+    <style name="TextAppearance.App.TituloModal" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">19sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Botones "Cancelar" / "Guardar" del pie de la hoja modal (14px/700). -->
+    <style name="TextAppearance.App.BotonModal" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Nombre de una categoría en su fila blanca (14px/700). -->
+    <style name="TextAppearance.App.NombreCategoria" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- "N platillos" bajo el nombre de la categoría (11.5px). -->
+    <style name="TextAppearance.App.ConteoCategoria" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">11.5sp</item>
+    </style>
+
+    <!-- Estados vacíos y mensajes de lista (13px). -->
+    <style name="TextAppearance.App.EstadoVacio" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <!-- ============================================================ Componentes -->
+
+    <!--
+      Chip de filtro por categoría. Activo: relleno terracota, texto blanco. Inactivo:
+      blanco con borde claro. Sin checkmark ni icono: el mockup solo cambia el color.
+
+      ensureMinTouchTargetSize es lo que permite respetar las dos cosas a la vez — el
+      chip se dibuja de 36dp como en el diseño, pero Material le expande el área tocable
+      a 48dp, que es el mínimo de accesibilidad. Ver Accesibilidad Android en la bóveda.
+    -->
+    <style name="Widget.App.Chip.Filtro" parent="Widget.Material3.Chip.Filter">
+        <item name="android:textAppearance">@style/TextAppearance.App.ChipFiltro</item>
+        <item name="android:textColor">@color/selector_chip_filtro_texto</item>
+        <item name="chipBackgroundColor">@color/selector_chip_filtro_fondo</item>
+        <item name="chipStrokeColor">@color/selector_chip_filtro_borde</item>
+        <item name="chipStrokeWidth">@dimen/borde_control</item>
+        <item name="chipMinHeight">@dimen/chip_filtro_alto</item>
+        <item name="chipCornerRadius">@dimen/radio_pastilla</item>
+        <item name="ensureMinTouchTargetSize">true</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+    </style>
+
+    <!--
+      Hoja modal inferior. Material 1.14 ya no necesita el viejo hack de re-aplicar el
+      MaterialShapeDrawable al expandir: Widget.Material3.BottomSheet.Modal trae
+      shouldRemoveExpandedCorners=false desde 1.8.0-alpha2, así que las esquinas
+      sobreviven al estado expandido. Ver la nota de referencia en la bóveda.
+    -->
+    <style name="ShapeAppearance.App.HojaModal" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">@dimen/radio_hoja_modal</item>
+        <item name="cornerSizeTopRight">@dimen/radio_hoja_modal</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
+    <style name="Widget.App.HojaModal" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.HojaModal</item>
+        <item name="backgroundTint">@color/brand_surface_card</item>
+    </style>
+
+    <style name="Theme.App.HojaModal" parent="Theme.Material3.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.App.HojaModal</item>
+    </style>
+
+    <!--
+      Pie de las hojas modales: dos botones al 50% cada uno. "Guardar" relleno terracota,
+      "Cancelar" con borde claro — ambos completamente redondeados como en el mockup.
+    -->
+    <style name="Widget.App.Boton.Modal" parent="Widget.Material3.Button">
+        <item name="android:textAppearance">@style/TextAppearance.App.BotonModal</item>
+        <item name="android:minHeight">@dimen/altura_minima_tactil</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="cornerRadius">@dimen/radio_pastilla</item>
+        <item name="backgroundTint">@color/brand_primary</item>
+        <item name="android:textColor">@color/brand_on_primary</item>
+    </style>
+
+    <style name="Widget.App.Boton.Modal.Secundario" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:textAppearance">@style/TextAppearance.App.BotonModal</item>
+        <item name="android:minHeight">@dimen/altura_minima_tactil</item>
+        <item name="android:paddingVertical">14dp</item>
+        <item name="cornerRadius">@dimen/radio_pastilla</item>
+        <item name="strokeColor">@color/brand_borde_cancelar</item>
+        <item name="strokeWidth">@dimen/borde_control</item>
+        <item name="android:textColor">@color/brand_on_primary_container</item>
+    </style>
+
+    <!--
+      Campo de formulario de las hojas modales. El mockup pone la etiqueta ENCIMA del
+      campo, no flotando dentro, así que estos son EditText con fondo propio y no
+      TextInputLayout — meterlos en un TextInputLayout traería la etiqueta flotante de
+      Material, que es justo lo que el diseño no tiene.
+    -->
+    <style name="Widget.App.CampoModal" parent="">
+        <item name="android:background">@drawable/bg_campo_formulario</item>
+        <item name="android:paddingHorizontal">14dp</item>
+        <item name="android:paddingVertical">12dp</item>
+        <item name="android:minHeight">@dimen/altura_minima_tactil</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.CampoBusqueda</item>
+        <item name="android:textColor">@color/brand_on_surface</item>
+        <item name="android:textColorHint">@color/brand_on_surface_variant</item>
+    </style>
+
+    <!-- Etiqueta que va encima de cada campo ("Nombre del platillo", "Precio"…). -->
+    <style name="Widget.App.EtiquetaCampo" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">6dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.App.LabelCampo</item>
+        <item name="android:textColor">@color/brand_on_surface_variant</item>
+    </style>
+
+</resources>

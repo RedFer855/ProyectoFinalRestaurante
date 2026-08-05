@@ -21,6 +21,23 @@
     <color name="brand_on_error">#FFFFFF</color>
 
     <!--
+      Tokens tomados literalmente de "Restaurant App v2.dc.html" (Claude Design). El
+      diseño usa estos tonos en un solo lugar cada uno, por eso no entran en la escala
+      Material principal de arriba: son piezas concretas, no roles semánticos.
+    -->
+    <!-- Fondo de la tarjeta de platillo — más cálido que brand_primary_container. -->
+    <color name="brand_tarjeta_platillo">#f7dfd4</color>
+    <!-- Borde del botón "Cancelar" en las hojas modales. -->
+    <color name="brand_borde_cancelar">#e8d4c8</color>
+    <!-- Borde punteado del botón "+ Agregar categoría". -->
+    <color name="brand_borde_punteado">#d9b39d</color>
+    <!--
+      Separadores internos de tarjeta: el diseño usa rgba(36,28,25,0.08). En Android el
+      alfa va primero, así que 0.08 * 255 = 20 = 0x14 → #14 + el hex de brand_on_surface.
+    -->
+    <color name="brand_separador">#14241C19</color>
+
+    <!--
       Estados de pedido y mesa. Nunca se comunican solo con color: siempre van
       acompañados del texto del estado (ver Accesibilidad Android).
     -->

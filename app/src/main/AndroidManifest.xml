@@ -36,6 +36,25 @@
             android:name=".MainActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
+
+        <!--
+          Sin esto, WorkManager se auto-inicializa vía ContentProvider ANTES de que
+          Application.onCreate() corra, usando su WorkerFactory por defecto (reflexión,
+          constructor de 2 argumentos). SyncWorker tiene un constructor propio (recibe los
+          sincronizadores, el proveedor de token y el observador), así que la reflexión
+          falla con NoSuchMethodException y ningún módulo sincroniza nunca. Esto le dice a
+          WorkManager que espere y use SyncApplication.getWorkManagerConfiguration().
+        -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
     </application>
 
 </manifest>

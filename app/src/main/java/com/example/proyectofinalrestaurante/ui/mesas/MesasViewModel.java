@@ -56,6 +56,11 @@ public class MesasViewModel extends ViewModel {
         estado.addSource(repositorio.observarEstadosMesa(), this::cuandoLleganEstados);
         estado.addSource(repositorio.getEstadoSincronizacion(), this::cuandoCambiaSincronizacion);
         estado.setValue(EstadoMesas.cargando());
+        // Sync-on-launch (stale-while-revalidate): la pantalla ya muestra lo que hay en Room
+        // arriba, pero nadie debería depender de deslizar hacia abajo para que la primera
+        // sincronización se dispare — sobre todo en un dispositivo nuevo, donde la base local
+        // está vacía. Reutiliza el mismo indicador que ya alimenta el pull-to-refresh.
+        sincronizar();
     }
 
     public LiveData<EstadoMesas> getEstado() {

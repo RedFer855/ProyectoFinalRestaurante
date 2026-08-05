@@ -26,6 +26,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Predicate;
 
 /**
  * El sincronizador del módulo Menú (Plan Fase 2b, E5).
@@ -43,6 +44,14 @@ public final class SincronizadorMenu implements Sincronizador {
 
     static final int MAX_INTENTOS = 3;
     static final int LOTE = 50;
+
+    /**
+     * Tope de páginas por pasada del delta. Es un cinturón, no una regla de negocio: con
+     * 50 filas por página son 10 000 filas, mucho más de lo que este catálogo va a tener.
+     * Existe para que un servidor que devolviera páginas llenas indefinidamente no dejara
+     * al worker girando hasta que WorkManager lo mate por tiempo.
+     */
+    static final int MAX_PAGINAS = 200;
     static final String TABLA_CATEGORIAS = "categorias";
     static final String TABLA_PLATILLOS = "platillos";
 
@@ -56,16 +65,19 @@ public final class SincronizadorMenu implements Sincronizador {
     private final CategoriaDao categoriaDao;
     private final SincronizacionDao sincronizacionDao;
     private final File carpetaImagenes;
+    private final EjecutorDeTransaccion transacciones;
 
     public SincronizadorMenu(MenuRemoto remoto, Outbox outbox,
                              PlatilloDao platilloDao, CategoriaDao categoriaDao,
-                             SincronizacionDao sincronizacionDao, File carpetaImagenes) {
+                             SincronizacionDao sincronizacionDao, File carpetaImagenes,
+                             EjecutorDeTransaccion transacciones) {
         this.remoto = remoto;
         this.outbox = outbox;
         this.platilloDao = platilloDao;
         this.categoriaDao = categoriaDao;
         this.sincronizacionDao = sincronizacionDao;
         this.carpetaImagenes = carpetaImagenes;
+        this.transacciones = transacciones;
     }
 
     // ------------------------------------------------------------------ orquestación
@@ -378,53 +390,91 @@ public final class SincronizadorMenu implements Sincronizador {
     }
 
     private ResultadoSync bajarCategorias() {
-        String marca = leerMarca(TABLA_CATEGORIAS);
+        // La marca queda FIJA durante toda la pasada y las páginas avanzan por offset.
+        // Ver MAX_PAGINAS y el Javadoc de SupabaseMenuApi: avanzar la marca por página
+        // hacía que, con ≥50 filas del mismo instante, las que seguían no se bajaran nunca.
+        String marcaInicial = leerMarca(TABLA_CATEGORIAS);
+        String marcaMaxima = marcaInicial;
         boolean huboConflictoLocal = false;
-        while (true) {
-            ResultadoRed<List<CategoriaDto>> resultado = remoto.listarCategoriasDesde(marca);
+        int desplazamiento = 0;
+
+        for (int pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+            ResultadoRed<List<CategoriaDto>> resultado =
+                    remoto.listarCategoriasDesde(marcaInicial, desplazamiento);
             if (!resultado.isExitoso()) {
                 return convertirFalloDelta(resultado);
             }
-            List<CategoriaDto> pagina = resultado.getValor();
-            for (CategoriaDto dto : pagina) {
-                huboConflictoLocal |= aplicarCategoria(dto);
+            List<CategoriaDto> filas = resultado.getValor();
+            for (CategoriaDto dto : filas) {
                 if (dto.getActualizadoEn() != null) {
-                    marca = mayor(marca, dto.getActualizadoEn());
+                    marcaMaxima = mayor(marcaMaxima, dto.getActualizadoEn());
                 }
             }
-            guardarMarca(TABLA_CATEGORIAS, marca);
-            if (pagina.size() < MenuRemoto.LIMITE_DELTA) {
+            huboConflictoLocal |= aplicarPagina(filas, this::aplicarCategoria);
+            desplazamiento += filas.size();
+            if (filas.size() < MenuRemoto.LIMITE_DELTA) {
                 break;
             }
         }
+
+        guardarMarca(TABLA_CATEGORIAS, marcaMaxima);
         return huboConflictoLocal
                 ? ResultadoSync.permanente(CAMBIO_LOCAL_PERDIDO)
                 : ResultadoSync.ok();
     }
 
     private ResultadoSync bajarPlatillos() {
-        String marca = leerMarca(TABLA_PLATILLOS);
+        String marcaInicial = leerMarca(TABLA_PLATILLOS);
+        String marcaMaxima = marcaInicial;
         boolean huboConflictoLocal = false;
-        while (true) {
-            ResultadoRed<List<PlatilloDto>> resultado = remoto.listarPlatillosDesde(marca);
+        int desplazamiento = 0;
+
+        for (int pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+            ResultadoRed<List<PlatilloDto>> resultado =
+                    remoto.listarPlatillosDesde(marcaInicial, desplazamiento);
             if (!resultado.isExitoso()) {
                 return convertirFalloDelta(resultado);
             }
-            List<PlatilloDto> pagina = resultado.getValor();
-            for (PlatilloDto dto : pagina) {
-                huboConflictoLocal |= aplicarPlatillo(dto);
+            List<PlatilloDto> filas = resultado.getValor();
+            for (PlatilloDto dto : filas) {
                 if (dto.getActualizadoEn() != null) {
-                    marca = mayor(marca, dto.getActualizadoEn());
+                    marcaMaxima = mayor(marcaMaxima, dto.getActualizadoEn());
                 }
             }
-            guardarMarca(TABLA_PLATILLOS, marca);
-            if (pagina.size() < MenuRemoto.LIMITE_DELTA) {
+            huboConflictoLocal |= aplicarPagina(filas, this::aplicarPlatillo);
+            desplazamiento += filas.size();
+            if (filas.size() < MenuRemoto.LIMITE_DELTA) {
                 break;
             }
         }
+
+        guardarMarca(TABLA_PLATILLOS, marcaMaxima);
         return huboConflictoLocal
                 ? ResultadoSync.permanente(CAMBIO_LOCAL_PERDIDO)
                 : ResultadoSync.ok();
+    }
+
+    /**
+     * Aplica una página entera en <b>una sola transacción</b>.
+     *
+     * <p>Fila por fila eran 50 transacciones SQLite con su {@code fsync} y 50
+     * invalidaciones de tabla; cada invalidación hacía que Room recorriera de nuevo las
+     * consultas observadas y el {@code RecyclerView} se repintara entero. Agrupando, Room
+     * difiere las notificaciones hasta el commit: una re-emisión por página. Ver
+     * {@link EjecutorDeTransaccion}.</p>
+     *
+     * @return {@code true} si alguna fila perdió un cambio local por conflicto LWW
+     */
+    private <T> boolean aplicarPagina(List<T> pagina, Predicate<T> aplicar) {
+        // Holder de un elemento: un lambda solo puede capturar variables efectivamente
+        // finales, y el acumulador tiene que sobrevivir a la transacción.
+        boolean[] huboConflicto = {false};
+        transacciones.enTransaccion(() -> {
+            for (T dto : pagina) {
+                huboConflicto[0] |= aplicar.test(dto);
+            }
+        });
+        return huboConflicto[0];
     }
 
     private boolean aplicarCategoria(CategoriaDto dto) {
