@@ -40,6 +40,21 @@ El desarrollo vive en ramas `feat/faseN-<descripción>` que se mergean a `master
 
 Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa sin ❌.
 
+### Continuaciones planificadas el 2026-08-04
+
+La deuda se repriorizó completa y quedó en tres bandas, con un plan por banda:
+
+| Rama | Contenido | Estado |
+|---|---|---|
+| `fix/fase0b-deuda-p0` | **P0** — P-018 (`applicationId`, riesgo irreversible), P-029 (delta que pierde filas), P-009 (sesión persistida + refresh), P-004 (verificación física) | 📋 [[Plan Fase 0b - Cierre de la deuda P0]] |
+| `fix/fase0c-deuda-p1` | **P1** — pase A (errores: P-016+P-019+P-001) y pase B (UI: P-015+P-011+P-017) | 📋 [[Plan Fase 0c - Deuda P1 y P2]] |
+| `fix/fase0c-deuda-p2` | **P2** — pase C (infra: P-028, P-008a, P-024) | 📋 idem |
+
+> [!warning] El pase B compite con la Fase 3 por los archivos de `ui/`
+> Los dos tocan las mismas 22 clases. La recomendación del plan es **Fase 3 primero**: el pase
+> B crece linealmente con la cantidad de pantallas (+2 sobre 17 es ~12% más caro), mientras
+> que postergar el tiempo real posterga lo único que se pidió como funcionalidad.
+
 ---
 
 ## Fases de producto
@@ -92,9 +107,9 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 |---|---|---|
 | ~~**Offline-first** (Room + outbox)~~ ✅ | Cerrada en la Fase **2b** (2026-08-01). La ventana se aprovechó a tiempo: Mesas, Clientes y Pedidos **nacen** sobre la infraestructura en vez de contraer la deuda de nuevo | ~~P-014~~ |
 | **Single-Activity + Navigation Component** | Antes de Fase 3 — con pocas pantallas que convertir. La Fase 3 suma un Fragment y una hoja modal más: la ventana se está cerrando | P-015 |
-| **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature. **Ya se pasó el umbral**: desde la 2a hay tres features (`login`, `empleados`, `menu`) y sigue layer-first | P-017 |
-| **`applicationId` real** | Antes de publicar — después de publicar es irreversible | P-018 |
-| **Multi-módulo** | Antes de Fase 4 (Pedidos), si el proyecto va a llegar a 5 features | — |
+| ~~**Feature-first vs layer-first**~~ ✅ | **Decidido el 2026-08-04**: feature-first en módulo Gradle único, ejecutado junto a P-015 y P-011 porque los tres mueven los mismos archivos. Ver [[Plan Fase 0c - Deuda P1 y P2]] §3.3 | P-017 |
+| **`applicationId` real** | Antes de publicar — después de publicar es irreversible. **Clasificado P0**: son 15 min y cierra un riesgo irreversible | P-018 |
+| ~~**Multi-módulo**~~ ✅ | **Descartado el 2026-08-04**: trae `api`/`implementation`, builds más lentos y Room repartido, a cambio de poco sobre feature-first en un módulo. Se revisa si aparece un segundo consumidor | — |
 
 ---
 

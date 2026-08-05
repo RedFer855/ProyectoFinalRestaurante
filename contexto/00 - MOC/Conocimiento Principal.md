@@ -56,8 +56,13 @@ Respuesta: My Cat
 2. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
 3. **Vos:** verificar **P-004** (edge-to-edge e insets del login) en un teléfono físico — es lo único que falta para mergear `feat/fase1-login` a `master`. El login/Empleados en emulador y la política de contraseñas (S-2) ya están cerrados.
 4. **Fase 3 (Pedidos en tiempo real)** está planificada y lista para ejecutarse — [[Plan Fase 3 - Pedidos en Tiempo Real]]. Empieza por la **Parte A** (servidor) y verificala antes de escribir código, como en 2a y 2c/2d. Leé **P-029** antes: el sincronizador nuevo copia el delta del Menú, no el de Mesas.
-5. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
-6. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
+5. **Deuda técnica repriorizada** el 2026-08-04 en tres bandas, con un plan por banda:
+   [[Plan Fase 0b - Cierre de la deuda P0]] (P-018, P-029, P-009, P-004) y
+   [[Plan Fase 0c - Deuda P1 y P2]] (los otros ocho, en tres pases). **Vos:** decidir el
+   `applicationId` de P-018 — son 15 minutos y cierra el único riesgo **irreversible** del
+   proyecto. **Vos también:** P-004 y P-010 se verifican juntas con un teléfono físico.
+6. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
+7. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 
 ---
 

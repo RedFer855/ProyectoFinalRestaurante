@@ -50,7 +50,25 @@ lifecycle: verified
 
 - **Retrofit 3.0.0** (mayo 2025) es la última versión. Está **escrito en Kotlin** y orientado a desarrolladores Kotlin, **pero es usable desde Java**: mantiene compatibilidad binaria hacia adelante con 2.x.
 - Retrofit 3.0.0 depende de **OkHttp 4.12** (no OkHttp 5). OkHttp 4 y 5 son binariamente compatibles, así que se puede subir OkHttp por separado.
-- Al usar Retrofit 3 se arrastra una **dependencia transitiva de Kotlin** (por OkHttp). No obliga a escribir Kotlin, pero suma peso al APK — relevante para [[Presupuestos de Rendimiento en Gama Baja]].
+- ~~Al usar Retrofit 3 se arrastra una **dependencia transitiva de Kotlin** (por OkHttp). No obliga a escribir Kotlin, pero suma peso al APK.~~ **Refutado — ver el callout de abajo.**
+
+> [!danger] Corregido el 2026-08-04 — Kotlin ya está en el APK, quiera o no
+> Se inspeccionó `debugRuntimeClasspath` del proyecto: **`kotlin-stdlib 2.2.10` ya está en el
+> classpath de runtime**, con 47 referencias. Lo traen `androidx.activity`, `appcompat`,
+> `core`, `annotation` y `lifecycle` — es decir, **toda AndroidX moderna está escrita en
+> Kotlin** y su `-jvm` depende del stdlib.
+>
+> Consecuencias para las decisiones que se estaban tomando con este criterio:
+>
+> - **P-007 (Retrofit 3):** el argumento del tamaño **no aplica**. Decidir por adaptadores y
+>   cancelación, no por peso.
+> - **Navigation Component (P-015):** tampoco "agrega Kotlin". Ver
+>   [[Plan Fase 0c - Deuda P1 y P2]] §3.1.
+> - Lo que **sigue** valiendo es el criterio de **ergonomía**: `Flow`, `suspend` y Compose son
+>   inutilizables cómodamente desde Java, y eso no cambia porque el stdlib esté presente. La
+>   tabla de abajo se mantiene **por API, no por peso**.
+>
+> Regla que queda: *"¿es usable desde Java sin bridges?"* — no *"¿arrastra Kotlin?"*.
 - Adaptadores disponibles para Java: `CompletableFuture` (Java 8), **Guava `ListenableFuture`**, RxJava.
 
 > [!note] Estado en este proyecto
