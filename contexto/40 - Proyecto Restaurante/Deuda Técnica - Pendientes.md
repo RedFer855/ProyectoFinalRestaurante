@@ -69,7 +69,7 @@ Con `targetSdk 36+`, **edge-to-edge es obligatorio y no se puede desactivar** (`
 **Solución:** replicar el bloque de `MainActivity` en `LoginActivity`, incluyendo `WindowInsetsCompat.Type.ime()` porque la pantalla tiene campos de texto. Ver [[Android 16 y 17 - Cambios de Comportamiento]].
 
 **Estado:** `[x] Resuelto` (2026-07-29) — `LoginActivity` llama `EdgeToEdge.enable(this)` y aplica insets de `systemBars() | ime()` sobre `login_root` en el método `aplicarInsets()`. Ver [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]].
-**Falta verificar:** en un teléfono físico. Es el **último ítem abierto de la Fase 1** — el login/Empleados en emulador y **S-2** se cerraron el 2026-08-01. Lo que hay que mirar: que el título no quede bajo la barra de estado y que el botón "Ingresar" no quede tapado por la barra de navegación ni por el teclado.
+**Verificado en teléfono físico:** 2026-08-04, por el usuario — nada queda tapado (título, botón "Ingresar", teclado). Checklist de [[Plan Fase 0b - Cierre de la deuda P0]] §2 cerrado.
 
 ---
 
@@ -337,7 +337,7 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 
 ---
 
-### P-018 · `applicationId` sigue siendo `com.example.*`
+### ~~P-018~~ ✅ · `applicationId` sigue siendo `com.example.*`
 
 **Archivo:** `app/build.gradle.kts`
 
@@ -345,7 +345,9 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 
 **Solución:** elegir un dominio real (ej. `hn.restaurante.app`) **antes de la primera publicación**. Cambiarlo ahora es trivial; después de publicar es imposible.
 
-**Estado:** `[ ] Pendiente — antes de publicar`
+**Estado:** `[x] Resuelto` (2026-08-04) — `applicationId = "hn.restaurante.app"` en `app/build.gradle.kts`; `namespace` sin tocar (son cosas distintas desde AGP 7). Se actualizó el único otro lugar que dependía del valor viejo: `ExampleInstrumentedTest.useAppContext()` (aserción de `getPackageName()`). `android:authorities="${applicationId}.androidx-startup"` en el manifest ya estaba parametrizado, no necesitó cambio.
+
+**Verificado:** `./gradlew assembleDebug testDebugUnitTest` → BUILD SUCCESSFUL. `aapt2 dump badging` sobre el APK real confirma `package: name='hn.restaurante.app'` — en el binario, no solo en el `.kts`. Ver [[Plan Fase 0b - Cierre de la deuda P0]] §1.
 
 ---
 
@@ -685,7 +687,7 @@ manifiesta sí o sí** (una tanda de pedidos del mediodía comparte `actualizado
 | P-015 | `Activity` + `findViewById` en vez de Fragment/ViewBinding | 🟡 | `[ ]` Pendiente | idem |
 | P-016 | `Result` con `String` en vez de `AppException` | 🟡 | `[ ]` Pendiente | idem |
 | P-017 | Paquetes layer-first en vez de feature-first | 🟢 | `[ ]` Pendiente | idem |
-| P-018 | `applicationId` sigue en `com.example.*` | 🟢 | `[ ]` Pendiente | idem |
+| ~~P-018~~ | `applicationId` sigue en `com.example.*` | 🟢 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
 | P-019 | Mensajes de error hardcodeados en VM/repositorio | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | ~~P-022~~ | Sin permiso `INTERNET` — crasheaba al loguear | 🔴 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Primer login verificado en emulador]] |
 | ~~P-020~~ | `SupabaseAuthRepository` sin test (login+perfil+logout) | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |

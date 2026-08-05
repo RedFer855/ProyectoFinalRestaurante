@@ -21,6 +21,9 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.proyectofinalrestaurante", appContext.getPackageName());
+        // El packageName en runtime es el applicationId (hn.restaurante.app), no el
+        // namespace (com.example.proyectofinalrestaurante) — son cosas distintas desde
+        // AGP 7. Ver P-018 en Deuda Técnica - Pendientes.md.
+        assertEquals("hn.restaurante.app", appContext.getPackageName());
     }
 }
