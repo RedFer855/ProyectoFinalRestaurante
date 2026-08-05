@@ -19,6 +19,10 @@ import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
+import com.example.proyectofinalrestaurante.ui.detallepedido.DetallePedidoHoja;
+import com.example.proyectofinalrestaurante.ui.detallepedido.DetallePedidoViewModel;
+import com.example.proyectofinalrestaurante.ui.detallepedido.DetallePedidoViewModelFactory;
+import com.example.proyectofinalrestaurante.ui.nuevopedido.NuevoPedidoFragment;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
@@ -73,6 +77,11 @@ public class PedidosFragment extends Fragment {
                     avisarMaqueta();
                 }
             }
+
+            @Override
+            public void onVerDetalle(Pedido pedido) {
+                abrirDetalle(pedido);
+            }
         });
 
         RecyclerView lista = view.findViewById(R.id.lista_pedidos);
@@ -101,7 +110,7 @@ public class PedidosFragment extends Fragment {
 
         ExtendedFloatingActionButton fab = view.findViewById(R.id.fab_nuevo_pedido);
         VistaPorPermiso.aplicar(fab, Modulo.PEDIDOS, Accion.CREAR);
-        fab.setOnClickListener(v -> avisarMaqueta());
+        fab.setOnClickListener(v -> abrirTomaPedido());
 
         viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
     }
@@ -155,5 +164,26 @@ public class PedidosFragment extends Fragment {
         if (raiz != null) {
             Snackbar.make(raiz, R.string.maqueta_sin_funcion, Snackbar.LENGTH_SHORT).show();
         }
+    }
+
+    /**
+     * Abre la toma del pedido (Plan Fase 3b, E8): reemplaza el contenido del tablero por el
+     * {@code NuevoPedidoFragment}, igual que cambia de módulo {@code MainActivity}.
+     */
+    private void abrirTomaPedido() {
+        getParentFragmentManager()
+                .beginTransaction()
+                .replace(R.id.contenedor_contenido, new NuevoPedidoFragment())
+                .commit();
+    }
+
+    /** Abre el detalle del pedido (Plan Fase 3b, E9) con el ViewModel de su propio scope. */
+    private void abrirDetalle(Pedido pedido) {
+        DetallePedidoViewModel detalle = new ViewModelProvider(this,
+                new DetallePedidoViewModelFactory(requireActivity().getApplication()))
+                .get(DetallePedidoViewModel.class);
+        DetallePedidoHoja hoja = DetallePedidoHoja.nuevaInstancia(pedido.getIdLocal());
+        hoja.recibir(detalle);
+        hoja.show(getParentFragmentManager(), DetallePedidoHoja.TAG);
     }
 }

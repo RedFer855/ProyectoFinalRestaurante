@@ -1,4 +1,4 @@
-package com.example.proyectofinalrestaurante.data.sync;
+package com.example.proyectofinalrestaurante.data.sync.payload;
 
 import androidx.annotation.Nullable;
 

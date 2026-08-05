@@ -2,9 +2,13 @@ package com.example.proyectofinalrestaurante.data.sync;
 
 import androidx.annotation.Nullable;
 
+import com.example.proyectofinalrestaurante.data.local.dao.ClienteDao;
+import com.example.proyectofinalrestaurante.data.local.dao.MesaDao;
 import com.example.proyectofinalrestaurante.data.local.dao.NotificacionDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
+import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.MesaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.PedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
@@ -12,7 +16,10 @@ import com.example.proyectofinalrestaurante.data.local.mapper.NotificacionMapper
 import com.example.proyectofinalrestaurante.data.local.mapper.PedidoMapper;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadCrearPedido;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.example.proyectofinalrestaurante.data.repository.PedidoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.ResultadoRed;
@@ -23,6 +30,8 @@ import com.example.proyectofinalrestaurante.domain.model.TipoNotificacion;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+
+import java.time.OffsetDateTime;
 
 /**
  * El sincronizador del módulo Pedidos (Plan Fase 3, E4).
@@ -69,6 +78,12 @@ public final class SincronizadorPedidos implements Sincronizador {
     private final NotificacionDao notificacionDao;
     private final SincronizacionDao sincronizacionDao;
     private final EjecutorDeTransaccion transacciones;
+    /** Para resolver {@code mesa_id_local} al drenar un {@code CREAR_PEDIDO} (§4.2). */
+    private final MesaDao mesaDao;
+    /** Para resolver {@code cliente_id_local} al drenar un {@code CREAR_PEDIDO} (§4.2). */
+    private final ClienteDao clienteDao;
+    /** El outbox de Módulo CLIENTES: saber si el CREAR_CLIENTE sigue pendiente o se descartó. */
+    private final Outbox outboxDeClientes;
 
     /** Piso de arranque en frío: el ISO de {@code ahora − 48 h}, cuando no hay marca. */
     private final Supplier<String> pisoDeArranque;
@@ -79,6 +94,7 @@ public final class SincronizadorPedidos implements Sincronizador {
                                 PedidoDao pedidoDao, NotificacionDao notificacionDao,
                                 SincronizacionDao sincronizacionDao,
                                 EjecutorDeTransaccion transacciones,
+                                MesaDao mesaDao, ClienteDao clienteDao, Outbox outboxDeClientes,
                                 Supplier<String> pisoDeArranque, Supplier<Long> reloj) {
         this.remoto = remoto;
         this.outbox = outbox;
@@ -86,6 +102,9 @@ public final class SincronizadorPedidos implements Sincronizador {
         this.notificacionDao = notificacionDao;
         this.sincronizacionDao = sincronizacionDao;
         this.transacciones = transacciones;
+        this.mesaDao = mesaDao;
+        this.clienteDao = clienteDao;
+        this.outboxDeClientes = outboxDeClientes;
         this.pisoDeArranque = pisoDeArranque;
         this.reloj = reloj;
     }
@@ -136,6 +155,8 @@ public final class SincronizadorPedidos implements Sincronizador {
 
     private ResultadoSync procesar(OperacionPendienteEntity operacion) {
         switch (operacion.getTipo()) {
+            case TipoOperacion.CREAR_PEDIDO:
+                return crearPedido(operacion);
             case TipoOperacion.AVANZAR_ESTADO_PEDIDO:
                 return avanzarEstado(operacion);
             default:
@@ -167,6 +188,161 @@ public final class SincronizadorPedidos implements Sincronizador {
         pedidoDao.actualizar(fila);
         outbox.marcarExito(operacion.getId());
         return ResultadoSync.ok();
+    }
+
+    /**
+     * Sube un pedido tomado offline contra el RPC {@code crear_pedido}(Plan Fase 3b, §5.3
+     * y §4.2). El payload guarda {@code mesa_id_local}/{@code cliente_id_local}, así que acá
+     * se resuelven al {@code id_servidor} antes de armar el {@code JSONB}: el servidor espera
+     * {@code id_mesa}/{@code id_cliente} reales.
+     *
+     * <p>Política de degradación (§4.2):</p>
+     * <ul>
+     *   <li>un platillo sin {@code idServidor} (el payload lo codifica como {@code 0}) hace
+     *       el pedido {@code ERROR} permanente — no hay pedido sin líneas válidas;</li>
+     *   <li>una mesa sin {@code idServidor} sube con {@code id_mesa = NULL} + notificación;</li>
+     *   <li>un cliente sin {@code idServidor} cuya {@code CREAR_CLIENTE} sigue pendiente en
+     *       el outbox de Clientes es <b>transitorio</b> —sin consumir intento— porque la
+     *       próxima pasada puede resolverlo; si el {@code CREAR_CLIENTE} ya se descartó
+     *       (error permanente), el pedido sube con {@code id_cliente = NULL} + notificación.</li>
+     * </ul>
+     *
+     * <p>La regla de fondo: un pedido que no sube es peor que un pedido sin el dato
+     * accesorio. Se degrada el accesorio, nunca la transacción.</p>
+     */
+    private ResultadoSync crearPedido(OperacionPendienteEntity operacion) {
+        PayloadCrearPedido.Cuerpo payload =
+                PayloadCrearPedido.parsear(operacion.getPayloadJson());
+        if (payload == null) {
+            outbox.descartar(operacion.getId());
+            return ResultadoSync.ok();
+        }
+
+        // Un platillo sin idServidor (payload lo trae como 0) invalida el pedido: no hay
+        // líneas reales que subir. Cinturón de seguridad; la UI lo impide antes.
+        for (PayloadCrearPedido.Linea linea : payload.getLineas()) {
+            if (linea.getIdPlatillo() <= 0) {
+                outbox.descartar(operacion.getId());
+                PedidoEntity fila = pedidoDao.porIdLocal(operacion.getIdLocal());
+                if (fila != null) {
+                    fila.setEstadoSync(EstadoSync.ERROR.name());
+                    pedidoDao.actualizar(fila);
+                }
+                notificarError("El pedido se descartó porque una línea no pudo subir.");
+                return ResultadoSync.permanente("Un platillo sin id_servidor invalidó el pedido.");
+            }
+        }
+
+        // Resolver ids locales → id_servidor. La mesa que no se pueda resolver se degrada;
+        // el cliente pendiente corta la pasada como transitorio, el descartado degrada.
+        Integer idMesa = resolverMesa(payload);
+        ResolucionCliente clientes = resolverCliente(payload);
+        if (clientes.esPendiente()) {
+            return ResultadoSync.transitorio(
+                    "El cliente del pedido todavía no se sincronizó; reintentando más tarde.");
+        }
+
+        String cuerpoJson = construirJsonRpc(payload, idMesa, clientes.idServidor());
+        ResultadoRed<CrearPedidoDto> resultado = remoto.crearPedido(cuerpoJson);
+        if (!resultado.isExitoso()) {
+            PedidoEntity fila = pedidoDao.porIdLocal(operacion.getIdLocal());
+            return manejarFallo(operacion, resultado, fila);
+        }
+
+        // El RPC devuelve el id_pedido — y el mismo si la clave de idempotencia ya se usó
+        // (B2): re-aplicarlo es idempotente (upsert + LWW).
+        PedidoEntity cabecera = pedidoDao.porIdLocal(operacion.getIdLocal());
+        if (cabecera != null) {
+            cabecera.setIdServidor(resultado.getValor().getIdPedido());
+            cabecera.setEstadoSync(EstadoSync.SINCRONIZADO.name());
+            pedidoDao.actualizar(cabecera);
+        }
+        outbox.marcarExito(operacion.getId());
+        return ResultadoSync.ok();
+    }
+
+    /** Resuelve {@code mesa_id_local} → {@code id_servidor}; no la encuentra → {@code null}. */
+    private Integer resolverMesa(PayloadCrearPedido.Cuerpo payload) {
+        Integer mesaIdLocal = payload.getMesaIdLocal();
+        if (mesaIdLocal == null) {
+            return null;
+        }
+        MesaEntity mesa = mesaDao.porIdLocal(mesaIdLocal);
+        if (mesa == null || mesa.getIdServidor() == null) {
+            notificarDatoDegradado(TipoNotificacion.PEDIDO_SIN_MESA, String.valueOf(mesaIdLocal));
+            return null;
+        }
+        return mesa.getIdServidor();
+    }
+
+    /**
+     * Resuelve {@code cliente_id_local} → {@code id_servidor}. Si la {@code CREAR_CLIENTE}
+     * sigue en el outbox (no drenó aún), devuelve {@link ResolucionCliente#esPendiente()}
+     * {@code true} y el {@code crearPedido} corta como transitorio <b>sin consumir intento</b>.
+     * Si el {@code CREAR_CLIENTE} ya se descartó, degrada a {@code null} y notifica (B4).
+     */
+    private ResolucionCliente resolverCliente(PayloadCrearPedido.Cuerpo payload) {
+        Integer idClienteLocal = payload.getClienteIdLocal();
+        if (idClienteLocal == null) {
+            return ResolucionCliente.resuelto(null);
+        }
+        ClienteEntity cliente = clienteDao.porIdLocal(idClienteLocal);
+        if (cliente != null && cliente.getIdServidor() != null) {
+            return ResolucionCliente.resuelto(cliente.getIdServidor());
+        }
+        // Sin id_servidor: ¿el CREAR_CLIENTE sigue en cola o se descartó?
+        for (OperacionPendienteEntity op : outboxDeClientes.deFila(idClienteLocal)) {
+            if (TipoOperacion.CREAR_CLIENTE.equals(op.getTipo())) {
+                return ResolucionCliente.pendiente(); // transitorio, sin consumir intento
+            }
+        }
+        // El CREAR_CLIENTE se descartó por error permanente: degrada al cliente (B4).
+        notificarDatoDegradado(TipoNotificacion.PEDIDO_SIN_CLIENTE, String.valueOf(idClienteLocal));
+        return ResolucionCliente.resuelto(null);
+    }
+
+    /** Arma el JSON final del RPC con los ids ya resueltos del servidor. */
+    private String construirJsonRpc(PayloadCrearPedido.Cuerpo payload, Integer idMesa,
+                                    Integer idCliente) {
+        return PayloadCrearPedido.serializarRpc(payload.getClaveIdempotencia(),
+                payload.getFecha(), payload.getIdTipoPedido(), idMesa, idCliente, payload.getLineas());
+    }
+
+    /** Notifica que un id accesorio de un pedido se degradó al subir sin él (Plan 3b §4.2). */
+    private void notificarDatoDegradado(TipoNotificacion tipo, String idLocal) {
+        notificacionDao.insertar(NotificacionMapper.aEntidadNueva(
+                tipo, null, null, idLocal, reloj.get()));
+    }
+
+    /** Resultado de la resolución del cliente al drenar un {@code CREAR_PEDIDO}. */
+    private static final class ResolucionCliente {
+
+        private final Integer idServidor;
+
+        private final boolean esPendiente;
+
+        private ResolucionCliente(Integer idServidor, boolean esPendiente) {
+            this.idServidor = idServidor;
+            this.esPendiente = esPendiente;
+        }
+
+        static ResolucionCliente resuelto(@Nullable Integer idServidor) {
+            return new ResolucionCliente(idServidor, false);
+        }
+
+        static ResolucionCliente pendiente() {
+            return new ResolucionCliente(null, true);
+        }
+
+        /** {@code true} si la {@code CREAR_CLIENTE} todavía no drenó: reintentar, sin consumir intento. */
+        boolean esPendiente() {
+            return esPendiente;
+        }
+
+        @Nullable
+        Integer idServidor() {
+            return idServidor;
+        }
     }
 
     /**
@@ -209,8 +385,11 @@ public final class SincronizadorPedidos implements Sincronizador {
         String marcaInicial = leerMarca();
         // Arranque en frío: sin marca se pide desde ahora − 48 h en vez de la vista entera
         // (R6 aplicado al lado servidor; los pedidos viejos no sirven en el tablero).
-        String desde = marcaInicial != null ? marcaInicial : pisoDeArranque.get();
-        String marcaMaxima = desde;
+        // Solapamiento de la marca (Plan Fase 3b, §3.3): pedir `> marca − 2s` en vez de
+        // `> marca` para cerrar la ventana del cursor reloj. Re-bajar unas pocas filas es
+        // seguro: aplicar filas ya es idempotente (upsert por id_servidor + LWW).
+        String desde = marcaInicial != null ? restarDosSegundos(marcaInicial) : pisoDeArranque.get();
+        String marcaMaxima = marcaInicial != null ? marcaInicial : desde;
         boolean huboConflictoLocal = false;
         int desplazamiento = 0;
 
@@ -274,7 +453,11 @@ public final class SincronizadorPedidos implements Sincronizador {
             if (pasoAListo(existente, dto)) {
                 notificarPedidoListo(dto);
             }
-            return true;
+            // Solo es un conflicto si la fila local tenía un cambio sin subir (pendiente/
+            // error). Pisar una fila SINCRONIZADO es el refresco normal del delta — y con el
+            // solapamiento de la marca (Plan 3b, §3.3) el delta re-baja las filas de la
+            // frontera a propósito; contarlas como "cambio local perdido" sería falso.
+            return !EstadoSync.SINCRONIZADO.name().equals(existente.getEstadoSync());
         }
         // Gana el local (fila pendiente/error con marca más nueva): no se pisa.
         return false;
@@ -363,5 +546,20 @@ public final class SincronizadorPedidos implements Sincronizador {
             return a;
         }
         return a.compareTo(b) >= 0 ? a : b;
+    }
+
+    /**
+     * Solapamiento de la marca de agua (Plan Fase 3b, §3.3): el cursor del delta es un
+     * reloj, y pedir {@code > marca − 2s} cierra la ventana en la que una fila commiteada
+     * en el mismo instante que la marca quedaría sin bajar. Si la marca no es un ISO
+     * parseable (nunca debería pasar), se devuelve la marca sin tocar.
+     */
+    private static String restarDosSegundos(String marca) {
+        try {
+            return OffsetDateTime.parse(marca).minusSeconds(2).toString();
+        } catch (java.time.format.DateTimeParseException ignorada) {
+            // Marca ilegible: peor caso, se re-bajan las filas de la última marca.
+            return marca;
+        }
     }
 }

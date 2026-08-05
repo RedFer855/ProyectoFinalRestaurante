@@ -20,5 +20,21 @@ public enum TipoNotificacion {
     PEDIDO_LISTO,
 
     /** Un cambio local no se pudo subir (error permanente del drenado). */
-    ERROR_SYNC
+    ERROR_SYNC,
+
+    /**
+     * Al drenar un {@code CREAR_PEDIDO}, el {@code cliente_id_local} referenciado había sido
+     * descartado por error permanente (Plan Fase 3b, §4.2, B4): el pedido subió sin
+     * {@code id_cliente} (null) y el usuario tiene que enterarse de que el dato accesorio
+     * se perdió para no degradar la transacción.
+     */
+    PEDIDO_SIN_CLIENTE,
+
+    /**
+     * Al drenar un {@code CREAR_PEDIDO}, la {@code mesa_id_local} referenciada no tenía
+     * {@code idServidor} (Plan Fase 3b, §4.2): el pedido subió con {@code id_mesa = NULL} y
+     * la notificación avisa que ese dato se degradó. La regla de fondo: un pedido que no sube
+     * es peor que un pedido sin mesa.
+     */
+    PEDIDO_SIN_MESA
 }

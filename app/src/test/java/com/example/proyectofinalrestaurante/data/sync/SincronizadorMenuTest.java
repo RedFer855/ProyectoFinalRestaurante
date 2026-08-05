@@ -18,6 +18,7 @@ import com.example.proyectofinalrestaurante.data.local.entity.PlatilloEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseMenuApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseStorageApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.ActualizarCategoriaDto;

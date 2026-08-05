@@ -69,10 +69,18 @@ public final class TipoOperacion {
     public static final String BORRAR_CLIENTE = "BORRAR_CLIENTE";
 
     /**
-     * Pedidos (Plan Fase 3, §4.4). Solo existe {@code AVANZAR_ESTADO_PEDIDO}; no hay
-     * {@code CREAR_PEDIDO} ni {@code CREAR_DETALLE} en esta fase (§1.2): la 3 no crea
-     * pedidos, solo los consulta y avanza su estado. En la 3b, cuando se crea desde la
-     * línea, se agregan las operaciones de alta que acá deliberadamente no existen.
+     * Pedidos (Plan Fase 3, §4.4). En la 3 solo existía {@code AVANZAR_ESTADO_PEDIDO} — la 3
+     * no crea pedidos, solo los consulta y avanza su estado. La 3b agrega
+     * {@code CREAR_PEDIDO}: la operación de alta, <b>una por pedido</b>, cuyo payload (un
+     * {@code JSONB} con cabecera + líneas) manda el {@code SincronizadorPedidos} contra el
+     * RPC {@code crear_pedido} cuando drena. Las N líneas del detalle no son operaciones:
+     * viajan dentro de ese único payload (ADR-009).
+     */
+    public static final String CREAR_PEDIDO = "CREAR_PEDIDO";
+
+    /**
+     * La operación de avance de estado, que era la única en la Fase 3 (§1.2). Sigue
+     * existiendo: la toma de pedidos no la reemplaza.
      */
     public static final String AVANZAR_ESTADO_PEDIDO = "AVANZAR_ESTADO_PEDIDO";
 }

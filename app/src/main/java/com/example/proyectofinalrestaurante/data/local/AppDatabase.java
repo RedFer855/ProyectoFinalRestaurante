@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase;
 
 import com.example.proyectofinalrestaurante.data.local.dao.CategoriaDao;
 import com.example.proyectofinalrestaurante.data.local.dao.ClienteDao;
+import com.example.proyectofinalrestaurante.data.local.dao.DetallePedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.EmpleadoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.EstadoMesaDao;
 import com.example.proyectofinalrestaurante.data.local.dao.EstadoPedidoDao;
@@ -16,6 +17,7 @@ import com.example.proyectofinalrestaurante.data.local.dao.PlatilloDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
 import com.example.proyectofinalrestaurante.data.local.entity.CategoriaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.DetallePedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EmpleadoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EstadoMesaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EstadoPedidoEntity;
@@ -49,11 +51,12 @@ import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEnti
         EstadoMesaEntity.class,
         ClienteEntity.class,
         PedidoEntity.class,
+        DetallePedidoEntity.class,
         EstadoPedidoEntity.class,
         NotificacionEntity.class,
         OperacionPendienteEntity.class,
         SincronizacionEntity.class
-}, version = 5, exportSchema = true)
+}, version = 6, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract PlatilloDao platilloDao();
@@ -69,6 +72,8 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract ClienteDao clienteDao();
 
     public abstract PedidoDao pedidoDao();
+
+    public abstract DetallePedidoDao detallePedidoDao();
 
     public abstract EstadoPedidoDao estadoPedidoDao();
 

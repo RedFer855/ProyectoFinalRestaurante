@@ -159,8 +159,8 @@ public final class SyncApplication extends Application implements Configuration.
                     baseDeDatos = Room.databaseBuilder(this, AppDatabase.class, NOMBRE_BASE)
                             // Migración explícita: fallbackToDestructiveMigration() borraría
                             // los cambios que el usuario todavía no subió.
-                            .addMigrations(Migraciones.DE_1_A_2, Migraciones.DE_2_A_3,
-                                    Migraciones.DE_3_A_4, Migraciones.DE_4_A_5)
+.addMigrations(Migraciones.DE_1_A_2, Migraciones.DE_2_A_3,
+                            Migraciones.DE_3_A_4, Migraciones.DE_4_A_5, Migraciones.DE_5_A_6)
                             .build();
                 }
             }
@@ -270,7 +270,9 @@ public final class SyncApplication extends Application implements Configuration.
             Sincronizador pedidos = new SincronizadorPedidos(pedidoRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.PEDIDOS),
                     base.pedidoDao(), base.notificacionDao(), base.sincronizacionDao(),
-                    base::runInTransaction, SyncApplication::pisoDeArranqueDePedidos,
+                    base::runInTransaction, base.mesaDao(), base.clienteDao(),
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.CLIENTES),
+                    SyncApplication::pisoDeArranqueDePedidos,
                     System::currentTimeMillis);
 
             return new SyncWorker(contexto, parametros,
