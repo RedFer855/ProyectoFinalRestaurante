@@ -167,6 +167,37 @@ public class AppDatabaseMigrationTest {
         migrada.close();
     }
 
+    @Test
+    public void migracion4a5_creaLasTablasDePedidosYConservaLoExistente() throws IOException {
+        MigrationTestHelper helper = helper();
+        SQLiteConnection base = helper.createDatabase(4);
+        // Un cliente de la v4 que debe sobrevivir a la migración.
+        try (SQLiteStatement insercion = base.prepare("INSERT INTO clientes "
+                + "(id_local, id_servidor, nombre, apellido, identidad, telefono, id_estado, "
+                + "activo, cantidad_pedidos, actualizado_en, estado_sync) "
+                + "VALUES (1, 10, 'Ana', 'Cruz', '0801', '9900', 1, 1, 0, NULL, "
+                + "'SINCRONIZADO')")) {
+            insercion.step();
+        }
+        base.close();
+
+        SQLiteConnection migrada = helper.runMigrationsAndValidate(
+                5, Collections.singletonList(Migraciones.DE_4_A_5));
+
+        assertNotNull(migrada);
+        assertTrue(tablaExiste(migrada, "pedidos"));
+        assertTrue(tablaExiste(migrada, "estados_pedido"));
+        assertTrue(tablaExiste(migrada, "notificaciones"));
+        assertTrue(tablaExiste(migrada, "clientes"));
+        // El cliente descargado no se pierde al sumar el módulo Pedidos.
+        try (SQLiteStatement sentencia = migrada.prepare(
+                "SELECT nombre FROM clientes WHERE id_local = 1")) {
+            assertTrue("el cliente se perdió en la migración", sentencia.step());
+            assertEquals("Ana", sentencia.getText(0));
+        }
+        migrada.close();
+    }
+
     /**
      * El driver-based helper no borra el archivo previo (a diferencia del helper legacy);
      * el test debe garantizar una base limpia antes de {@code createDatabase}.

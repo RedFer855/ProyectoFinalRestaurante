@@ -130,4 +130,64 @@ public final class Migraciones {
                     + "`index_clientes_id_servidor` ON `clientes` (`id_servidor`)");
         }
     };
+
+    /**
+     * v4 → v5: llega el módulo Pedidos a la base local (Plan Fase 3, §4.4–4.6).
+     *
+     * <p>Tres tablas nuevas, ninguna toca las que ya existen:</p>
+     *
+     * <ol>
+     *   <li>{@code pedidos}, con el mismo esquema de identidad que {@code mesas}
+     *       ({@code id_local} PK autoincrement, {@code id_servidor} con índice único) más las
+     *       marcas de sincronización. El índice {@code (fecha, id_local)} respalda la ventana
+     *       FIFO del tablero ({@code ORDER BY fecha ASC, id_local ASC LIMIT}).</li>
+     *   <li>{@code estados_pedido}, el catálogo de estados bajado del servidor — a diferencia
+     *       de {@code estados_mesa} (que se sembró local) son 5 valores con {@code orden} que
+     *       el admin podría querer tocar, así que se reemplaza completo en cada sincronización.</li>
+     *   <li>{@code notificaciones}, el buzón local con su índice único de idempotencia sobre
+     *       {@code clave_unica}.</li>
+     * </ol>
+     */
+    public static final Migration DE_4_A_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `pedidos` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`id_servidor` INTEGER, "
+                    + "`fecha` TEXT NOT NULL, "
+                    + "`id_estado_pedido` INTEGER NOT NULL, "
+                    + "`numero_mesa` INTEGER, "
+                    + "`cliente` TEXT, "
+                    + "`total` REAL NOT NULL, "
+                    + "`cantidad_items` INTEGER NOT NULL, "
+                    + "`id_auth_usuario` TEXT, "
+                    + "`actualizado_en` TEXT, "
+                    + "`estado_sync` TEXT NOT NULL)");
+
+            base.execSQL("CREATE INDEX IF NOT EXISTS "
+                    + "`index_pedidos_fecha_id_local` ON `pedidos` (`fecha`, `id_local`)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_pedidos_id_servidor` ON `pedidos` (`id_servidor`)");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `estados_pedido` ("
+                    + "`id_estado_pedido` INTEGER NOT NULL, "
+                    + "`descripcion` TEXT NOT NULL, "
+                    + "`orden` INTEGER NOT NULL, "
+                    + "PRIMARY KEY(`id_estado_pedido`))");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `notificaciones` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`tipo` TEXT NOT NULL, "
+                    + "`rol_destino` TEXT, "
+                    + "`destinatario_auth` TEXT, "
+                    + "`arg1` TEXT, "
+                    + "`creado_en` INTEGER NOT NULL, "
+                    + "`leida` INTEGER NOT NULL, "
+                    + "`clave_unica` TEXT NOT NULL)");
+
+            base.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_notificaciones_clave_unica` ON `notificaciones` (`clave_unica`)");
+        }
+    };
 }

@@ -1,0 +1,741 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 5,
+    "identityHash": "0cdb7fa690cf37d9e59d718b39668607",
+    "entities": [
+      {
+        "tableName": "platillos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `nombre` TEXT, `descripcion` TEXT, `precio` REAL NOT NULL, `id_categoria_local` INTEGER NOT NULL, `nombre_categoria` TEXT, `ruta_imagen` TEXT, `activo` INTEGER NOT NULL, `estado_sync` TEXT, `actualizado_en` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "precio",
+            "columnName": "precio",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idCategoriaLocal",
+            "columnName": "id_categoria_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombreCategoria",
+            "columnName": "nombre_categoria",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rutaImagen",
+            "columnName": "ruta_imagen",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_platillos_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_platillos_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "categorias",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `descripcion` TEXT, `activo` INTEGER NOT NULL, `cantidad_platillos` INTEGER NOT NULL, `cantidad_platillos_activos` INTEGER NOT NULL, `estado_sync` TEXT, `actualizado_en` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPlatillos",
+            "columnName": "cantidad_platillos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPlatillosActivos",
+            "columnName": "cantidad_platillos_activos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_categorias_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_categorias_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "empleados",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_empleado` INTEGER NOT NULL, `nombres` TEXT, `apellidos` TEXT, `identidad` TEXT, `telefono` TEXT, `correo` TEXT, `id_usuario` INTEGER NOT NULL, `apodo_usuario` TEXT, `id_auth_user` TEXT, `rol` TEXT, `activo` INTEGER NOT NULL, `estado_sync` TEXT, `actualizado_en` TEXT, PRIMARY KEY(`id_empleado`))",
+        "fields": [
+          {
+            "fieldPath": "idEmpleado",
+            "columnName": "id_empleado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombres",
+            "columnName": "nombres",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "apellidos",
+            "columnName": "apellidos",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "identidad",
+            "columnName": "identidad",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "telefono",
+            "columnName": "telefono",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "correo",
+            "columnName": "correo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idUsuario",
+            "columnName": "id_usuario",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apodoUsuario",
+            "columnName": "apodo_usuario",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idAuthUser",
+            "columnName": "id_auth_user",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rol",
+            "columnName": "rol",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id_empleado"
+          ]
+        }
+      },
+      {
+        "tableName": "mesas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `numero_mesa` INTEGER NOT NULL, `capacidad` INTEGER NOT NULL, `ubicacion` TEXT, `id_estado_mesa` INTEGER NOT NULL, `estado_mesa` TEXT, `id_estado` INTEGER NOT NULL, `activo` INTEGER NOT NULL, `actualizado_en` TEXT, `estado_sync` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "numeroMesa",
+            "columnName": "numero_mesa",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capacidad",
+            "columnName": "capacidad",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ubicacion",
+            "columnName": "ubicacion",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idEstadoMesa",
+            "columnName": "id_estado_mesa",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estadoMesa",
+            "columnName": "estado_mesa",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idEstado",
+            "columnName": "id_estado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_mesas_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_mesas_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "estados_mesa",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_estado_mesa` INTEGER NOT NULL, `descripcion` TEXT NOT NULL, `orden` INTEGER NOT NULL, PRIMARY KEY(`id_estado_mesa`))",
+        "fields": [
+          {
+            "fieldPath": "idEstadoMesa",
+            "columnName": "id_estado_mesa",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orden",
+            "columnName": "orden",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id_estado_mesa"
+          ]
+        }
+      },
+      {
+        "tableName": "clientes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `nombre` TEXT, `apellido` TEXT, `identidad` TEXT, `telefono` TEXT, `id_estado` INTEGER NOT NULL, `activo` INTEGER NOT NULL, `cantidad_pedidos` INTEGER NOT NULL, `actualizado_en` TEXT, `estado_sync` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "apellido",
+            "columnName": "apellido",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "identidad",
+            "columnName": "identidad",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "telefono",
+            "columnName": "telefono",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idEstado",
+            "columnName": "id_estado",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activo",
+            "columnName": "activo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadPedidos",
+            "columnName": "cantidad_pedidos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_clientes_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_clientes_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "pedidos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `id_servidor` INTEGER, `fecha` TEXT NOT NULL, `id_estado_pedido` INTEGER NOT NULL, `numero_mesa` INTEGER, `cliente` TEXT, `total` REAL NOT NULL, `cantidad_items` INTEGER NOT NULL, `id_auth_usuario` TEXT, `actualizado_en` TEXT, `estado_sync` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idServidor",
+            "columnName": "id_servidor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "fecha",
+            "columnName": "fecha",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idEstadoPedido",
+            "columnName": "id_estado_pedido",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "numeroMesa",
+            "columnName": "numero_mesa",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "cliente",
+            "columnName": "cliente",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "total",
+            "columnName": "total",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cantidadItems",
+            "columnName": "cantidad_items",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "idAuthUsuario",
+            "columnName": "id_auth_usuario",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "actualizadoEn",
+            "columnName": "actualizado_en",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "estadoSync",
+            "columnName": "estado_sync",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pedidos_fecha_id_local",
+            "unique": false,
+            "columnNames": [
+              "fecha",
+              "id_local"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pedidos_fecha_id_local` ON `${TABLE_NAME}` (`fecha`, `id_local`)"
+          },
+          {
+            "name": "index_pedidos_id_servidor",
+            "unique": true,
+            "columnNames": [
+              "id_servidor"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_pedidos_id_servidor` ON `${TABLE_NAME}` (`id_servidor`)"
+          }
+        ]
+      },
+      {
+        "tableName": "estados_pedido",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_estado_pedido` INTEGER NOT NULL, `descripcion` TEXT NOT NULL, `orden` INTEGER NOT NULL, PRIMARY KEY(`id_estado_pedido`))",
+        "fields": [
+          {
+            "fieldPath": "idEstadoPedido",
+            "columnName": "id_estado_pedido",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descripcion",
+            "columnName": "descripcion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orden",
+            "columnName": "orden",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id_estado_pedido"
+          ]
+        }
+      },
+      {
+        "tableName": "notificaciones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tipo` TEXT NOT NULL, `rol_destino` TEXT, `destinatario_auth` TEXT, `arg1` TEXT, `creado_en` INTEGER NOT NULL, `leida` INTEGER NOT NULL, `clave_unica` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rolDestino",
+            "columnName": "rol_destino",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "destinatarioAuth",
+            "columnName": "destinatario_auth",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "arg1",
+            "columnName": "arg1",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "creadoEn",
+            "columnName": "creado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leida",
+            "columnName": "leida",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "claveUnica",
+            "columnName": "clave_unica",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id_local"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notificaciones_clave_unica",
+            "unique": true,
+            "columnNames": [
+              "clave_unica"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_notificaciones_clave_unica` ON `${TABLE_NAME}` (`clave_unica`)"
+          }
+        ]
+      },
+      {
+        "tableName": "operaciones_pendientes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `modulo` TEXT NOT NULL DEFAULT 'MENU', `tipo` TEXT, `id_local` INTEGER NOT NULL, `payload_json` TEXT, `ruta_imagen_local` TEXT, `intentos` INTEGER NOT NULL, `ultimo_error` TEXT, `creado_en` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modulo",
+            "columnName": "modulo",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'MENU'"
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "idLocal",
+            "columnName": "id_local",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "rutaImagenLocal",
+            "columnName": "ruta_imagen_local",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "intentos",
+            "columnName": "intentos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimoError",
+            "columnName": "ultimo_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "creadoEn",
+            "columnName": "creado_en",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_operaciones_pendientes_modulo_id",
+            "unique": false,
+            "columnNames": [
+              "modulo",
+              "id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_operaciones_pendientes_modulo_id` ON `${TABLE_NAME}` (`modulo`, `id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sincronizacion",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tabla` TEXT NOT NULL, `marca_agua` TEXT, `ultimo_intento` INTEGER NOT NULL, `ultimo_error` TEXT, PRIMARY KEY(`tabla`))",
+        "fields": [
+          {
+            "fieldPath": "tabla",
+            "columnName": "tabla",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "marcaAgua",
+            "columnName": "marca_agua",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ultimoIntento",
+            "columnName": "ultimo_intento",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ultimoError",
+            "columnName": "ultimo_error",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "tabla"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0cdb7fa690cf37d9e59d718b39668607')"
+    ]
+  }
+}

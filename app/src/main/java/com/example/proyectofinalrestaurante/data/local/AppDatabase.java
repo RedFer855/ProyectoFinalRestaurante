@@ -7,16 +7,22 @@ import com.example.proyectofinalrestaurante.data.local.dao.CategoriaDao;
 import com.example.proyectofinalrestaurante.data.local.dao.ClienteDao;
 import com.example.proyectofinalrestaurante.data.local.dao.EmpleadoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.EstadoMesaDao;
+import com.example.proyectofinalrestaurante.data.local.dao.EstadoPedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.MesaDao;
+import com.example.proyectofinalrestaurante.data.local.dao.NotificacionDao;
 import com.example.proyectofinalrestaurante.data.local.dao.OperacionPendienteDao;
+import com.example.proyectofinalrestaurante.data.local.dao.PedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PlatilloDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
 import com.example.proyectofinalrestaurante.data.local.entity.CategoriaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EmpleadoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EstadoMesaEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.EstadoPedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.MesaEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.NotificacionEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.PedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.PlatilloEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
 
@@ -42,9 +48,12 @@ import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEnti
         MesaEntity.class,
         EstadoMesaEntity.class,
         ClienteEntity.class,
+        PedidoEntity.class,
+        EstadoPedidoEntity.class,
+        NotificacionEntity.class,
         OperacionPendienteEntity.class,
         SincronizacionEntity.class
-}, version = 4, exportSchema = true)
+}, version = 5, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract PlatilloDao platilloDao();
@@ -58,6 +67,12 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract EstadoMesaDao estadoMesaDao();
 
     public abstract ClienteDao clienteDao();
+
+    public abstract PedidoDao pedidoDao();
+
+    public abstract EstadoPedidoDao estadoPedidoDao();
+
+    public abstract NotificacionDao notificacionDao();
 
     public abstract OperacionPendienteDao operacionPendienteDao();
 
