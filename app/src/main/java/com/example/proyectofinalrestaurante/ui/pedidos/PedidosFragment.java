@@ -9,36 +9,37 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
+import com.example.proyectofinalrestaurante.domain.model.Pedido;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Módulo Pedidos (Plan Fase 1c, Entregable 4). Es el módulo donde más se nota la
- * matriz de permisos: cocina puede avanzar el estado pero no crear pedidos; mesero
- * puede crear y editar pero no cancelar; admin puede todo.
- *
- * <p>El cambio de estado sí funciona (en memoria) — es lo que hace demostrable el
- * flujo de cocina sin haber conectado la base todavía.</p>
+ * Tablero de Pedidos conectado a Room + tiempo real (Plan Fase 3, E8). Sin {@code DatosMaqueta}:
+ * la fuente es {@link PedidosViewModel} y su {@link PedidoRepository}, con la lista paginada
+ * por <b>ventana creciente</b> (§4.5) — el scroll pide otra ventana cuando se acerca al final
+ * y {@code hayMas} es cierto.
  */
 public class PedidosFragment extends Fragment {
 
+    private PedidosViewModel viewModel;
     private PedidoAdapter adapter;
     private TextView vacio;
-    private final List<DatosMaqueta.Pedido> pedidos = new ArrayList<>();
-    private DatosMaqueta.EstadoPedido filtroEstado = null;
+    private ChipGroup grupoEstados;
+    private int chipsConstruidos = -1;
+    private boolean cargandoMas = false;
 
     @Nullable
     @Override
@@ -51,20 +52,26 @@ public class PedidosFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         vacio = view.findViewById(R.id.txt_pedidos_vacio);
+        grupoEstados = view.findViewById(R.id.grupo_estados_pedido);
 
-        if (pedidos.isEmpty()) {
-            pedidos.addAll(DatosMaqueta.pedidos());
-        }
+        viewModel = new ViewModelProvider(this,
+                new PedidosViewModelFactory(requireActivity().getApplication()))
+                .get(PedidosViewModel.class);
 
         adapter = new PedidoAdapter(new PedidoAdapter.AlInteractuar() {
             @Override
-            public void onAvanzarEstado(DatosMaqueta.Pedido pedido) {
-                avanzarEstado(pedido);
+            public void onAvanzarEstado(Pedido pedido) {
+                viewModel.avanzarEstado(pedido);
             }
 
             @Override
-            public void onAccion(DatosMaqueta.Pedido pedido, int accionId) {
-                avisarMaqueta();
+            public void onAccion(Pedido pedido, int accionId) {
+                if (accionId == R.id.accion_eliminar) {
+                    viewModel.cancelar(pedido);
+                } else {
+                    // Editar un pedido no es parte de la Fase 3 (§1.2).
+                    avisarMaqueta();
+                }
             }
         });
 
@@ -72,57 +79,75 @@ public class PedidosFragment extends Fragment {
         lista.setLayoutManager(new LinearLayoutManager(requireContext()));
         lista.setAdapter(adapter);
 
-        configurarFiltroEstados(view.findViewById(R.id.grupo_estados_pedido));
+        // Ventana creciente (Plan Fase 3, §4.5): el último visible pasó itemCount − 5,
+        // no hay una carga en curso y hayMas (derivado de contarTotal > ventana).
+        lista.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                LinearLayoutManager layoutManager =
+                        (LinearLayoutManager) recyclerView.getLayoutManager();
+                if (layoutManager == null) {
+                    return;
+                }
+                EstadoPedidos estado = viewModel.getEstado().getValue();
+                boolean hayMas = estado != null && estado.isHayMas();
+                int ultimoVisible = layoutManager.findLastVisibleItemPosition();
+                if (!cargandoMas && hayMas && ultimoVisible >= layoutManager.getItemCount() - 5) {
+                    cargandoMas = true;
+                    viewModel.cargarMas();
+                }
+            }
+        });
 
         ExtendedFloatingActionButton fab = view.findViewById(R.id.fab_nuevo_pedido);
         VistaPorPermiso.aplicar(fab, Modulo.PEDIDOS, Accion.CREAR);
         fab.setOnClickListener(v -> avisarMaqueta());
 
-        refrescar();
+        viewModel.getEstado().observe(getViewLifecycleOwner(), this::render);
     }
 
-    private void configurarFiltroEstados(ChipGroup grupo) {
-        grupo.removeAllViews();
-        grupo.addView(crearChip(getString(R.string.filtro_todos), null, true));
-        for (DatosMaqueta.EstadoPedido estado : DatosMaqueta.EstadoPedido.values()) {
-            grupo.addView(crearChip(getString(estado.etiqueta), estado, false));
+    private void render(EstadoPedidos estado) {
+        asegurarChips();
+        // La ventana ya creció: se habilita la siguiente carga de página.
+        cargandoMas = false;
+        adapter.submitList(estado.getPedidos());
+        vacio.setVisibility(estado.isVacio() ? View.VISIBLE : View.GONE);
+
+        String error = estado.getError();
+        if (error != null) {
+            Snackbar.make(requireView(), error, Snackbar.LENGTH_LONG).show();
+            viewModel.onErrorConsumido();
+        }
+
+        String exito = estado.getMensajeExito();
+        if (exito != null) {
+            Snackbar.make(requireView(), exito, Snackbar.LENGTH_SHORT).show();
+            viewModel.onMensajeConsumido();
         }
     }
 
-    private Chip crearChip(String etiqueta, @Nullable DatosMaqueta.EstadoPedido valor,
-                           boolean seleccionado) {
+    /** Chips del filtro desde el catálogo que baja del servidor; "Todos" primero. */
+    private void asegurarChips() {
+        List<EstadoPedido> estados = viewModel.getEstados();
+        if (estados.size() == chipsConstruidos) {
+            return;
+        }
+        chipsConstruidos = estados.size();
+        grupoEstados.removeAllViews();
+        grupoEstados.addView(crearChip(getString(R.string.filtro_todos), null, true));
+        for (EstadoPedido estado : estados) {
+            grupoEstados.addView(crearChip(getString(EstadoPedidoUi.etiqueta(estado)), estado, false));
+        }
+    }
+
+    private Chip crearChip(String etiqueta, @Nullable EstadoPedido valor, boolean seleccionado) {
         Chip chip = new Chip(requireContext());
         chip.setText(etiqueta);
         chip.setCheckable(true);
         chip.setChecked(seleccionado);
         chip.setMinHeight(getResources().getDimensionPixelSize(R.dimen.altura_minima_tactil));
-        chip.setOnClickListener(v -> {
-            filtroEstado = valor;
-            refrescar();
-        });
+        chip.setOnClickListener(v -> viewModel.filtrarPorEstado(valor));
         return chip;
-    }
-
-    /** Sustituye el pedido por una copia con el estado siguiente — DiffUtil anima el cambio. */
-    private void avanzarEstado(DatosMaqueta.Pedido pedido) {
-        for (int i = 0; i < pedidos.size(); i++) {
-            if (pedidos.get(i).numero == pedido.numero) {
-                pedidos.set(i, pedido.conEstado(pedido.estado.siguiente()));
-                break;
-            }
-        }
-        refrescar();
-    }
-
-    private void refrescar() {
-        List<DatosMaqueta.Pedido> filtrados = new ArrayList<>();
-        for (DatosMaqueta.Pedido pedido : pedidos) {
-            if (filtroEstado == null || pedido.estado == filtroEstado) {
-                filtrados.add(pedido);
-            }
-        }
-        adapter.submitList(filtrados);
-        vacio.setVisibility(filtrados.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void avisarMaqueta() {

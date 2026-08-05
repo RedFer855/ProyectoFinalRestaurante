@@ -34,6 +34,8 @@
     <string name="estado_pedido_listo">Listo</string>
     <string name="estado_pedido_entregado">Entregado</string>
     <string name="estado_pedido_cancelado">Cancelado</string>
+    <!-- Estado del servidor que este APK todavía no conoce: se muestra sin mentir. -->
+    <string name="estado_pedido_desconocido">Desconocido</string>
 
     <string name="estado_mesa_libre">Libre</string>
     <string name="estado_mesa_ocupada">Ocupada</string>
@@ -113,6 +115,8 @@
     <string name="pedidos_numero">Pedido #%1$d</string>
     <string name="pedidos_vacio">No hay pedidos en este estado.</string>
     <string name="pedidos_cd_avanzar">Avanzar el estado del pedido</string>
+    <string name="pedidos_mesa">Mesa %1$d</string>
+    <string name="pedidos_para_llevar">Para llevar</string>
 
     <string name="mesas_agregar">Agregar mesa</string>
     <string name="mesas_numero">Mesa %1$d</string>

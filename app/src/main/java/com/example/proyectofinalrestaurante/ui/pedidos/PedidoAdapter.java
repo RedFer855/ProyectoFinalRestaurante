@@ -8,6 +8,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DiffUtil;
@@ -17,20 +18,25 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.domain.Accion;
 import com.example.proyectofinalrestaurante.domain.Modulo;
-import com.example.proyectofinalrestaurante.ui.maqueta.DatosMaqueta;
+import com.example.proyectofinalrestaurante.domain.model.Pedido;
 import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.chip.Chip;
 
 /**
- * Lista de pedidos. Tres permisos distintos conviven en la misma tarjeta:
+ * Lista de pedidos del tablero (Plan Fase 3, E8), ahora sobre {@link Pedido} del dominio en
+ * vez de {@code DatosMaqueta.Pedido}. Tres permisos distintos conviven en la misma tarjeta:
  * avanzar el estado (admin y cocina), editar (admin y mesero) y cancelar (solo admin).
+ *
+ * <p>El chip de estado también es el botón de "avanzar": por eso queda clickeable solo cuando
+ * la matriz de permisos lo permite. La validación fina de la transición (rol + estado actual)
+ * la vuelve a hacer el ViewModel con {@code ReglasPedido}.</p>
  */
-public class PedidoAdapter extends ListAdapter<DatosMaqueta.Pedido, PedidoAdapter.Holder> {
+public class PedidoAdapter extends ListAdapter<Pedido, PedidoAdapter.Holder> {
 
     public interface AlInteractuar {
-        void onAvanzarEstado(DatosMaqueta.Pedido pedido);
+        void onAvanzarEstado(Pedido pedido);
 
-        void onAccion(DatosMaqueta.Pedido pedido, int accionId);
+        void onAccion(Pedido pedido, int accionId);
     }
 
     private final AlInteractuar alInteractuar;
@@ -40,18 +46,18 @@ public class PedidoAdapter extends ListAdapter<DatosMaqueta.Pedido, PedidoAdapte
         this.alInteractuar = alInteractuar;
     }
 
-    private static final DiffUtil.ItemCallback<DatosMaqueta.Pedido> DIFF =
-            new DiffUtil.ItemCallback<DatosMaqueta.Pedido>() {
+    private static final DiffUtil.ItemCallback<Pedido> DIFF =
+            new DiffUtil.ItemCallback<Pedido>() {
                 @Override
-                public boolean areItemsTheSame(@NonNull DatosMaqueta.Pedido a,
-                                               @NonNull DatosMaqueta.Pedido b) {
-                    return a.numero == b.numero;
+                public boolean areItemsTheSame(@NonNull Pedido a, @NonNull Pedido b) {
+                    return a.getIdLocal() == b.getIdLocal();
                 }
 
                 @Override
-                public boolean areContentsTheSame(@NonNull DatosMaqueta.Pedido a,
-                                                  @NonNull DatosMaqueta.Pedido b) {
-                    return a.estado == b.estado && a.total == b.total;
+                public boolean areContentsTheSame(@NonNull Pedido a, @NonNull Pedido b) {
+                    return a.getEstado() == b.getEstado()
+                            && a.getTotal() == b.getTotal()
+                            && a.getEstadoSync() == b.getEstadoSync();
                 }
             };
 
@@ -87,17 +93,25 @@ public class PedidoAdapter extends ListAdapter<DatosMaqueta.Pedido, PedidoAdapte
             opciones = itemView.findViewById(R.id.btn_opciones_pedido);
         }
 
-        void enlazar(DatosMaqueta.Pedido pedido, AlInteractuar alInteractuar) {
-            numero.setText(itemView.getContext().getString(R.string.pedidos_numero, pedido.numero));
-            hora.setText(pedido.hora);
-            referencia.setText(pedido.referencia + " · " + pedido.cliente);
-            total.setText(itemView.getContext()
-                    .getString(R.string.formato_lempiras, pedido.total));
+        void enlazar(Pedido pedido, AlInteractuar alInteractuar) {
+            ContextoLocal contexto = new ContextoLocal(itemView);
 
-            estado.setText(pedido.estado.etiqueta);
-            estado.setChipBackgroundColor(ColorStateList.valueOf(
-                    ContextCompat.getColor(itemView.getContext(), pedido.estado.color)));
-            estado.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.white));
+            long numeroVisible = pedido.getIdServidor() != null
+                    ? pedido.getIdServidor() : pedido.getIdLocal();
+            numero.setText(itemView.getContext().getString(R.string.pedidos_numero, numeroVisible));
+            hora.setText(horaDe(pedido.getFecha()));
+
+            String mesa = pedido.getNumeroMesa() != null
+                    ? itemView.getContext().getString(R.string.pedidos_mesa, pedido.getNumeroMesa())
+                    : itemView.getContext().getString(R.string.pedidos_para_llevar);
+            String cliente = pedido.getCliente();
+            referencia.setText(cliente == null
+                    ? mesa : mesa + " · " + cliente);
+
+            total.setText(itemView.getContext()
+                    .getString(R.string.formato_lempiras, pedido.getTotal()));
+
+            contexto.aplicarEstado(estado, pedido);
 
             boolean puedeAvanzar = VistaPorPermiso.puede(Modulo.PEDIDOS, Accion.CAMBIAR_ESTADO);
             estado.setClickable(puedeAvanzar);
@@ -122,6 +136,41 @@ public class PedidoAdapter extends ListAdapter<DatosMaqueta.Pedido, PedidoAdapte
                 });
                 menu.show();
             });
+        }
+    }
+
+    /**
+     * Extrae {@code HH:mm} de la fecha ISO 8601 del servidor ("2026-08-01T10:00:00Z" → "10:00").
+     * No se parsea con {@code java.time} para no forzar desugaring: el texto ya viene con la
+     * zona y solo interesa la hora local del servidor para el tablero.
+     */
+    @Nullable
+    private static String horaDe(@Nullable String fecha) {
+        if (fecha == null) {
+            return null;
+        }
+        int inicio = fecha.indexOf('T');
+        if (inicio < 0 || inicio + 5 > fecha.length()) {
+            return null;
+        }
+        return fecha.substring(inicio + 1, inicio + 6);
+    }
+
+    /** Aplica el color + texto del estado y, si quedó pendiente de subir, lo advierte. */
+    private static final class ContextoLocal {
+
+        private final View itemView;
+
+        ContextoLocal(View itemView) {
+            this.itemView = itemView;
+        }
+
+        void aplicarEstado(Chip chip, Pedido pedido) {
+            chip.setText(itemView.getContext()
+                    .getString(EstadoPedidoUi.etiqueta(pedido.getEstado())));
+            chip.setChipBackgroundColor(ColorStateList.valueOf(ContextCompat.getColor(
+                    itemView.getContext(), EstadoPedidoUi.color(pedido.getEstado()))));
+            chip.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.white));
         }
     }
 }
