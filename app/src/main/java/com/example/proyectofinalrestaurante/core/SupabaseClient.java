@@ -6,6 +6,7 @@ import com.example.proyectofinalrestaurante.data.remote.SupabaseClienteApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseEmpleadoApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseMenuApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseMesaApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseStorageApi;
 
@@ -30,6 +31,7 @@ public final class SupabaseClient {
     private static volatile SupabaseMenuApi menuApi;
     private static volatile SupabaseMesaApi mesaApi;
     private static volatile SupabaseClienteApi clienteApi;
+    private static volatile SupabasePedidoApi pedidoApi;
     private static volatile SupabaseStorageApi storageApi;
 
     private SupabaseClient() {
@@ -110,6 +112,17 @@ public final class SupabaseClient {
             }
         }
         return storageApi;
+    }
+
+    public static SupabasePedidoApi getPedidoApi() {
+        if (pedidoApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (pedidoApi == null) {
+                    pedidoApi = buildRetrofit().create(SupabasePedidoApi.class);
+                }
+            }
+        }
+        return pedidoApi;
     }
 
     private static Retrofit buildRetrofit() {

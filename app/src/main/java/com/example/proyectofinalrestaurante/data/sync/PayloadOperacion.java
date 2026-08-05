@@ -54,6 +54,22 @@ public final class PayloadOperacion {
         return payload == null ? null : payload.idServidor;
     }
 
+    /** Payload de {@code AVANZAR_ESTADO_PEDIDO}: el estado al que el usuario lo llevó. */
+    public static String avanzarEstado(int idEstadoPedido) {
+        AvanzarEstadoPedido payload = new AvanzarEstadoPedido();
+        payload.idEstadoPedido = idEstadoPedido;
+        return GSON.toJson(payload);
+    }
+
+    @Nullable
+    public static Integer idEstadoPedidoDe(String json) {
+        if (json == null || json.isEmpty()) {
+            return null;
+        }
+        AvanzarEstadoPedido payload = GSON.fromJson(json, AvanzarEstadoPedido.class);
+        return payload == null ? null : payload.idEstadoPedido;
+    }
+
     private static final class QuitarImagen {
         @SerializedName("ruta_vieja")
         String rutaVieja;
@@ -62,5 +78,10 @@ public final class PayloadOperacion {
     private static final class BorrarCategoria {
         @SerializedName("id_servidor")
         Integer idServidor;
+    }
+
+    private static final class AvanzarEstadoPedido {
+        @SerializedName("id_estado_pedido")
+        Integer idEstadoPedido;
     }
 }

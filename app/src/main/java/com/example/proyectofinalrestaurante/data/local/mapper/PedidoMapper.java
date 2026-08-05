@@ -1,9 +1,9 @@
 package com.example.proyectofinalrestaurante.data.local.mapper;
 
-import androidx.annotation.Nullable;
-
 import com.example.proyectofinalrestaurante.data.local.entity.PedidoEntity;
+import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
+import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
 
 /**
@@ -60,25 +60,22 @@ public final class PedidoMapper {
     /**
      * Entidad a partir de una fila bajada del servidor (delta). Todo lo que baja llega
      * sincronizado; {@code idServidor} es la clave {@code id_pedido} del servidor.
-     * El {@code estadoSync} siempre es {@code SINCRONIZADO}.
+     * El {@code estadoSync} siempre es {@code SINCRONIZADO}. El {@code id_estado} es la
+     * existencia lógica ({@code 1 = activo}); la 3 no trae pedidos de baja, así que no se
+     * persiste.
      */
-    public static PedidoEntity desdeServidor(Integer idServidor, String fecha,
-                                             int idEstadoPedido, @Nullable Integer numeroMesa,
-                                             @Nullable String cliente, double total,
-                                             int cantidadItems,
-                                             @Nullable String idAuthUsuario,
-                                             @Nullable String actualizadoEn) {
+    public static PedidoEntity desdeServidor(PedidoDto dto) {
         PedidoEntity entidad = new PedidoEntity();
-        entidad.setIdServidor(idServidor);
-        entidad.setFecha(fecha);
-        entidad.setIdEstadoPedido(idEstadoPedido);
-        entidad.setNumeroMesa(numeroMesa);
-        entidad.setCliente(cliente);
-        entidad.setTotal(total);
-        entidad.setCantidadItems(cantidadItems);
-        entidad.setIdAuthUsuario(idAuthUsuario);
-        entidad.setActualizadoEn(actualizadoEn);
-        entidad.setEstadoSync("SINCRONIZADO");
+        entidad.setIdServidor(dto.getIdPedido());
+        entidad.setFecha(dto.getFecha());
+        entidad.setIdEstadoPedido(dto.getIdEstadoPedido());
+        entidad.setNumeroMesa(dto.getNumeroMesa());
+        entidad.setCliente(dto.getCliente());
+        entidad.setTotal(dto.getTotal());
+        entidad.setCantidadItems(dto.getCantidadItems());
+        entidad.setIdAuthUsuario(dto.getIdAuthUsuario());
+        entidad.setActualizadoEn(dto.getActualizadoEn());
+        entidad.setEstadoSync(EstadoSync.SINCRONIZADO.name());
         return entidad;
     }
 }

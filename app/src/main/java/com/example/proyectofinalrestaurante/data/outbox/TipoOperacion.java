@@ -28,6 +28,7 @@ public final class TipoOperacion {
         public static final String EMPLEADOS = "EMPLEADOS";
         public static final String MESAS = "MESAS";
         public static final String CLIENTES = "CLIENTES";
+        public static final String PEDIDOS = "PEDIDOS";
     }
 
     public static final String CREAR_PLATILLO = "CREAR_PLATILLO";
@@ -66,4 +67,12 @@ public final class TipoOperacion {
     public static final String ACTUALIZAR_CLIENTE = "ACTUALIZAR_CLIENTE";
     public static final String CAMBIAR_ESTADO_CLIENTE = "CAMBIAR_ESTADO_CLIENTE";
     public static final String BORRAR_CLIENTE = "BORRAR_CLIENTE";
+
+    /**
+     * Pedidos (Plan Fase 3, §4.4). Solo existe {@code AVANZAR_ESTADO_PEDIDO}; no hay
+     * {@code CREAR_PEDIDO} ni {@code CREAR_DETALLE} en esta fase (§1.2): la 3 no crea
+     * pedidos, solo los consulta y avanza su estado. En la 3b, cuando se crea desde la
+     * línea, se agregan las operaciones de alta que acá deliberadamente no existen.
+     */
+    public static final String AVANZAR_ESTADO_PEDIDO = "AVANZAR_ESTADO_PEDIDO";
 }
