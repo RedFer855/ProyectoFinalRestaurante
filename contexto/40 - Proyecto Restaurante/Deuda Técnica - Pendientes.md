@@ -179,9 +179,19 @@ Además, al consumir Auth por REST (sin SDK), **el refresh de token hay que impl
 
 **Riesgo:** bloqueante en cuanto exista una segunda pantalla que consulte datos protegidos por RLS.
 
-**Solución:** `SesionLocalDataSource` sobre `EncryptedSharedPreferences` + `AuthInterceptor` que inyecte el `Bearer` + `TokenRefreshAuthenticator` para el 401. **Nunca en texto plano.** Ver [[Seguridad y Privacidad Android]].
+**Solución:** ~~`SesionLocalDataSource` sobre `EncryptedSharedPreferences` + `AuthInterceptor` que inyecte el `Bearer` + `TokenRefreshAuthenticator` para el 401.~~ **Nunca en texto plano.** Ver [[Seguridad y Privacidad Android]].
 
-**Estado:** `[ ] Pendiente — requerido en Fase 2`
+> [!danger] La solución de arriba quedó obsoleta (2026-08-04)
+> Google **deprecó todas** las APIs de `androidx.security:security-crypto` en `1.1.0-alpha07`
+> (abril 2025) y lo repitió en `1.1.0-beta01` (junio 2025), con este texto:
+> *"Deprecated all APIs in favour of existing platform APIs and direct use of Android Keystore."*
+> Usar `EncryptedSharedPreferences` hoy viola la regla #3 del [[Estándar de Ingeniería Android]].
+>
+> El reemplazo —**Android Keystore directo**, que es lo que Google recomienda— está diseñado
+> en [[Plan Fase 0b - Cierre de la deuda P0]] §4, junto con la razón por la que el refresh va
+> en el `Supplier<String>` ya inyectado y no en un `Authenticator` de OkHttp.
+
+**Estado:** `[ ] Pendiente — clasificado **P0** el 2026-08-04. Planificado en [[Plan Fase 0b - Cierre de la deuda P0]]`
 
 ---
 

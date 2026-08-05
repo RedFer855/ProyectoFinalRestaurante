@@ -17,7 +17,21 @@ lifecycle: verified
 
 - **Cero secretos en el repositorio.** Las llaves viven en `local.properties` (no versionado) o en variables de CI, y se exponen al código vía `buildConfigField`.
 - `google-services.json`, keystores y `.env` van en `.gitignore`.
-- **Los tokens de sesión se guardan en `EncryptedSharedPreferences`/Jetpack Security**, nunca en texto plano ni en logs.
+- **Los tokens de sesión se guardan cifrados con una clave del `AndroidKeyStore`**, nunca en texto plano ni en logs.
+
+> [!danger] Corregido el 2026-08-04 — `EncryptedSharedPreferences` está deprecado
+> Esta línea decía *"en `EncryptedSharedPreferences`/Jetpack Security"*. Google **deprecó
+> todas** las APIs de `androidx.security:security-crypto` en `1.1.0-alpha07` (abril 2025),
+> repetido en `1.1.0-beta01` (junio 2025):
+> *"Deprecated all APIs in favour of existing platform APIs and direct use of Android Keystore."*
+> Motivos conocidos: violaciones de StrictMode por I/O en el hilo principal y excepciones de
+> *keyset corruption* de Tink.
+>
+> El reemplazo es el que la propia nota de Google indica: **usar el `AndroidKeyStore`
+> directamente** (AES/GCM, IV por cifrado guardado junto al texto cifrado). Diseño completo
+> en [[Plan Fase 0b - Cierre de la deuda P0]] §4.2. **DataStore + Tink** —lo que sugiere la
+> comunidad— se descartó para este proyecto: su API idiomática es Kotlin `Flow` y el puente
+> Java arrastra RxJava3 entero. Ver [[Librerias Java-Friendly vs Kotlin-Only]].
 
 > [!danger] La bóveda se versiona: nunca escribir una contraseña acá
 > `contexto/` está dentro del repo y se sube a GitHub. Anotar una credencial de prueba
@@ -91,7 +105,7 @@ Motivo: guardar y verificar contraseñas correctamente exige hashing lento (bcry
 4. **Rastro de auditoría (`audit_log`)** — tabla propia con `INSERT`-only por RLS, registrando `LOGIN_OK`/`LOGIN_FAIL`/`LOGOUT` sin exponer la causa interna del fallo. Bimbo lo tiene planificado, no implementado; acá tampoco existe todavía — queda para cuando haya más de un módulo autenticado escribiendo eventos.
 5. **Password policy se configura en el dashboard de Supabase** (`Authentication → Policies → Password Requirements`), no solo en el cliente — la validación de fuerza en la `Activity` es UX, no seguridad, si el backend no la exige también.
 6. **Timeout de sesión por inactividad** — pendiente en ambos proyectos; se implementa junto con la primera pantalla que lo necesite (en Bimbo iba junto con "Mi Usuario"; acá seguramente con la primera pantalla post-login real).
-7. **DPAPI en WPF ⇄ Android Keystore / `EncryptedSharedPreferences` acá.** Bimbo usa `ProtectedData.Protect(..., DataProtectionScope.CurrentUser)` para lo poco que persiste (el email de "recordarme"); el equivalente Android para persistir el `access_token` (cuando se implemente, **P-009**) es Jetpack Security (`EncryptedSharedPreferences`), nunca `SharedPreferences` plano. Ver sección 1 de esta nota.
+7. **DPAPI en WPF ⇄ Android Keystore acá.** Bimbo usa `ProtectedData.Protect(..., DataProtectionScope.CurrentUser)` para lo poco que persiste (el email de "recordarme"); el equivalente Android para persistir el `access_token` (cuando se implemente, **P-009**) es **cifrar con una clave del `AndroidKeyStore`**, nunca `SharedPreferences` plano — y ya **no** Jetpack Security, que está deprecado (ver el callout de la sección 1).
 
 ## 8. Cumplimiento
 
