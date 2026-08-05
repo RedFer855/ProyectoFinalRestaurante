@@ -68,10 +68,12 @@ La deuda se repriorizó completa y quedó en tres bandas, con un plan por banda:
 | **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (73 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Mesas]] |
 | **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (55 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Clientes]] |
 | **2e** | `feat/fase2e-refactor` | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
-| **3** | `feat/fase3-pedidos-tiempo-real` | **Tablero de Pedidos en tiempo real** + buzón de notificaciones. Realtime por *Broadcast desde la base* como **señal**, sobre la infraestructura de sync de la 2b | 📋 **Planificada** 2026-08-04 — ver [[Plan Fase 3 - Pedidos en Tiempo Real]] |
-| **3b** | — | **Toma** del pedido: carrito, `detalle_pedido`, complementos, mesa y cliente. Bloqueada por **P-025** y **P-026** | ⬜ No planificada |
+| **3** | `feat/fase3-pedidos-tiempo-real` | **Tablero de Pedidos en tiempo real** + buzón de notificaciones. Realtime por *Broadcast desde la base* como **señal**, sobre la infraestructura de sync de la 2b | 🟡 **Parte A cerrada** 2026-08-05 · Parte B en curso — ver [[Plan Fase 3 - Pedidos en Tiempo Real]] |
+| **3b** | `feat/fase3b-toma-pedido` | **Toma** del pedido: carrito, `detalle_pedido`, mesa y cliente. RPC transaccional con clave de idempotencia. **Cierra P-025 y P-026** | 📋 **Planificada** 2026-08-05 — ver [[Plan Fase 3b - Toma del Pedido]] |
+| **3c** | `feat/fase3c-dashboard-reportes` | **Dashboard principal + Reportes** con datos reales. Primer módulo **solo-lectura** del proyecto. **Mata `DatosMaqueta`** | 📋 **Planificada** 2026-08-05 — ver [[Plan Fase 3c - Dashboard y Reportes]] |
+| **3d** | — | **Complementos**: CRUD dentro del módulo Menú (misma forma que `platillo`) + selector en el carrito | ⬜ Propuesta en [[Plan Fase 3b - Toma del Pedido]] §7 |
 | 5 | ~~`feat/fase5-usuarios-roles`~~ | Roles y permisos | 🟢 **Adelantada** — se implementó en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, módulo Empleados) |
-| 6 | `feat/fase6-reportes` | Reportes de ventas/consumo | ⬜ No iniciado |
+| ~~6~~ | ~~`feat/fase6-reportes`~~ | Reportes de ventas/consumo | ➖ **Absorbida por la 3c** (2026-08-05) — Reportes va junto al dashboard porque comparten el patrón solo-lectura |
 
 > [!info] Renumeración del 2026-08-01
 > **Mesas y Clientes son `2c` y `2d`.** Estuvieron unas horas propuestas como `3a`/`3b`; se
@@ -97,6 +99,46 @@ La deuda se repriorizó completa y quedó en tres bandas, con un plan por banda:
 > **nacen** offline-first en vez de escribirse contra la red y reescribirse después.
 > `feat/fase5-usuarios-roles` se marcó como adelantada porque su contenido ya está hecho.
 
+### Secuencia de la Fase 3 y lo que sigue (planificado 2026-08-05)
+
+```
+Fase 3   Parte A ✅ · Parte B en curso    tablero + buzón · Room v5
+  ↓
+Fase 3b  toma del pedido                  Room v6 · cierra P-025 y P-026 · abre P-030 · ADR-009/010/011
+  ↓
+[pase B de deuda: P-015 + P-011 + P-017]  ← recomendado acá, ver abajo
+  ↓
+Fase 3c  dashboard + reportes             Room v7 · muere DatosMaqueta · ADR-012/013
+  ↓
+Fase 3d  complementos                     CRUD dentro de Menú + selector en el carrito
+```
+
+> [!danger] El orden es estricto y **no se paraleliza**
+> Las fases pelean por los mismos tres archivos de coordinación: `AppDatabase` (la versión),
+> `Migraciones` (la cadena `DE_n_A_n+1`) y `SyncApplication.FactoryDeSync`. Dos ramas que
+> suban Room a v6 cada una por su lado producen **una migración corrupta en dispositivos
+> reales** — justo lo que `fallbackToDestructiveMigration()` "resuelve" borrando los datos del
+> usuario, y este proyecto lo prohíbe.
+>
+> Además **3c depende de 3b** por contenido, no solo por archivos: sin `crear_pedido` no hay
+> filas en `detalle_pedido` y **todos los reportes dan cero**. Un módulo que no se puede ver
+> funcionando no se puede dar por terminado.
+
+> [!warning] Una tentación que conviene rechazar
+> Las 6 tarjetas locales del dashboard **podrían** entrar en la Fase 3 casi gratis (los
+> contadores de Room ya existirían). No hacerlo: *"`DatosMaqueta` desaparece por completo"* es
+> un criterio de cierre **binario y verificable con un `grep`**. Partirlo deja media maqueta
+> viva durante dos fases y nadie sabe cuál mitad.
+
+> [!question] Dónde va el pase B de deuda (P-015 + P-011 + P-017) — a decidir al llegar
+> **Recomendado: entre 3b y 3c.** Es donde el crecimiento de pantallas se detiene (17 hoy → 19
+> con la Fase 3 → **24 con 3b** → 24 con 3c, que no agrega ninguna), y la 3c reescribe
+> `InicioFragment` y `ReportesFragment` de todos modos: hacerlo *después* del pase los escribe
+> **una sola vez**, ya con ViewBinding y ya en su paquete feature-first.
+>
+> Alternativa aceptable: `3b → 3c → pase B`, asumiendo reescribir dos pantallas. Lo que **no**
+> conviene es meterlo antes de 3b.
+
 ---
 
 ## Decisiones que no se pueden postergar
@@ -117,6 +159,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 
 - [[Protocolo de Ejecución de un Plan]] — lo que cualquier agente lee antes de tomar un plan
 - [[Plan Fase 3 - Pedidos en Tiempo Real]] · [[ADR-008 - Tiempo real como señal, por Broadcast desde la base]]
+- [[Plan Fase 3b - Toma del Pedido]] · [[Plan Fase 3c - Dashboard y Reportes]]
 - [[Plan Fase 2b - Offline-First con Room y Outbox]]
 - [[Plan Fase 2c - CRUD de Mesas]] · [[Plan Fase 2d - CRUD de Clientes]]
 - [[Estándar de Ingeniería Android]]
