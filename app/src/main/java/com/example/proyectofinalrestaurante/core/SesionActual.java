@@ -6,8 +6,13 @@ import com.example.proyectofinalrestaurante.domain.model.Sesion;
 
 /**
  * Holder en memoria de la sesión activa (Plan Fase 1b, Entregable 5).
- * Se pierde al cerrar la app — la persistencia cifrada es P-009, otro trabajo.
- * Existe para que el rol/nombre de la sesión esté disponible después del login.
+ *
+ * <p>Sigue siendo <b>solo el caché en memoria</b> — se pierde al matar el proceso. Lo que
+ * cambió con P-009 es que ya no queda vacío al reabrir la app:
+ * {@code SyncApplication.onCreate()} lo hidrata desde {@code SesionRepository} (persistencia
+ * cifrada con Android Keystore, ver {@code AlmacenSeguro}) antes de que cualquier otra cosa
+ * lo consulte. {@code ProveedorDeToken} lee y escribe acá en cada refresh, así que el valor
+ * siempre refleja la sesión vigente sin tener que ir a disco.</p>
  */
 public final class SesionActual {
 

@@ -21,7 +21,8 @@ public class SesionActualTest {
     @Test
     public void guardarYRecuperar() {
         SesionActual.limpiar();
-        Sesion sesion = new Sesion("u1", "admin@restaurante.com", "token", "Ana López", "admin");
+        Sesion sesion = new Sesion("u1", "admin@restaurante.com", "token", "refresh",
+                System.currentTimeMillis() + 3_600_000L, "Ana López", "admin");
         SesionActual.guardar(sesion);
         assertNotNull(SesionActual.obtener());
         assertEquals("admin", SesionActual.obtener().getRol());
@@ -31,7 +32,8 @@ public class SesionActualTest {
 
     @Test
     public void limpiarDejaSinSesion() {
-        SesionActual.guardar(new Sesion("u1", "a@b.com", "t", "Luis Pérez", "mesero"));
+        SesionActual.guardar(new Sesion("u1", "a@b.com", "t", "r",
+                System.currentTimeMillis() + 3_600_000L, "Luis Pérez", "mesero"));
         SesionActual.limpiar();
         assertNull(SesionActual.obtener());
     }

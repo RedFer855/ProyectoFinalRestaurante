@@ -22,6 +22,7 @@ import com.example.proyectofinalrestaurante.data.repository.ClienteRemoto;
 import com.example.proyectofinalrestaurante.data.repository.EmpleadoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MenuRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MesaRemoto;
+import com.example.proyectofinalrestaurante.data.repository.SesionLocal;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
 import com.example.proyectofinalrestaurante.data.sync.Sincronizador;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorClientes;
@@ -31,6 +32,7 @@ import com.example.proyectofinalrestaurante.data.sync.SincronizadorMesas;
 import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.SyncWorker;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
+import com.example.proyectofinalrestaurante.domain.repository.SesionRepository;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +55,7 @@ public final class SyncApplication extends Application implements Configuration.
     private static final String NOMBRE_BASE = "restaurante.db";
 
     private AppDatabase baseDeDatos;
+    private volatile SesionRepository sesionRepository;
 
     /**
      * Quién avisa a la UI del estado de la sincronización, <b>por módulo</b>.
@@ -96,6 +99,14 @@ public final class SyncApplication extends Application implements Configuration.
     @Override
     public void onCreate() {
         super.onCreate();
+        // P-009: hidratar SesionActual ANTES que cualquier otra cosa. El guard de más abajo
+        // (SesionActual.obtener() != null) y LoginActivity.onCreate() ya preguntan por una
+        // sesión en este mismo método — sin esto, la respuesta siempre era "no" al arrancar
+        // y había que volver a loguearse en cada apertura de la app.
+        Sesion sesionPersistida = sesionRepository().leer();
+        if (sesionPersistida != null) {
+            SesionActual.guardar(sesionPersistida);
+        }
         // Casi-tiempo-real sin push (Sesión 2026-08-04, ver el Javadoc de SyncScheduler):
         // sync de fondo cada 15 min mientras la app esté instalada...
         SyncScheduler.programarPeriodico(this);
@@ -139,6 +150,18 @@ public final class SyncApplication extends Application implements Configuration.
         return baseDeDatos;
     }
 
+    /** Singleton del proceso (P-009), mismo patrón de doble chequeo que {@link #baseDeDatos()}. */
+    public SesionRepository sesionRepository() {
+        if (sesionRepository == null) {
+            synchronized (this) {
+                if (sesionRepository == null) {
+                    sesionRepository = new SesionLocal(new AlmacenSeguro(this));
+                }
+            }
+        }
+        return sesionRepository;
+    }
+
     private static final class FactoryDeSync extends WorkerFactory {
 
         private final SyncApplication aplicacion;
@@ -156,41 +179,41 @@ public final class SyncApplication extends Application implements Configuration.
                 return null;
             }
             AppDatabase base = aplicacion.baseDeDatos();
+            // P-009: un único ProveedorDeToken para toda la pasada — su lock de single-flight
+            // solo tiene sentido si los cinco (cuatro remotos + el propio SyncWorker) lo
+            // comparten. Antes cada uno leía SesionActual directo con
+            // SyncApplication::tokenDeLaSesion, que nunca refrescaba nada.
+            ProveedorDeToken proveedorDeToken = new ProveedorDeToken(
+                    SupabaseClient.getAuthApi(), aplicacion.sesionRepository());
 
             MenuRemoto menuRemoto = new MenuRemoto(SupabaseClient.getMenuApi(),
-                    SupabaseClient.getStorageApi(), SyncApplication::tokenDeLaSesion);
+                    SupabaseClient.getStorageApi(), proveedorDeToken);
             Sincronizador menu = new SincronizadorMenu(menuRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MENU),
                     base.platilloDao(), base.categoriaDao(), base.sincronizacionDao(),
                     contexto.getFilesDir(), base::runInTransaction);
 
             EmpleadoRemoto empleadoRemoto = new EmpleadoRemoto(
-                    SupabaseClient.getEmpleadoApi(), SyncApplication::tokenDeLaSesion);
+                    SupabaseClient.getEmpleadoApi(), proveedorDeToken);
             Sincronizador empleados = new SincronizadorEmpleados(empleadoRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.EMPLEADOS),
                     base.empleadoDao(), base.sincronizacionDao(), base::runInTransaction);
 
             MesaRemoto mesaRemoto = new MesaRemoto(
-                    SupabaseClient.getMesaApi(), SyncApplication::tokenDeLaSesion);
+                    SupabaseClient.getMesaApi(), proveedorDeToken);
             Sincronizador mesas = new SincronizadorMesas(mesaRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.MESAS),
                     base.mesaDao(), base.sincronizacionDao(), base::runInTransaction);
 
             ClienteRemoto clienteRemoto = new ClienteRemoto(
-                    SupabaseClient.getClienteApi(), SyncApplication::tokenDeLaSesion);
+                    SupabaseClient.getClienteApi(), proveedorDeToken);
             Sincronizador clientes = new SincronizadorClientes(clienteRemoto,
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.CLIENTES),
                     base.clienteDao(), base.sincronizacionDao(), base::runInTransaction);
 
             return new SyncWorker(contexto, parametros,
                     Arrays.asList(menu, empleados, mesas, clientes),
-                    SyncApplication::tokenDeLaSesion, observadorDeTodos());
+                    proveedorDeToken, observadorDeTodos());
         }
-    }
-
-    @Nullable
-    private static String tokenDeLaSesion() {
-        Sesion sesion = SesionActual.obtener();
-        return sesion == null ? null : sesion.getAccessToken();
     }
 }

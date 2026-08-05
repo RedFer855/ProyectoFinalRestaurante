@@ -4,6 +4,7 @@ import com.example.proyectofinalrestaurante.data.remote.dto.CambiarContraseniaRe
 import com.example.proyectofinalrestaurante.data.remote.dto.LoginRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.LoginResponseDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.RecuperarRequestDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.RefrescarRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoResponseDto;
 
@@ -21,6 +22,14 @@ public interface SupabaseAuthApi {
 
     @POST("auth/v1/token?grant_type=password")
     Call<LoginResponseDto> login(@Body LoginRequestDto body);
+
+    /**
+     * Canjea el {@code refresh_token} por un {@code access_token} nuevo (P-009). Supabase
+     * <b>rota</b> el refresh token en cada llamada — el que devuelve esta respuesta invalida
+     * al que se mandó, así que hay que persistir el nuevo sí o sí. Ver {@code ProveedorDeToken}.
+     */
+    @POST("auth/v1/token?grant_type=refresh_token")
+    Call<LoginResponseDto> refrescar(@Body RefrescarRequestDto body);
 
     /**
      * Revoca el access_token (y sus refresh tokens). Se llama cuando el login de Auth

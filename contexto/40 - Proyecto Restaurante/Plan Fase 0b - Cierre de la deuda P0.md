@@ -12,6 +12,18 @@ lifecycle: draft
 
 # Plan Fase 0b — Cierre de la deuda P0
 
+> [!success] Cerrado — 2026-08-05
+> Los cuatro ítems están resueltos: **P-018** ([[Deuda Técnica - Pendientes]]),
+> **P-029** (ídem), **P-004** (verificado en teléfono físico por el usuario) y **P-009**
+> (`AlmacenSeguro` + `ProveedorDeToken`, documentado en detalle en
+> [[Sesión persistida con Android Keystore]]). `./gradlew testDebugUnitTest assembleDebug` →
+> BUILD SUCCESSFUL, 420 tests (piso del plan: ≥400). Rama `fix/fase0b-deuda-p0`.
+>
+> Única salvedad: `AlmacenSeguroTest` no pudo verificar el cifrado/descifrado real —
+> Robolectric 4.16.1 no implementa `KeyGenerator.getInstance("AES", "AndroidKeyStore")`. Ver
+> el callout en [[Deuda Técnica - Pendientes]] → P-009. Falta un test instrumentado en un
+> dispositivo o emulador real.
+
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Contrato completo: división Parte A / Parte B, orden de lectura, reglas de oro y qué
 > significa "terminado".

@@ -169,7 +169,7 @@ No hay minificación, ni `shrinkResources`, ni Baseline Profile, ni Startup Prof
 
 ---
 
-### P-009 · El `access_token` no se persiste ni se cifra; sin refresh de token
+### ~~P-009~~ ✅ · El `access_token` no se persiste ni se cifra; sin refresh de token
 
 **Archivos:** `ui/login/LoginActivity.java`, `data/repository/SupabaseAuthRepository.java`
 
@@ -191,7 +191,39 @@ Además, al consumir Auth por REST (sin SDK), **el refresh de token hay que impl
 > en [[Plan Fase 0b - Cierre de la deuda P0]] §4, junto con la razón por la que el refresh va
 > en el `Supplier<String>` ya inyectado y no en un `Authenticator` de OkHttp.
 
-**Estado:** `[ ] Pendiente — clasificado **P0** el 2026-08-04. Planificado en [[Plan Fase 0b - Cierre de la deuda P0]]`
+**Estado:** `[x] Resuelto` (2026-08-05, [[Plan Fase 0b - Cierre de la deuda P0]] §4) — implementado
+tal como quedó diseñado ahí, Android Keystore directo, nada de `EncryptedSharedPreferences`:
+
+| Pieza | Qué hace |
+|---|---|
+| `core/AlmacenSeguro.java` | Cifra/descifra un texto con AES-256/GCM del `AndroidKeyStore`. IV aleatorio por cifrado, guardado junto al texto (`base64(iv):base64(cifrado)`). Ante cualquier fallo (clave invalidada, dato corrupto) borra todo y devuelve `null` — nunca lanza |
+| `data/repository/SesionLocal.java` | Serializa `Sesion` a JSON (Gson) antes de pasarla a `AlmacenSeguro`. Implementa `domain/repository/SesionRepository` |
+| `core/ProveedorDeToken.java` | `Supplier<String>` con refresh **proactivo** (no `Authenticator` de OkHttp — el WebSocket de la Fase 3 necesita el token antes de conectar) y **single-flight** bajo `synchronized` con doble chequeo (Supabase rota el refresh token; sin lock, una carrera de varios sincronizadores lo invalidaría) |
+| `domain/model/Sesion.java` | Suma `refreshToken` y `expiraEnMillis` (instante absoluto, no duración) |
+| `SupabaseAuthApi.refrescar()` + `RefrescarRequestDto` | Endpoint `POST /auth/v1/token?grant_type=refresh_token` |
+| `SyncApplication.onCreate()` | Hidrata `SesionActual` desde `SesionRepository` **antes que cualquier otra cosa** — sin esto, cerrar y reabrir la app siempre volvía al login |
+| `LoginActivity` | Redirige a `MainActivity` si ya hay sesión (`SesionActual.obtener() != null`); persiste al loguear, después de guardar en memoria |
+| `MainActivity.cerrarSesion()` | Borra también el almacén cifrado, no solo el caché en memoria |
+| `data_extraction_rules.xml` / `backup_rules.xml` | Excluyen el `SharedPreferences` de `AlmacenSeguro` del backup — cifrado con una clave que no se exporta, restaurarlo en otro dispositivo sería basura indescifrable |
+
+**Verificado:** `ProveedorDeTokenTest` cubre D5-D10 del plan con JUnit puro (fakes de
+`SupabaseAuthApi`/`SesionRepository`, sin Android): token vigente no llama a la red, token
+vencido refresca, refresh token nuevo se persiste, 401/400 cierra la sesión, sin red o 5xx no
+la toca (transitorio), y **6 hilos pidiendo token vencido a la vez disparan un solo refresh**
+(el caso que atrapa el error caro). `./gradlew testDebugUnitTest assembleDebug` → BUILD
+SUCCESSFUL, 420 tests (piso del plan: ≥400).
+
+> [!warning] Cobertura parcial de `AlmacenSeguro` — límite real de Robolectric, no del diseño
+> Verificado en vivo el 2026-08-05: Robolectric 4.16.1 (la versión del proyecto) **no
+> implementa** `KeyGenerator.getInstance("AES", "AndroidKeyStore")` — lanza
+> `NoSuchAlgorithmException`. `KeyStore.getInstance("AndroidKeyStore")` y `.load(null)` sí
+> funcionan, pero generar la clave falla siempre. Consecuencia: el camino feliz de
+> cifrar/descifrar (D1 del plan: guardar un texto y leerlo igual) **no se pudo verificar en
+> este entorno** — `AlmacenSeguroTest` cubre el contrato de resiliencia (almacén vacío, dato
+> corrupto, `Keystore` no disponible → nunca lanza, nunca deja basura a medio escribir) pero
+> no el cifrado real. Falta un test instrumentado en `androidTest/` corriendo en un
+> dispositivo o emulador real — mismo tipo de límite que P-004 (teléfono físico) y la
+> salvedad de P-024 (Robolectric emula `BitmapFactory`, no lo ejecuta).
 
 ---
 
@@ -279,7 +311,11 @@ La inyección es manual por constructor, aceptable para una sola pantalla.
 
 **Riesgo:** con más ViewModels y repositorios, la composition root manual se vuelve difícil de mantener. Hilt además es requisito para `HiltWorkerFactory` cuando entre WorkManager (**P-014**).
 
-**Estado:** `[ ] Reevaluar en Fase 2 — requiere resolver P-006 (Java 17) primero`
+**Estado:** `[ ] Pendiente` — plazo vencido: decía "reevaluar en Fase 2", y la Fase 2 (2a-2d)
+ya cerró sin que se tomara esta decisión. P-006 (el bloqueante que tenía) está resuelto desde
+2026-07-31. Sigue sin decidirse; se reevalúa la próxima vez que el DI manual duela de verdad
+(candidato: cuando entre WorkManager con `HiltWorkerFactory`, que ya está en el proyecto
+desde la 2b sin Hilt).
 
 ---
 
@@ -333,7 +369,10 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 
 **Solución:** decidir explícitamente al arrancar la Fase 2: migrar a feature-first, o aceptar layer-first documentándolo. Ver [[Modularizacion por Feature]].
 
-**Estado:** `[ ] Decidir en Fase 2`
+**Estado:** `[ ] Pendiente` — plazo vencido: decía "decidir en Fase 2", y la Fase 2 (2a-2d) ya
+cerró con la estructura layer-first intacta (la decisión fue, de hecho, no migrar — ver el
+bloqueo que P-011 registra sobre este ítem). Queda para la Fase 3 o 4 si el paquete `data/repository/`
+sigue creciendo sin relación entre sus archivos.
 
 ---
 
@@ -702,7 +741,7 @@ transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 
 | ~~P-006~~ | Java 11 en vez de 17 | 🟡 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Fix de minSdk y Java 17]] |
 | P-007 | Retrofit 2 con `.execute()` sin adaptadores | 🟢 | `[ ]` Pendiente | idem |
 | P-008 | Sin R8, Baseline Profile ni benchmark | 🟡 | `[ ]` Pendiente | idem |
-| P-009 | Token no persistido ni cifrado; sin refresh | 🟡 | `[ ]` Pendiente | idem |
+| ~~P-009~~ | Token no persistido ni cifrado; sin refresh | 🟡 | `[x]` **Resuelto** 2026-08-05 | [[Plan Fase 0b - Cierre de la deuda P0]] |
 | P-010 | Login sin accesibilidad | 🟡 | `[~]` Parcial 2026-07-29 | [[Sesión 2026-07-29 - Rediseño visual del login y plan de conexión Supabase]] |
 | P-011 | IDs `snake_case` y color hardcodeado | 🟢 | `[~]` Parcial 2026-07-29 | idem |
 | ~~P-012~~ | `SUPABASE_ANON_KEY` con nombre legado | 🟢 | `[x]` **Resuelto** 2026-07-31 | [[Sesión 2026-07-31 - Remediación P-005 P-012 P-013 P-020 y arranque Fase 2]] |

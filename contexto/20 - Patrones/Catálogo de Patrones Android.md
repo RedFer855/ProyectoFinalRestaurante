@@ -60,7 +60,7 @@ Ver [[Repository Pattern]].
 1. `ProductoLocalDataSource` — envuelve el DAO, **nunca lo expone**.
 2. `ProductoRemoteDataSource` — envuelve `ApiService`, traduce HTTP a `AppException`.
 3. `ArchivoRemoteDataSource` para Supabase Storage (fotos de platillos).
-4. `SesionLocalDataSource` sobre `EncryptedSharedPreferences`/DataStore.
+4. `SesionLocal` sobre `AlmacenSeguro` (Android Keystore directo — no `EncryptedSharedPreferences`, deprecado). Ver [[Sesión persistida con Android Keystore]].
 5. `TiempoDataSource` — abstrae `System.currentTimeMillis()` para poder testear.
 
 ## 6. Use Case / Command — un verbo, un `execute`
