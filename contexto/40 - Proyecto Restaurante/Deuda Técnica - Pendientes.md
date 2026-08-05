@@ -165,7 +165,23 @@ No hay minificación, ni `shrinkResources`, ni Baseline Profile, ni Startup Prof
 
 **Solución:** activar R8 full mode + `shrinkResources`, agregar el plugin `androidx.baselineprofile` con su módulo generador, y un módulo `benchmark`. Hacerlo **antes** de la primera release, no antes de la Fase 2.
 
-**Estado:** `[ ] Pendiente — antes de publicar`
+> [!warning] Partido en dos el 2026-08-04 — una mitad está bloqueada por versiones
+> **P-008a · R8 + `shrinkResources`** → se puede hacer ya. El build usa el DSL nuevo de AGP 9
+> (`optimization { enable = false }`); basta ponerlo en `true`, sumar las reglas de ProGuard
+> que R8 no infiere (los **DTOs de Gson** se deserializan por reflexión) y **verificar el APK
+> de release a mano**: R8 rompe en runtime, no en compilación.
+>
+> **P-008b · Baseline Profile + Macrobenchmark** → **bloqueado**. `androidx.benchmark` /
+> `androidx.baselineprofile` estable es **1.4.1** (2025-09-10), que recomienda AGP máximo
+> `9.0.0-alpha01` y exigía `newDsl=false`. El soporte del DSL nuevo de AGP 9 llegó en
+> **1.5.0-alpha01**, y 1.5.0 **sigue en alpha** (`1.5.0-alpha05` al 2026-08-04). El proyecto
+> está en **AGP 9.2.1**.
+>
+> **Condición de desbloqueo:** que `androidx.benchmark` 1.5.0 llegue a estable. Meter un
+> plugin alpha en el camino de release por una optimización de arranque no pasa la regla de
+> vigencia del [[Estándar de Ingeniería Android]]. Plan en [[Plan Fase 0c - Deuda P1 y P2]] §4.2.
+
+**Estado:** `[ ] P-008a pendiente (antes de publicar) · P-008b bloqueado hasta benchmark 1.5.0 estable`
 
 ---
 
@@ -233,9 +249,21 @@ El estándar pide arquitectura **single-Activity** con Fragments, ViewBinding y 
 
 **Riesgo:** medio. Con dos pantallas es manejable; con diez, la navegación por `Intent` se vuelve imposible de razonar y no hay back stack coherente.
 
-**Solución:** migrar a single-Activity + `nav_graph.xml` + ViewBinding **antes de la Fase 4 (Pedidos)**, cuando aún hay pocas pantallas que convertir.
+**Solución:** migrar a single-Activity + `nav_graph.xml` + ViewBinding, cuando aún hay pocas pantallas que convertir.
 
-**Estado:** `[ ] Pendiente — antes de Fase 4 (Pedidos)`
+> [!info] Alcance medido y agrupado con P-011 y P-017 (2026-08-04)
+> Medición real: **169 llamadas a `findViewById`** en 22 archivos, **17 pantallas** (4
+> Activities + 7 Fragments + 6 diálogos), **28 layouts**.
+>
+> Se ejecuta **junto con P-011 y P-017** en un solo pase, porque comparten radio de impacto:
+> ViewBinding deriva el nombre del campo del ID, así que renombrar los IDs (**P-011**) en el
+> mismo gesto cuesta **cero**, y hacerlo después obligaría a tocar dos veces cada referencia.
+> Ver [[Plan Fase 0c - Deuda P1 y P2]] §3.
+>
+> **Precondición: P-009.** Al unificar en una sola Activity, el destino inicial del grafo
+> depende de si hay sesión persistida.
+
+**Estado:** `[ ] Pendiente — pase B de [[Plan Fase 0c - Deuda P1 y P2]], después de P-009`
 
 ---
 
@@ -289,9 +317,18 @@ La inyección es manual por constructor, aceptable para una sola pantalla.
 
 Se usa Retrofit 2.11.0 con llamadas bloqueantes dentro de un `ExecutorService`. Funciona y es simple, pero no usa `CallAdapter` (`ListenableFuture`/`CompletableFuture`), así que el encadenamiento y la cancelación son manuales.
 
-**Riesgo:** bajo. Nota: subir a Retrofit 3 arrastra una dependencia transitiva de Kotlin (por OkHttp 4.12), que suma peso al APK — relevante para los presupuestos de tamaño. Ver [[Librerias Java-Friendly vs Kotlin-Only]].
+**Riesgo:** bajo. ~~Nota: subir a Retrofit 3 arrastra una dependencia transitiva de Kotlin (por OkHttp 4.12), que suma peso al APK — relevante para los presupuestos de tamaño.~~ Ver [[Librerias Java-Friendly vs Kotlin-Only]].
 
-**Estado:** `[ ] Decidir al agregar el segundo repositorio`
+> [!warning] El argumento del peso de Kotlin ya no vale (verificado 2026-08-04)
+> Se inspeccionó `debugRuntimeClasspath`: **`kotlin-stdlib 2.2.10` ya está en el classpath de
+> runtime**, con 47 referencias, traído por `activity`, `appcompat`, `core`, `annotation` y
+> `lifecycle`. Toda AndroidX moderna es Kotlin.
+>
+> O sea que Retrofit 3 **no agregaría** una dependencia de Kotlin: agregaría su código sobre
+> una que ya está en el APK. Si este ítem se decide, hay que decidirlo por sus méritos reales
+> (adaptadores, `CallAdapter`, cancelación), no por un costo de tamaño que no existe.
+
+**Estado:** `[ ] Decidir por sus méritos — el argumento del tamaño quedó refutado`
 
 ---
 
@@ -333,7 +370,18 @@ La estructura es `domain/model`, `domain/repository`, `data/repository`, `ui/log
 
 **Solución:** decidir explícitamente al arrancar la Fase 2: migrar a feature-first, o aceptar layer-first documentándolo. Ver [[Modularizacion por Feature]].
 
-**Estado:** `[ ] Decidir en Fase 2`
+> [!success] Decidido el 2026-08-04 — feature-first en módulo Gradle único
+> Ya son **seis** features contando Pedidos. [[Plan Fase 0c - Deuda P1 y P2]] §3.3 decide
+> migrar a `feature/<nombre>/{ui,domain,data}` + `core/` + `comun/`, **sin** multi-módulo
+> Gradle: eso traería `api`/`implementation`, builds más lentos y la configuración de Room
+> repartida, a cambio de poco — feature-first dentro de un módulo da el grueso del beneficio.
+> Se revisa si aparece un segundo consumidor (una app de cocina aparte).
+>
+> Se ejecuta en el **mismo pase que P-015 y P-011**: los tres mueven los mismos archivos.
+> Y el pase incluye un **test de arquitectura** que falla si algo bajo `domain` importa de
+> `data` — sin eso, feature-first es solo carpetas nuevas. El ADR lo escribe quien ejecute.
+
+**Estado:** `[ ] Decidido; pendiente de ejecución — pase B de [[Plan Fase 0c - Deuda P1 y P2]]`
 
 ---
 
