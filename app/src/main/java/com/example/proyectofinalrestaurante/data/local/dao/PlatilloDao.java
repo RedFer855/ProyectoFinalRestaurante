@@ -39,4 +39,8 @@ public interface PlatilloDao {
 
     @Query("SELECT COUNT(*) FROM platillos WHERE estado_sync != 'SINCRONIZADO'")
     int contarNoSincronizados();
+
+    /** Platillos activos (Plan Fase 3c, §5): tarjeta "Platillos activos" del dashboard. */
+    @Query("SELECT COUNT(*) FROM platillos WHERE activo = 1")
+    LiveData<Integer> observarConteoActivos();
 }

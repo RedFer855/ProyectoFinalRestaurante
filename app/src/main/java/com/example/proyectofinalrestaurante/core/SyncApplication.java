@@ -160,7 +160,8 @@ public final class SyncApplication extends Application implements Configuration.
                             // Migración explícita: fallbackToDestructiveMigration() borraría
                             // los cambios que el usuario todavía no subió.
 .addMigrations(Migraciones.DE_1_A_2, Migraciones.DE_2_A_3,
-                            Migraciones.DE_3_A_4, Migraciones.DE_4_A_5, Migraciones.DE_5_A_6)
+                            Migraciones.DE_3_A_4, Migraciones.DE_4_A_5, Migraciones.DE_5_A_6,
+                            Migraciones.DE_6_A_7)
                             .build();
                 }
             }

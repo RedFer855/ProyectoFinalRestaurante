@@ -35,6 +35,10 @@ public interface PedidoDao {
     @Query("SELECT COUNT(*) FROM pedidos")
     LiveData<Integer> contarTotal();
 
+    /** Cuántos pedidos hay en un estado del catálogo (Plan Fase 3c, §5): dashboard de Inicio. */
+    @Query("SELECT COUNT(*) FROM pedidos WHERE id_estado_pedido = :idEstadoPedido")
+    LiveData<Integer> observarConteoPorEstado(int idEstadoPedido);
+
     @Query("SELECT COUNT(*) FROM pedidos WHERE estado_sync != 'SINCRONIZADO'")
     int contarNoSincronizadas();
 

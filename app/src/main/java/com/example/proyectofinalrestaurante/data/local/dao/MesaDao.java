@@ -40,4 +40,12 @@ public interface MesaDao {
 
     @Query("SELECT COUNT(*) FROM mesas WHERE estado_sync != 'SINCRONIZADO'")
     int contarNoSincronizadas();
+
+    /** Mesas activas en un estado operativo del catálogo (Plan Fase 3c, §5): "Mesas ocupadas". */
+    @Query("SELECT COUNT(*) FROM mesas WHERE activo = 1 AND id_estado_mesa = :idEstadoMesa")
+    LiveData<Integer> observarConteoPorEstadoOperativo(int idEstadoMesa);
+
+    /** Total de mesas activas (Plan Fase 3c, §5): el "de Y" de "Mesas ocupadas (X de Y)". */
+    @Query("SELECT COUNT(*) FROM mesas WHERE activo = 1")
+    LiveData<Integer> observarConteoActivas();
 }

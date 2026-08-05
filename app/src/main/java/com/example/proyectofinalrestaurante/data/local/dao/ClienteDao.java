@@ -40,4 +40,8 @@ public interface ClienteDao {
 
     @Query("SELECT COUNT(*) FROM clientes WHERE estado_sync != 'SINCRONIZADO'")
     int contarNoSincronizadas();
+
+    /** Clientes activos (Plan Fase 3c, §5): tarjeta "Clientes registrados" del dashboard. */
+    @Query("SELECT COUNT(*) FROM clientes WHERE activo = 1")
+    LiveData<Integer> observarConteoActivos();
 }

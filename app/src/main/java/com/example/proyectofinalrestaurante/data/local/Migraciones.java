@@ -228,4 +228,58 @@ public final class Migraciones {
                     + "ON `detalle_pedido` (`id_pedido`, `id_platillo_local`)");
         }
     };
+
+    /**
+     * v6 → v7: llega el módulo Reportes (Plan Fase 3c, §7.2). Tres tablas nuevas, ninguna
+     * toca las que ya existen:
+     *
+     * <ol>
+     *   <li>{@code reportes_ventas}: la cabecera de la instantánea, una fila por
+     *       {@code rango} ({@code HOY}/{@code SEMANA}/{@code MES}) — por eso su PK es
+     *       {@code rango} y no un id autogenerado, a diferencia de todas las demás tablas de
+     *       esta base.</li>
+     *   <li>{@code conteo_platillo}: el top-5 de platillos más pedidos de cada rango,
+     *       indexada por {@code rango} para poder borrar y reinsertar solo las filas de un
+     *       rango a la vez ({@code ReporteDao.reemplazarRango}).</li>
+     *   <li>{@code desempeno_mesero}: el desempeño por mesero de cada rango, mismo esquema
+     *       de identidad que {@code conteo_platillo}.</li>
+     * </ol>
+     *
+     * <p>Ninguna de las tres entra al {@code Sincronizador}/{@code SyncWorker}: son un
+     * agregado derivado que el servidor calcula, no un dato que el usuario escriba
+     * (ADR-013).</p>
+     */
+    public static final Migration DE_6_A_7 = new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase base) {
+            base.execSQL("CREATE TABLE IF NOT EXISTS `reportes_ventas` ("
+                    + "`rango` TEXT NOT NULL, "
+                    + "`generado_en` INTEGER NOT NULL, "
+                    + "`total_ventas` REAL NOT NULL, "
+                    + "`cantidad_pedidos` INTEGER NOT NULL, "
+                    + "`ticket_promedio` REAL NOT NULL, "
+                    + "PRIMARY KEY(`rango`))");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `conteo_platillo` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`rango` TEXT NOT NULL, "
+                    + "`nombre` TEXT NOT NULL, "
+                    + "`cantidad` INTEGER NOT NULL, "
+                    + "`orden` INTEGER NOT NULL)");
+
+            base.execSQL("CREATE INDEX IF NOT EXISTS "
+                    + "`index_conteo_platillo_rango` ON `conteo_platillo` (`rango`)");
+
+            base.execSQL("CREATE TABLE IF NOT EXISTS `desempeno_mesero` ("
+                    + "`id_local` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, "
+                    + "`rango` TEXT NOT NULL, "
+                    + "`nombre` TEXT NOT NULL, "
+                    + "`cantidad_pedidos` INTEGER NOT NULL, "
+                    + "`total_vendido` REAL NOT NULL, "
+                    + "`orden` INTEGER NOT NULL)");
+
+            base.execSQL("CREATE INDEX IF NOT EXISTS "
+                    + "`index_desempeno_mesero_rango` ON `desempeno_mesero` (`rango`)");
+        }
+    };
 }

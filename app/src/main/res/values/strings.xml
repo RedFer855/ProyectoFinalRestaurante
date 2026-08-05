@@ -23,6 +23,11 @@
     <string name="inicio_platillos_activos">Platillos activos</string>
     <string name="inicio_ventas_hoy">Ventas de hoy</string>
     <string name="inicio_empleados_activos">Empleados activos</string>
+    <!-- Tarjeta "Ventas de hoy": con instantánea cacheada, y sin ninguna todavía (Plan Fase 3c, §6). -->
+    <string name="inicio_ventas_hoy_actualizado">%1$s · al %2$s</string>
+    <string name="inicio_ventas_hoy_sin_conexion">%1$s · sin conexión</string>
+    <!-- Nunca "L 0.00" cuando el dato no se conoce: "cero" y "no sé" no son lo mismo. -->
+    <string name="valor_no_disponible">—</string>
 
     <string name="estado_pedido_pendiente">Pendiente</string>
     <string name="estado_pedido_preparacion">En preparación</string>
@@ -256,6 +261,11 @@
     <string name="reportes_mas_pedidos">Platillos más pedidos</string>
     <string name="reportes_desempeno">Desempeño por mesero</string>
     <string name="reportes_pedidos_atendidos">%1$d pedidos</string>
+    <!-- Franja de vigencia de la instantánea (Plan Fase 3c, §6): con y sin error del último refresco. -->
+    <string name="reportes_datos_al">Datos al %1$s</string>
+    <string name="reportes_datos_al_con_error">Datos al %1$s · %2$s</string>
+    <string name="reportes_vacio_rango">Todavía no descargaste este rango. Conectate para verlo.</string>
+    <string name="reportes_reintentar">Reintentar</string>
 
     <string name="menu_inicio">Inicio</string>
     <string name="menu_pedidos">Pedidos</string>

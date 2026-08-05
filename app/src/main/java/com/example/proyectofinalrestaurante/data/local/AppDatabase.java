@@ -14,9 +14,12 @@ import com.example.proyectofinalrestaurante.data.local.dao.NotificacionDao;
 import com.example.proyectofinalrestaurante.data.local.dao.OperacionPendienteDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PedidoDao;
 import com.example.proyectofinalrestaurante.data.local.dao.PlatilloDao;
+import com.example.proyectofinalrestaurante.data.local.dao.ReporteDao;
 import com.example.proyectofinalrestaurante.data.local.dao.SincronizacionDao;
 import com.example.proyectofinalrestaurante.data.local.entity.CategoriaEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.ClienteEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.ConteoPlatilloEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.DesempenoMeseroEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.DetallePedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EmpleadoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.EstadoMesaEntity;
@@ -26,6 +29,7 @@ import com.example.proyectofinalrestaurante.data.local.entity.NotificacionEntity
 import com.example.proyectofinalrestaurante.data.local.entity.OperacionPendienteEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.PedidoEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.PlatilloEntity;
+import com.example.proyectofinalrestaurante.data.local.entity.ReporteVentasEntity;
 import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEntity;
 
 /**
@@ -42,6 +46,11 @@ import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEnti
  * su columna {@code modulo}. La alternativa —una cola por módulo— habría necesitado dos
  * workers, y la regla 3 de {@code Offline-First con Room y Outbox} es explícita: un
  * {@code SyncWorker} <b>único</b>, para que nunca haya dos drenando en paralelo.</p>
+ *
+ * <p>La v7 (Plan Fase 3c, §7.2) suma las tres tablas de instantánea de Reportes
+ * ({@code reportes_ventas}, {@code conteo_platillo}, {@code desempeno_mesero}). A propósito
+ * <b>no</b> hay {@code Sincronizador} para ellas ni entran al {@code SyncWorker}: es un
+ * agregado derivado, no un dato que el usuario escriba (ADR-013).</p>
  */
 @Database(entities = {
         PlatilloEntity.class,
@@ -55,8 +64,11 @@ import com.example.proyectofinalrestaurante.data.local.entity.SincronizacionEnti
         EstadoPedidoEntity.class,
         NotificacionEntity.class,
         OperacionPendienteEntity.class,
-        SincronizacionEntity.class
-}, version = 6, exportSchema = true)
+        SincronizacionEntity.class,
+        ReporteVentasEntity.class,
+        ConteoPlatilloEntity.class,
+        DesempenoMeseroEntity.class
+}, version = 7, exportSchema = true)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract PlatilloDao platilloDao();
@@ -82,4 +94,6 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract OperacionPendienteDao operacionPendienteDao();
 
     public abstract SincronizacionDao sincronizacionDao();
+
+    public abstract ReporteDao reporteDao();
 }

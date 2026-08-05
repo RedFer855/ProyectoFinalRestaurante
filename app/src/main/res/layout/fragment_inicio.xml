@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Inicio: saludo + tarjetas de estado filtradas por rol. Las tarjetas se generan en
-  código desde Permisos (ver InicioFragment), no están declaradas acá una por una con
-  setVisibility — así agregar un rol no obliga a tocar este layout.
+  Inicio: saludo + tarjetas de estado filtradas por rol. El filtrado ya no vive acá (se
+  movió a InicioViewModel, Plan Fase 3c, E9) — el Fragment solo pinta lo que el ViewModel ya
+  decidió que es visible.
+
+  RecyclerView + GridLayoutManager, con nestedScrollingEnabled=false puesto en código: la
+  grilla vive dentro de un NestedScrollView, y con el scroll anidado apagado no compite con
+  el scroll del contenedor — mismo resultado que el GridLayout que reemplaza, pero con
+  ListAdapter + DiffUtil por debajo.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
@@ -33,17 +38,15 @@
             android:textAppearance="?attr/textAppearanceBodyMedium"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
-        <!--
-          GridLayout y no RecyclerView: la grilla vive dentro de un NestedScrollView y
-          anidar scroll dentro de scroll trae más problemas de los que resuelve para un
-          puñado de tarjetas de cantidad conocida.
-        -->
-        <GridLayout
+        <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/grilla_tarjetas"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/espaciado_campo"
-            android:useDefaultMargins="false" />
+            android:clipToPadding="false"
+            tools:itemCount="7"
+            tools:listitem="@layout/item_tarjeta_inicio"
+            tools:spanCount="2" />
 
     </LinearLayout>
 
