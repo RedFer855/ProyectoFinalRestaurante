@@ -607,6 +607,53 @@ Cuatro cosas, en orden de impacto:
 
 ---
 
+### P-029 · Tres de los cuatro sincronizadores todavía pierden filas al paginar el delta
+
+**Archivos:** `data/sync/SincronizadorMesas.java`, `SincronizadorClientes.java`,
+`SincronizadorEmpleados.java`.
+
+El 2026-08-04 se encontró y documentó en [[Offline-First con Room y Outbox]] que *"paginar el
+delta por marca de agua pierde filas"*: si hay más filas que el tamaño de página
+**compartiendo el mismo `actualizado_en`**, la consulta siguiente las excluye por definición y
+esas filas **no se bajan nunca**. La corrección es: la marca queda **fija** durante la pasada,
+lo que avanza es el `offset`, el `order` desempata con el `id`, la marca máxima se guarda **al
+final**, y hay un tope de páginas como cinturón.
+
+Esa corrección se aplicó **solo a `SincronizadorMenu`**. Verificado el 2026-08-04 leyendo los
+cuatro archivos:
+
+| Sincronizador | `offset` | Tope de páginas | Página en una transacción |
+|---|---|---|---|
+| `SincronizadorMenu` | ✅ | ✅ `MAX_PAGINAS` | ✅ `enTransaccion` |
+| `SincronizadorEmpleados` | ❌ | ❌ | ❌ |
+| `SincronizadorMesas` | ❌ | ❌ | ❌ |
+| `SincronizadorClientes` | ❌ | ❌ | ❌ |
+
+Los tres avanzan la marca **dentro** del bucle de páginas (`marca = mayor(marca, …)` seguido
+de `guardarMarca(marca)` antes de pedir la siguiente), que es exactamente el patrón que la
+nota describe como roto.
+
+**Riesgo:** bajo **hoy** y por una razón concreta: son tablas chicas (4 mesas, 4 empleados, 0
+clientes) que nunca llegan a las 50 filas de una página. Sube apenas alguna crezca, y sube de
+golpe en el caso que la nota señala como el peor: **sembrar un catálogo con un `INSERT`
+masivo deja todas las filas con el mismo timestamp** — o sea que se rompe justo en la
+instalación desde cero. Además pierden la mejora de rendimiento de aplicar cada página en una
+sola transacción (fila por fila son N `fsync` y N repintados del `RecyclerView`).
+
+**Solución:** portar el bucle de `SincronizadorMenu.bajarPlatillos()` a los tres, junto con
+`EjecutorDeTransaccion` y el `offset` en los métodos correspondientes de `MesaRemoto`,
+`ClienteRemoto` y `EmpleadoRemoto`. El test que lo cubre es el mismo en los tres: un delta con
+más filas que `LIMITE_DELTA` compartiendo `actualizado_en`, y verificar que llegan todas.
+
+**Descubierto:** 2026-08-04, planificando la Fase 3. Se registra en vez de arreglarlo porque
+toca tres módulos ya cerrados y verificados; [[Plan Fase 3 - Pedidos en Tiempo Real]] §4.4
+solo se compromete a **no reintroducirlo** en `SincronizadorPedidos`, donde el bug **se
+manifiesta sí o sí** (una tanda de pedidos del mediodía comparte `actualizado_en`).
+
+**Estado:** `[ ] Pendiente — arreglar antes de que cualquiera de esas tablas supere las 50 filas`
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -639,6 +686,7 @@ Cuatro cosas, en orden de impacto:
 | P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 | P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
+| P-029 | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[ ]` Pendiente | [[Plan Fase 3 - Pedidos en Tiempo Real]] |
 
 ---
 

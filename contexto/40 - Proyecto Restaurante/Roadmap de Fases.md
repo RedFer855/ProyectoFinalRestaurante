@@ -53,8 +53,8 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 | **2c** | `feat/fase2cd-mesas-clientes` | **CRUD de Mesas** + catálogo `estado_mesa` + RPC `cambiar_estado_mesa` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (73 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Mesas]] |
 | **2d** | `feat/fase2cd-mesas-clientes` | **CRUD de Clientes** + RPC `buscar_o_crear_cliente` | 🟢 **Implementada** 2026-08-01 — Parte A y Parte B, código (55 tests) + servidor verificado. Falta la prueba en dispositivo físico. Ver [[Módulo Clientes]] |
 | **2e** | `feat/fase2e-refactor` | Decisión **P-017** (feature-first vs layer-first) + renombrado de IDs (**P-011**) | ⬜ No planificada |
-| 3 | — | **Reservada** — contenido a definir por el usuario | ⬜ Sin asignar |
-| 4 | `feat/fase4-pedidos` | Creación y seguimiento de pedidos (**consume** Menú, Mesas y Clientes) | ⬜ No iniciado |
+| **3** | `feat/fase3-pedidos-tiempo-real` | **Tablero de Pedidos en tiempo real** + buzón de notificaciones. Realtime por *Broadcast desde la base* como **señal**, sobre la infraestructura de sync de la 2b | 📋 **Planificada** 2026-08-04 — ver [[Plan Fase 3 - Pedidos en Tiempo Real]] |
+| **3b** | — | **Toma** del pedido: carrito, `detalle_pedido`, complementos, mesa y cliente. Bloqueada por **P-025** y **P-026** | ⬜ No planificada |
 | 5 | ~~`feat/fase5-usuarios-roles`~~ | Roles y permisos | 🟢 **Adelantada** — se implementó en la Fase 1c/1d (`Permisos`, `VistaPorPermiso`, módulo Empleados) |
 | 6 | `feat/fase6-reportes` | Reportes de ventas/consumo | ⬜ No iniciado |
 
@@ -74,7 +74,7 @@ Cierre de la fase: el [[Gate de Autoverificación]] aplicado a la Fase 1 pasa si
 >
 > Cualquier nota anterior que diga *"2c (P-017/P-011)"* o *"Fase 3a/3b"* se lee con esta tabla.
 >
-> **Mesas y Clientes van delante de Pedidos**, que sigue en la fase 4. El motivo es de
+> **Mesas y Clientes van delante de Pedidos**, que en ese momento era la fase 4. El motivo es de
 > dependencias, no de gusto: un pedido referencia `id_mesa` y `id_cliente`, así que construir
 > Pedidos primero obligaría a maquetar las dos cosas que aún no existen.
 >
@@ -91,7 +91,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 | Decisión | Última oportunidad barata | Ítem |
 |---|---|---|
 | ~~**Offline-first** (Room + outbox)~~ ✅ | Cerrada en la Fase **2b** (2026-08-01). La ventana se aprovechó a tiempo: Mesas, Clientes y Pedidos **nacen** sobre la infraestructura en vez de contraer la deuda de nuevo | ~~P-014~~ |
-| **Single-Activity + Navigation Component** | Antes de Fase 4 — con pocas pantallas que convertir | P-015 |
+| **Single-Activity + Navigation Component** | Antes de Fase 3 — con pocas pantallas que convertir. La Fase 3 suma un Fragment y una hoja modal más: la ventana se está cerrando | P-015 |
 | **Feature-first vs layer-first** | Fase 2 — al crear el segundo feature. **Ya se pasó el umbral**: desde la 2a hay tres features (`login`, `empleados`, `menu`) y sigue layer-first | P-017 |
 | **`applicationId` real** | Antes de publicar — después de publicar es irreversible | P-018 |
 | **Multi-módulo** | Antes de Fase 4 (Pedidos), si el proyecto va a llegar a 5 features | — |
@@ -101,6 +101,7 @@ Estas tienen **ventana de oportunidad**: hacerlas tarde cuesta 10× más.
 ## Relaciones
 
 - [[Protocolo de Ejecución de un Plan]] — lo que cualquier agente lee antes de tomar un plan
+- [[Plan Fase 3 - Pedidos en Tiempo Real]] · [[ADR-008 - Tiempo real como señal, por Broadcast desde la base]]
 - [[Plan Fase 2b - Offline-First con Room y Outbox]]
 - [[Plan Fase 2c - CRUD de Mesas]] · [[Plan Fase 2d - CRUD de Clientes]]
 - [[Estándar de Ingeniería Android]]

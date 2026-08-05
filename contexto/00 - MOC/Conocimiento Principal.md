@@ -38,7 +38,8 @@ Respuesta: My Cat
 | **Fase 2b — Offline-first (Room + outbox)** | 🟢 **Implementada** (2026-08-01). Menú **y** Empleados local-first: Room v2 + outbox particionado + `SyncWorker` único. **217 tests** en verde. **P-014 cerrado** — ver [[Plan Fase 2b - Offline-First con Room y Outbox]] |
 | **Fase 2c — Mesas** · **2d — Clientes** | 🟢 **Implementadas** (2026-08-01): Parte A (servidor) y Parte B (Room + outbox + UI) completas y verificadas — código con **345 tests**, servidor con las pruebas de aceptación de cada plan. Falta solo la prueba en dispositivo físico — ver [[Módulo Mesas]] y [[Módulo Clientes]] |
 | Usuarios y roles | 🟢 Adelantado (Fase 1c/1d) y migrado a offline-first el 2026-08-01 — ver [[Módulo Empleados]] |
-| Pedidos (Fase 4), Reportes (Fase 6) | ⬜ No iniciado |
+| **Fase 3 — Pedidos en tiempo real** | 📋 **Planificada** (2026-08-04). Tablero FIFO paginado + buzón de notificaciones, con Realtime **como señal** (Broadcast desde la base) sobre la infraestructura de sync que ya existe. Cero dependencias nuevas — ver [[Plan Fase 3 - Pedidos en Tiempo Real]] y [[ADR-008 - Tiempo real como señal, por Broadcast desde la base]] |
+| Toma del pedido (Fase 3b), Reportes (Fase 6) | ⬜ No iniciado — 3b bloqueada por **P-025** y **P-026** |
 
 > [!warning] `feat/fase1-login`: queda 1 ítem para poder mergear a `master`
 > ~~Probar el login/Empleados en un emulador o dispositivo~~ ✅ y ~~configurar la política de contraseñas del servidor (S-2)~~ ✅ — los cerró el usuario el 2026-08-01. **Falta solo verificar P-004** (edge-to-edge e insets del login) en un teléfono físico. Ver [[Deuda Técnica - Pendientes]].
@@ -54,7 +55,7 @@ Respuesta: My Cat
    (Parte A y B completas, 2026-08-01). Ver [[Módulo Mesas]] y [[Módulo Clientes]].
 2. **Vos:** probar el **Menú** en un emulador/dispositivo — subir una foto real, verla en la lista, reemplazarla, quitarla, desactivar/reactivar un platillo y crear/borrar una categoría. `local.properties` ya tiene las credenciales reales.
 3. **Vos:** verificar **P-004** (edge-to-edge e insets del login) en un teléfono físico — es lo único que falta para mergear `feat/fase1-login` a `master`. El login/Empleados en emulador y la política de contraseñas (S-2) ya están cerrados.
-4. **Fase 4 (Pedidos)** ya puede arrancar cuando el usuario lo decida: Mesas y Clientes están completas de punta a punta.
+4. **Fase 3 (Pedidos en tiempo real)** está planificada y lista para ejecutarse — [[Plan Fase 3 - Pedidos en Tiempo Real]]. Empieza por la **Parte A** (servidor) y verificala antes de escribir código, como en 2a y 2c/2d. Leé **P-029** antes: el sincronizador nuevo copia el delta del Menú, no el de Mesas.
 5. "Forzar cambio de contraseña en el primer ingreso" y la consolidación `perfiles`/`usuarios` (P-021) siguen bloqueados/diferidos — ver [[Deuda Técnica - Pendientes]].
 6. Completar la **Pregunta Clave** de este archivo con tu propio acertijo (opcional).
 

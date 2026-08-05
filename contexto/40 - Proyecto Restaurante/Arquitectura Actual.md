@@ -178,7 +178,7 @@ Ver [[Roadmap de Fases]].
 4. **P-009** — persistir y refrescar el token. Es el próximo cuello de botella real del offline: sin sesión guardada, al reabrir la app hay que loguearse y el `SyncWorker` no drena la cola.
 5. Extraer `BaseRepository` + `AppException` (**P-001**/**P-016**): ya hay **cinco** repositorios con el mismo `mensajeDeError()` copiado.
 6. Decidir feature-first vs layer-first — ya existen cinco features (`login`, `empleados`, `menu`, `mesas`, `clientes`), muy por encima del umbral que fijaba [[Propuesta de División de Arquitectura]] (**P-017**).
-7. **Fase 4 (Pedidos)** ya puede arrancar cuando el usuario lo decida: Mesas y Clientes, sus dependencias, están completas de punta a punta. Resolver **P-026** (id de cliente offline para el buscar-o-crear) es parte de ese trabajo.
+7. **Fase 3 (Pedidos en tiempo real)** — planificada el 2026-08-04, lista para ejecutarse: ver [[Plan Fase 3 - Pedidos en Tiempo Real]]. Mesas y Clientes, sus dependencias, están completas de punta a punta. La **toma** del pedido se difiere a una Fase 3b bloqueada por **P-026** (id de cliente offline) y **P-025**. Antes de empezar conviene leer **P-029**: el sincronizador nuevo debe copiar el delta del Menú, no el de Mesas.
 
 ---
 
