@@ -12,9 +12,14 @@ lifecycle: verified
 # Esquema de Base de Datos — proyecto Restaurante
 
 > [!info] Estado
-> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **15 tablas** (se sumó `estado_mesa` el 2026-08-01), todas con **RLS activa** y con policies por módulo. Catálogos base cargados; `tipo_pedido` sigue vacío. Desde el **2026-07-31** hay además un bucket de Storage (`platillos`) — ver la sección de Fase 2a más abajo.
+> Aplicado el **2026-07-29** sobre el proyecto Supabase **Restaurante** (`mxarlisuueovxvttytcm`), esquema `public`. **16 tablas** (se sumó `estado_mesa` el 2026-08-01 y `estado_pedido` el 2026-08-05), todas con **RLS activa** y con policies por módulo. Catálogos base cargados, incluido `tipo_pedido`. Desde el **2026-07-31** hay además un bucket de Storage (`platillos`) — ver la sección de Fase 2a más abajo.
 >
 > **2026-08-01 — Parte A de Mesas y Clientes ejecutada.** El DDL real de `mesa` y `clientes` está documentado más abajo. Detalle completo de las migraciones, la verificación por rol y las dos correcciones al plan en [[Módulo Mesas]], [[Módulo Clientes]] y [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]].
+>
+> **2026-08-05 — Parte A de Pedidos (Fase 3) ejecutada.** El DDL real de `pedido`,
+> `detalle_pedido` y el catálogo nuevo `estado_pedido` está documentado más abajo. Detalle
+> completo en [[Plan Fase 3 - Pedidos en Tiempo Real]] §2 y
+> [[ADR-008 - Tiempo real como señal, por Broadcast desde la base]].
 
 ---
 
@@ -105,7 +110,7 @@ Sigue existiendo la pregunta de fondo — ¿`perfiles` y `usuarios` conviven, o 
 
 | Observación | Detalle |
 |---|---|
-| `pedido.fecha` es `TIMESTAMP` | Sin zona horaria. En Supabase la convención es `TIMESTAMPTZ`; con `TIMESTAMP` a secas, un pedido registrado a las 19:00 en Honduras se lee distinto según el cliente. Recomendado migrar antes de cargar datos reales. |
+| ~~`pedido.fecha` es `TIMESTAMP`~~ ✅ Corregido 2026-08-05 | Migrada a `timestamptz` (`at time zone 'America/Tegucigalpa'` para el backfill) como parte de la Parte A de Pedidos — ver más abajo. |
 | `empresa.logo_empresa` es `BYTEA` | Guardar imágenes en la fila infla la tabla y las respuestas de PostgREST. Supabase Storage es la ruta natural (igual que hizo Bimbo con `ServicioLogo`). |
 | `uq_clientes_identidad UNIQUE (identidad)` | Correcto para "venta de mostrador": en Postgres los `NULL` no colisionan entre sí, así que puede haber muchos clientes sin identidad. **Decisión tomada:** el cliente no tiene login — ver [[ADR-006 - Clientes sin cuenta propia, captura de datos al pedido]]. |
 | Catálogos vacíos | `estado_general`, `roles`, `categoria` y `tipo_pedido` son FK obligatorias de casi todo. **Sin filas ahí no se puede insertar nada más.** Es el primer `INSERT` que hay que hacer. |
@@ -122,7 +127,8 @@ Sigue existiendo la pregunta de fondo — ¿`perfiles` y `usuarios` conviven, o 
 | `estado_mesa` | `1=Libre, 2=Ocupada, 3=Reservada` (2026-08-01) — catálogo fijo, nadie escribe desde la app. |
 | `categoria` | `1=Entradas, 2=Platos fuertes, 3=Bebidas, 4=Postres` |
 | `platillo` | 5 filas de ejemplo, todas activas y **sin foto** (`ruta_imagen IS NULL`) |
-| `tipo_pedido` | ⬜ Vacío |
+| `tipo_pedido` | `1=En mesa, 2=Para llevar` (2026-08-05) — los dos que `DatosMaqueta` mostraba como `referencia` |
+| `estado_pedido` | `1=Pendiente, 2=En preparación, 3=Listo, 4=Entregado, 5=Cancelado` (2026-08-05), con columna `orden` |
 
 ---
 
@@ -232,12 +238,78 @@ revertida, con los usuarios reales de `perfiles`. Las 19 pasaron. Detalle comple
 
 ---
 
+## ✅ DDL real de `pedido` y `detalle_pedido` (verificado 2026-08-05)
+
+> [!success] Hueco cerrado — E0 de [[Plan Fase 3 - Pedidos en Tiempo Real]]
+> Igual que pasó con `mesa` y `clientes` antes de la 2c/2d: `pedido` estaba en el diagrama
+> pero nunca había registrado su DDL real. Se verificó contra la base (`list_tables` +
+> `information_schema`) antes de dar la Parte A por cerrada.
+
+### `pedido` — DDL antes de la Parte A
+
+```sql
+create table public.pedido (
+    id_pedido      int generated always as identity primary key,
+    fecha          timestamp not null default now(),   -- sin zona horaria
+    id_estado      int not null references estado_general(id_estado),
+    id_cliente     int null references clientes(id_cliente),
+    id_mesa        int null references mesa(id_mesa),
+    id_usuario     int not null references usuarios(id_usuario),
+    id_tipo_pedido int not null references tipo_pedido(id_tipo_pedido)
+);
+```
+
+Coincidía con lo que el plan asumía — a diferencia de `mesa`/`clientes`, acá no hubo que
+corregir nada del lado del nombre de columnas. `pedido`, `detalle_pedido` y
+`detalle_complemento` estaban **vacías**, así que todo lo que sigue se aplicó sin migrar
+datos.
+
+### Objetos agregados por la Parte A (2026-08-05)
+
+| Objeto | Para qué |
+|---|---|
+| Catálogo `estado_pedido` (5 filas, con `orden`) + `pedido.id_estado_pedido` | Separa el estado **operativo** del flujo (Pendiente→…→Entregado/Cancelado) de la baja lógica (`estado_general`) — mismo patrón que `estado_mesa`, ver [[ADR-007 - Estados operativos en catálogos propios, separados de estado_general]] |
+| `pedido.actualizado_en` + trigger `tocar_actualizado_en()` (reusado, no duplicado) | Lo exige el sync delta. Ojo con **P-025**: usa `now()`, la hora de inicio de la transacción — tolerable acá porque el único `UPDATE` es el RPC de una sentencia; deja de serlo en la Fase 3b (alta con detalle) |
+| `pedido.fecha` → `timestamptz` | Backfill con `at time zone 'America/Tegucigalpa'` sobre la tabla vacía — gratis, sin dato que perder |
+| `ix_pedido_actualizado_en (actualizado_en, id_pedido)` · `ix_pedido_fecha (fecha, id_pedido)` | El primero respalda el sync delta; el segundo, el orden FIFO del tablero (R7) |
+| `tipo_pedido` sembrado (`En mesa`, `Para llevar`) | `pedido.id_tipo_pedido` es `NOT NULL` con FK; la tabla llegó vacía |
+| `vista_pedidos` (`security_invoker = on`) | Join con `estado_pedido`, `mesa`, `clientes`, `tipo_pedido`, `usuarios`, y `total`/`cantidad_items` agregados desde `detalle_pedido`. Expone `id_auth_usuario` para que el cliente sepa si un pedido es "propio" sin una consulta extra |
+| `avanzar_estado_pedido()` — RPC `SECURITY DEFINER` | Única vía de escritura del estado. Valida la matriz rol×transición **en el servidor** (mismo criterio que `domain/ReglasPedido` del lado Android) y que el pedido no esté ya cerrado (`Entregado`/`Cancelado`) |
+| `avisar_cambio_pedidos()` + trigger `trg_pedido_avisar_cambio` (`FOR EACH STATEMENT`) | El disparador de tiempo real: emite `{"t":"pedido"}` por `realtime.send()`, sin datos de la fila. Ver [[ADR-008 - Tiempo real como señal, por Broadcast desde la base]] |
+| Policy en `realtime.messages` para el canal `pedidos` | Solo `authenticated` con `rol_actual() is not null` puede escuchar — un empleado desactivado no puede ni conectarse al canal |
+| `trg_pedido_no_borrar` | `pedido` nunca se borra, se cancela (`id_estado_pedido = 5`) |
+| RLS de `pedido`/`detalle_pedido` | `SELECT` para los tres roles; `INSERT` solo admin/mesero; `UPDATE` de `pedido` **nadie directamente** — solo el RPC |
+| `revoke execute ... from public, anon, authenticated` en `avisar_cambio_pedidos()` | Toda función en `public` queda expuesta como RPC por PostgREST; sin este revoke, cualquier sesión podría disparar el broadcast a mano |
+
+**`pedido` NO se agregó a la publicación `supabase_realtime`** — verificado con
+`pg_publication_tables`, sigue vacía a propósito. Agregarla activaría *Postgres Changes*
+(evaluación de RLS por suscriptor en un único hilo), que es justo el cuello de botella que
+el diseño de Broadcast evita. Ver §5.1 del plan.
+
+### Verificación de la Parte A (2026-08-05)
+
+Las 12 pruebas de aceptación de §2.9 del plan, corridas dentro de transacciones
+`BEGIN…ROLLBACK` (sin tocar datos reales) con los usuarios reales de `perfiles`:
+
+| # | Caso | Resultado |
+|---|---|---|
+| A1-A6 | Matriz de transiciones por rol (cocina avanza, mesero entrega, admin cancela, y los intentos fuera de la matriz fallan con el mensaje correcto) | ✅ Las 6 |
+| A7 | `UPDATE` directo sobre `pedido` como cocina (sin pasar por el RPC) | ✅ 0 filas afectadas |
+| A8 | `SELECT vista_pedidos` con sesión activa | ✅ Devuelve filas |
+| A9 | `SELECT vista_pedidos` sin perfil activo | ✅ 0 filas |
+| A11 | `execute avisar_cambio_pedidos()` como `authenticated` | ✅ Permiso denegado |
+| A12 | `get_advisors(security)` | ✅ 0 hallazgos nivel `ERROR` (solo `WARN` preexistentes en todo el esquema — exposición de tablas por GraphQL y `SECURITY DEFINER` ya presentes desde Mesas/Clientes) |
+| A10 | ¿El `INSERT` en `pedido` emitió el broadcast? | ⬜ **No verificable por SQL** — requiere el Realtime Inspector del dashboard de Supabase, que ningún agente puede abrir. Queda para el usuario, mismo tipo de límite que P-004 |
+
+---
+
 ## Pendiente inmediato
 
-1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. ~~Cargar `categoria`~~ ✅ Hecho. **Cargar** `tipo_pedido`.
+1. ~~Cargar `roles`~~ ✅ Hecho. ~~Cargar `estado_general` (mínimo)~~ ✅ Hecho. ~~Cargar `categoria`~~ ✅ Hecho. ~~Cargar `tipo_pedido`~~ ✅ Hecho (2026-08-05).
 2. **Resolver P-021** — decidir si `usuarios` reemplaza a `perfiles`, si convive enlazada por `uuid`, o si se elimina.
 3. **Políticas RLS por módulo** — a medida que cada fase de [[Roadmap de Fases]] consuma sus tablas.
-4. Evaluar `TIMESTAMP` → `TIMESTAMPTZ` en `pedido.fecha` antes de que haya datos.
+4. ~~Evaluar `TIMESTAMP` → `TIMESTAMPTZ` en `pedido.fecha`~~ ✅ Hecho (2026-08-05).
+5. **A10** — verificar en el Realtime Inspector que el `INSERT`/`UPDATE`/`DELETE` en `pedido` emite el broadcast. Manual, del usuario.
 
 ---
 
