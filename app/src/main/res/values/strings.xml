@@ -24,11 +24,6 @@
     <string name="inicio_ventas_hoy">Ventas de hoy</string>
     <string name="inicio_empleados_activos">Empleados activos</string>
 
-    <string name="debug_cambiar_rol">Ver como otro rol</string>
-    <string name="debug_titulo_dialogo">Ver la app como…</string>
-    <string name="debug_rol_cambiado">Viendo la app como %1$s</string>
-    <string name="debug_aviso_rls">Solo cambia lo que se muestra. El servidor sigue aplicando RLS con tu rol real.</string>
-
     <string name="estado_pedido_pendiente">Pendiente</string>
     <string name="estado_pedido_preparacion">En preparación</string>
     <string name="estado_pedido_listo">Listo</string>

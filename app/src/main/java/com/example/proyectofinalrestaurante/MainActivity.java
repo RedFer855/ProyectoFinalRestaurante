@@ -32,7 +32,6 @@ import com.example.proyectofinalrestaurante.ui.buzon.BuzonHoja;
 import com.example.proyectofinalrestaurante.ui.buzon.BuzonViewModel;
 import com.example.proyectofinalrestaurante.ui.buzon.BuzonViewModelFactory;
 import com.example.proyectofinalrestaurante.ui.clientes.ClientesFragment;
-import com.example.proyectofinalrestaurante.ui.debug.SelectorRolDebug;
 import com.example.proyectofinalrestaurante.ui.empleados.EmpleadosFragment;
 import com.example.proyectofinalrestaurante.ui.login.LoginActivity;
 import com.example.proyectofinalrestaurante.ui.menu.MenuFragment;
@@ -167,10 +166,6 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
             badgeBuzon.setVisible(noLeidasBuzon > 0);
             BadgeUtils.attachBadgeDrawable(badgeBuzon, ancla, null);
         }
-        // El menú de debug no existe siquiera en builds de release.
-        if (SelectorRolDebug.estaDisponible()) {
-            getMenuInflater().inflate(R.menu.menu_debug, menu);
-        }
         return true;
     }
 
@@ -178,13 +173,6 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.accion_buzon) {
             abrirBuzon();
-            return true;
-        }
-        if (item.getItemId() == R.id.accion_cambiar_rol_debug) {
-            Sesion sesion = SesionActual.obtener();
-            SelectorRolDebug.mostrar(this,
-                    sesion == null ? null : sesion.getRol(),
-                    this::cambiarRolDebug);
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -195,46 +183,6 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
         BuzonHoja hoja = new BuzonHoja();
         hoja.recibir(buzonViewModel);
         hoja.show(getSupportFragmentManager(), BuzonHoja.TAG);
-    }
-
-    /**
-     * Cambia el rol de la sesión en memoria y recompone la pantalla. Solo afecta lo que
-     * se muestra — el servidor sigue evaluando RLS con el rol real del usuario.
-     */
-    private void cambiarRolDebug(String nuevoRol) {
-        Sesion sesion = SesionActual.obtener();
-        if (sesion == null) {
-            return;
-        }
-        SesionActual.guardar(sesion.conRol(nuevoRol));
-
-        configurarCabecera(navView, SesionActual.obtener());
-        filtrarMenu(navView, nuevoRol);
-
-        // Si el rol nuevo no puede ver el módulo donde estamos parados, hay que sacarlo
-        // de ahí: quedarse mirando Empleados como cocina sería exactamente el agujero
-        // que este sistema de permisos quiere evitar.
-        Modulo actual = moduloDe(moduloActualId);
-        if (actual == null || !VisibilidadMenu.esVisible(nuevoRol, actual)) {
-            abrirModulo(R.id.nav_inicio);
-        } else {
-            // Recrear el Fragment para que vuelva a evaluar los permisos de sus botones.
-            mostrarModulo(moduloActualId);
-        }
-
-        Snackbar.make(findViewById(R.id.contenedor_contenido),
-                getString(R.string.debug_rol_cambiado, nuevoRol),
-                Snackbar.LENGTH_SHORT).show();
-    }
-
-    @Nullable
-    private Modulo moduloDe(int menuId) {
-        for (Map.Entry<Modulo, Integer> entrada : ITEM_IDS.entrySet()) {
-            if (entrada.getValue() == menuId) {
-                return entrada.getKey();
-            }
-        }
-        return null;
     }
 
     /** Con el menú abierto, "atrás" lo cierra en vez de salir de la app. */

@@ -65,18 +65,6 @@ public final class Sesion {
     }
 
     /**
-     * Copia de la sesión con otro rol. La usa el selector de rol de debug para
-     * previsualizar la app como otro usuario sin volver a autenticarse.
-     *
-     * <p>Cambiar el rol acá <b>no otorga ningún acceso</b>: las policies RLS de Postgres
-     * leen el rol de la base con el JWT del usuario, no de lo que diga el cliente.</p>
-     */
-    public Sesion conRol(String nuevoRol) {
-        return new Sesion(idUsuario, correo, accessToken, refreshToken, expiraEnMillis,
-                nombre, nuevoRol);
-    }
-
-    /**
      * Copia de la sesión con el token renovado (P-009). La usa {@code ProveedorDeToken}
      * después de un refresh exitoso — el resto de los datos (usuario, rol) no cambia.
      */

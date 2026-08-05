@@ -1,105 +1,25 @@
 package com.example.proyectofinalrestaurante.ui.maqueta;
 
-import androidx.annotation.ColorRes;
-import androidx.annotation.StringRes;
-
-import com.example.proyectofinalrestaurante.R;
-
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * Datos falsos de la maqueta (Plan Fase 1c, Entregable 3).
  *
- * <p><b>Nada de esto es real.</b> Todo el archivo se borra en la Fase 2, cuando los
- * módulos empiecen a leer de Supabase. Vive en {@code ui/} y nunca en {@code domain/}:
- * el dominio no debe enterarse de que existió.</p>
- *
- * <p>{@code EstadoPedido} sigue acá y no en {@code domain} a propósito: el catálogo real de
- * Pedidos todavía no se decidió en la base (Fase 4). {@code EstadoMesa} ya se mudó a
- * {@code domain.model} cuando la Fase 2c conectó Mesas a Supabase — el catálogo
- * {@code estado_mesa} sí quedó fijado (Plan Fase 2c, §2.2).</p>
+ * <p><b>Nada de esto es real.</b> El archivo se vacía a medida que los módulos pasan a leer
+ * de Supabase. Vive en {@code ui/} y nunca en {@code domain/}: el dominio no debe enterarse
+ * de que existió.</p>
  */
 public final class DatosMaqueta {
 
     private DatosMaqueta() {
     }
 
-    // ---------------------------------------------------------------- estados
-
-    public enum EstadoPedido {
-        PENDIENTE(R.string.estado_pedido_pendiente, R.color.estado_pendiente),
-        EN_PREPARACION(R.string.estado_pedido_preparacion, R.color.estado_preparacion),
-        LISTO(R.string.estado_pedido_listo, R.color.estado_listo),
-        ENTREGADO(R.string.estado_pedido_entregado, R.color.estado_entregado),
-        CANCELADO(R.string.estado_pedido_cancelado, R.color.estado_cancelado);
-
-        @StringRes public final int etiqueta;
-        @ColorRes public final int color;
-
-        EstadoPedido(@StringRes int etiqueta, @ColorRes int color) {
-            this.etiqueta = etiqueta;
-            this.color = color;
-        }
-
-        /** Siguiente estado en el flujo de cocina. El último no avanza. */
-        public EstadoPedido siguiente() {
-            switch (this) {
-                case PENDIENTE:
-                    return EN_PREPARACION;
-                case EN_PREPARACION:
-                    return LISTO;
-                case LISTO:
-                    return ENTREGADO;
-                default:
-                    return this;
-            }
-        }
-    }
-
     // ---------------------------------------------------------------- modelos
 
     // Platillo y Categoria vivían acá hasta la Fase 2a. Ahora el Menú lee de Supabase y
     // sus modelos reales están en domain/model — igual que pasó con Empleado en la 1d.
-
-    public static final class Pedido {
-        public final int numero;
-        /** "Mesa 4" o "Para llevar" — lo que identifica al pedido de un vistazo. */
-        public final String referencia;
-        public final String cliente;
-        public final String hora;
-        public final double total;
-        public final EstadoPedido estado;
-
-        public Pedido(int numero, String referencia, String cliente, String hora,
-                      double total, EstadoPedido estado) {
-            this.numero = numero;
-            this.referencia = referencia;
-            this.cliente = cliente;
-            this.hora = hora;
-            this.total = total;
-            this.estado = estado;
-        }
-
-        /** Copia con otro estado — inmutable, para que DiffUtil detecte el cambio. */
-        public Pedido conEstado(EstadoPedido nuevo) {
-            return new Pedido(numero, referencia, cliente, hora, total, nuevo);
-        }
-    }
-
-    public static final class LineaPedido {
-        public final String nombre;
-        public final int cantidad;
-        public final double precio;
-        public final boolean esComplemento;
-
-        public LineaPedido(String nombre, int cantidad, double precio, boolean esComplemento) {
-            this.nombre = nombre;
-            this.cantidad = cantidad;
-            this.precio = precio;
-            this.esComplemento = esComplemento;
-        }
-    }
+    // Pedido/LineaPedido se fueron en la Fase 3 (E10): el tablero lee Pedido de Room.
 
     public static final class ConteoSimple {
         public final String etiqueta;
@@ -124,25 +44,6 @@ public final class DatosMaqueta {
     }
 
     // ---------------------------------------------------------------- datos
-
-    public static List<Pedido> pedidos() {
-        return Arrays.asList(
-                new Pedido(1042, "Mesa 4", "Ana Cruz", "13:05", 380.00, EstadoPedido.PENDIENTE),
-                new Pedido(1041, "Mesa 7", "Luis Medina", "12:58", 245.00, EstadoPedido.EN_PREPARACION),
-                new Pedido(1040, "Para llevar", "Sofía Ramos", "12:47", 130.00, EstadoPedido.EN_PREPARACION),
-                new Pedido(1039, "Mesa 2", "Carlos Núñez", "12:30", 520.00, EstadoPedido.LISTO),
-                new Pedido(1038, "Mesa 9", "Mesa sin cliente", "12:12", 175.00, EstadoPedido.ENTREGADO),
-                new Pedido(1037, "Mesa 1", "Gabriela Paz", "11:55", 90.00, EstadoPedido.CANCELADO));
-    }
-
-    /** Detalle del pedido 1042, para la vista de detalle. */
-    public static List<LineaPedido> detallePedido() {
-        return Arrays.asList(
-                new LineaPedido("Pollo con tajadas", 2, 145.00, false),
-                new LineaPedido("Sopa de caracol", 1, 190.00, false),
-                new LineaPedido("Refresco de tamarindo", 1, 45.00, true),
-                new LineaPedido("Tortillas extra", 2, 10.00, true));
-    }
 
     public static List<ConteoSimple> platillosMasPedidos() {
         return Arrays.asList(

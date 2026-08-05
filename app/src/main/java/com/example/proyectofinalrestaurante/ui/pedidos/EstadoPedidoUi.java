@@ -10,8 +10,8 @@ import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 /**
  * Traducción de presentación de {@link EstadoPedido}: qué etiqueta y qué color pinta la UI.
  * Las etiquetas y colores son recursos (regla de oro #8); el dominio es Java puro y no sabe
- * de recursos — este helper cierra esa brecha, mismo rol que el viejo
- * {@code DatosMaqueta.EstadoPedido}.
+ * de recursos — este helper cierra esa brecha (hasta la Fase 3 E10 el tablero usaba datos
+ * falsos de la maqueta; hoy lee {@link EstadoPedido} real de Room).
  *
  * <p>{@code null} (estado que este APK no conoce, ver {@link EstadoPedido#porId}) se pinta
  * como "Desconocido" con color neutro: no se mapea a un estado conocido por error.</p>

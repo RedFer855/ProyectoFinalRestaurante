@@ -23,8 +23,9 @@ import com.example.proyectofinalrestaurante.ui.permisos.VistaPorPermiso;
 import com.google.android.material.chip.Chip;
 
 /**
- * Lista de pedidos del tablero (Plan Fase 3, E8), ahora sobre {@link Pedido} del dominio en
- * vez de {@code DatosMaqueta.Pedido}. Tres permisos distintos conviven en la misma tarjeta:
+ * Lista de pedidos del tablero (Plan Fase 3, E8), ahora sobre {@link Pedido} del dominio
+ * (los datos falsos de la maqueta se fueron en la E10). Tres permisos distintos conviven
+ * en la misma tarjeta:
  * avanzar el estado (admin y cocina), editar (admin y mesero) y cancelar (solo admin).
  *
  * <p>El chip de estado también es el botón de "avanzar": por eso queda clickeable solo cuando
