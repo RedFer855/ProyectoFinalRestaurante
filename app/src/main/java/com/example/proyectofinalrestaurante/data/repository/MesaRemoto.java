@@ -57,17 +57,22 @@ public final class MesaRemoto {
 
     /**
      * Sync delta paginado (§4.3). Una marca {@code null} baja la vista completa: la primera
-     * sincronización.
+     * sincronización. La marca queda fija durante toda la pasada; lo que avanza entre
+     * páginas es {@code desplazamiento} (P-029, 2026-08-04).
      */
-    public ResultadoRed<List<MesaDto>> listarMesasDesde(@Nullable String marcaAgua) {
+    public ResultadoRed<List<MesaDto>> listarMesasDesde(@Nullable String marcaAgua,
+                                                        int desplazamiento) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
         }
         try {
             String filtro = marcaAgua == null ? null : "gt." + marcaAgua;
+            // El id desempata: sin un orden total, dos pedidos con el mismo offset pueden
+            // devolver filas distintas y perderse alguna entre páginas.
             Response<List<MesaDto>> respuesta = api.listarMesasDesde(
-                    bearer, "*", filtro, "actualizado_en.asc", LIMITE_DELTA).execute();
+                    bearer, "*", filtro, "actualizado_en.asc,id_mesa.asc", LIMITE_DELTA,
+                    desplazamiento).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(), "No se pudo sincronizar el salón.");
             }

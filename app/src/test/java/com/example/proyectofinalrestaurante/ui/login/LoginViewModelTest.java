@@ -41,7 +41,8 @@ public class LoginViewModelTest {
 
     @Test
     public void login_exitoso_publicaEstadoConSesion() {
-        Sesion sesion = new Sesion("id-1", "ana@restaurante.hn", "token-123", "Ana", "mesero");
+        Sesion sesion = new Sesion("id-1", "ana@restaurante.hn", "token-123", "refresh-123",
+                System.currentTimeMillis() + 3_600_000L, "Ana", "mesero");
         FakeAuthRepository repositorio = new FakeAuthRepository();
         repositorio.resultadoLogin = Result.ok(sesion);
         LoginViewModel viewModel = new LoginViewModel(repositorio, new ExecutorServiceSincrono());

@@ -70,7 +70,44 @@ public class LoginViewModelTest {
 > testDebugUnitTest` corre **195 tests** con aserciones reales — `domain`, ViewModels,
 > DAOs (Robolectric + Room in-memory), outbox, clasificador de errores, migración y
 > repositorios con fakes. P-005 quedó cerrado (los ViewModels ya inyectan su
-> `ExecutorService`).
+> `ExecutorService`). **420 tests** al cerrar el Fase 0b (2026-08-05).
+
+## Cadencia de corridas — feedback rápido durante el trabajo, suite completa como gate
+
+Módulo Gradle **único** (`app`): no hay forma barata de que Gradle sepa "qué tests toca este
+cambio" — cualquier edición de Java invalida `testDebugUnitTest` entero. Eso no significa
+que haya que esperar la suite completa después de cada línea. Dos momentos, dos comandos:
+
+**Mientras se está escribiendo/iterando una pieza** — filtrar a la clase que importa, para
+feedback en segundos:
+
+```bash
+./gradlew testDebugUnitTest --tests "com.example.proyectofinalrestaurante.core.ProveedorDeTokenTest"
+```
+
+**Antes de decir "esto funciona" o hacer commit** — la suite completa, una sola vez, sobre
+el estado final:
+
+```bash
+./gradlew testDebugUnitTest assembleDebug
+```
+
+Ese segundo paso **no es opcional ni negociable** — es el único momento en que se atrapa el
+caso real: un cambio de firma en una clase compartida (ej. agregar un campo a `Sesion` en
+P-009) que rompe silenciosamente un test en un paquete que nadie tocó a propósito. Correr
+solo la clase filtrada nunca lo hubiera visto.
+
+**Medido en esta sesión (2026-08-05, ~420 tests):** la suite completa corre en **15-30 s**;
+una clase filtrada, una vez compilado, en **3-5 s**. La ganancia no es evitar la corrida
+completa — es no pagarla después de *cada* edición mientras el código todavía está
+cambiando, y pagarla **una vez** al final, que es el único punto donde su resultado importa.
+A medida que la suite crezca, la diferencia entre "una clase" y "las 400+" solo se agranda.
+
+> [!danger] Lo que esto NO habilita
+> Nunca reportar "tests en verde" ni commitear basado en una corrida filtrada. El filtro es
+> una herramienta de iteración, no un sustituto del gate. Si el mensaje final es "funciona"
+> o "listo para commit", tiene que estar respaldado por la corrida completa, no por la
+> filtrada.
 
 ---
 

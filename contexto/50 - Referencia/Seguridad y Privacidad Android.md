@@ -47,7 +47,12 @@ lifecycle: verified
 
 > [!note] Estado en este proyecto
 > ✅ `SUPABASE_URL`/`SUPABASE_ANON_KEY` ya se leen de `local.properties` vía `BuildConfig`.
-> ⚠️ El `access_token` que devuelve el login **hoy no se persiste en ningún lado** (se pierde al cerrar la app). Cuando se persista, debe ir cifrado. Ver **P-009** en [[Deuda Técnica - Pendientes]].
+> ✅ **P-009 resuelto (2026-08-05).** El `access_token`, el `refresh_token` y el vencimiento
+> se persisten cifrados con `AlmacenSeguro` (Android Keystore AES/GCM directo — no
+> `EncryptedSharedPreferences`, deprecado). `SyncApplication.onCreate()` hidrata
+> `SesionActual` desde ahí antes que cualquier otra cosa, y `ProveedorDeToken` refresca el
+> token solo (single-flight) cuando está por vencer. Ver **P-009** en
+> [[Deuda Técnica - Pendientes]] y [[Plan Fase 0b - Cierre de la deuda P0]] §4.
 
 ## 2. Llaves de Supabase — publishable vs secret
 
@@ -105,7 +110,7 @@ Motivo: guardar y verificar contraseñas correctamente exige hashing lento (bcry
 4. **Rastro de auditoría (`audit_log`)** — tabla propia con `INSERT`-only por RLS, registrando `LOGIN_OK`/`LOGIN_FAIL`/`LOGOUT` sin exponer la causa interna del fallo. Bimbo lo tiene planificado, no implementado; acá tampoco existe todavía — queda para cuando haya más de un módulo autenticado escribiendo eventos.
 5. **Password policy se configura en el dashboard de Supabase** (`Authentication → Policies → Password Requirements`), no solo en el cliente — la validación de fuerza en la `Activity` es UX, no seguridad, si el backend no la exige también.
 6. **Timeout de sesión por inactividad** — pendiente en ambos proyectos; se implementa junto con la primera pantalla que lo necesite (en Bimbo iba junto con "Mi Usuario"; acá seguramente con la primera pantalla post-login real).
-7. **DPAPI en WPF ⇄ Android Keystore acá.** Bimbo usa `ProtectedData.Protect(..., DataProtectionScope.CurrentUser)` para lo poco que persiste (el email de "recordarme"); el equivalente Android para persistir el `access_token` (cuando se implemente, **P-009**) es **cifrar con una clave del `AndroidKeyStore`**, nunca `SharedPreferences` plano — y ya **no** Jetpack Security, que está deprecado (ver el callout de la sección 1).
+7. **DPAPI en WPF ⇄ Android Keystore acá.** Bimbo usa `ProtectedData.Protect(..., DataProtectionScope.CurrentUser)` para lo poco que persiste (el email de "recordarme"); el equivalente Android para persistir el `access_token` es **cifrar con una clave del `AndroidKeyStore`**, nunca `SharedPreferences` plano — y ya **no** Jetpack Security, que está deprecado (ver el callout de la sección 1). Implementado en **P-009** como `core/AlmacenSeguro.java`.
 
 ## 8. Cumplimiento
 

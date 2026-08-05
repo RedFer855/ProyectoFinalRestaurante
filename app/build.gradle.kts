@@ -16,7 +16,10 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.proyectofinalrestaurante"
+        // Google Play rechaza cualquier applicationId que empiece con "com.example", y una
+        // vez publicado no se puede cambiar. namespace (arriba) es el paquete Java y NO se
+        // toca — son cosas distintas desde AGP 7. Ver P-018 en Deuda Técnica - Pendientes.md.
+        applicationId = "hn.restaurante.app"
         // API 24 cubre ~96.6% de dispositivos reales (abril 2026) vs. ~0% en API 37.
         // Ver P-003 en contexto/40 - Proyecto Restaurante/Deuda Técnica - Pendientes.md
         minSdk = 24

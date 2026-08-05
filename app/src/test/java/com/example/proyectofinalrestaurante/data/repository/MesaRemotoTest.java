@@ -45,7 +45,7 @@ public class MesaRemotoTest {
         FakeSupabaseMesaApi api = new FakeSupabaseMesaApi();
         MesaRemoto remoto = new MesaRemoto(api, () -> null);
 
-        ResultadoRed<List<MesaDto>> resultado = remoto.listarMesasDesde(null);
+        ResultadoRed<List<MesaDto>> resultado = remoto.listarMesasDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         assertEquals(401, resultado.getCodigoHttp());
@@ -56,16 +56,27 @@ public class MesaRemotoTest {
     // ------------------------------------------------------------------ delta
 
     @Test
-    public void listarMesasDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarca() {
+    public void listarMesasDesde_conMarca_mandaElFiltroGtYOrdenaPorLaMarcaConDesempatePorId() {
         FakeSupabaseMesaApi api = new FakeSupabaseMesaApi();
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         MesaRemoto remoto = new MesaRemoto(api, () -> "token");
 
-        remoto.listarMesasDesde("2026-08-01 09:00:00+00");
+        remoto.listarMesasDesde("2026-08-01 09:00:00+00", 0);
 
         assertEquals("gt.2026-08-01 09:00:00+00", api.ultimoFiltro);
-        assertEquals("actualizado_en.asc", api.ultimoOrden);
+        assertEquals("actualizado_en.asc,id_mesa.asc", api.ultimoOrden);
         assertEquals(MesaRemoto.LIMITE_DELTA, api.ultimoLimite);
+    }
+
+    @Test
+    public void listarMesasDesde_propagaElOffset() {
+        FakeSupabaseMesaApi api = new FakeSupabaseMesaApi();
+        api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
+        MesaRemoto remoto = new MesaRemoto(api, () -> "token");
+
+        remoto.listarMesasDesde("2026-08-01 09:00:00+00", 50);
+
+        assertEquals(50, api.ultimoOffset);
     }
 
     @Test
@@ -74,7 +85,7 @@ public class MesaRemotoTest {
         api.respuestaListarDesde = FakeCall.deRespuesta(Response.success(unaLista()));
         MesaRemoto remoto = new MesaRemoto(api, () -> "token");
 
-        remoto.listarMesasDesde(null);
+        remoto.listarMesasDesde(null, 0);
 
         assertNull(api.ultimoFiltro);
     }
@@ -85,7 +96,7 @@ public class MesaRemotoTest {
         api.respuestaListarDesde = FakeCall.deFallo(new IOException("timeout"));
         MesaRemoto remoto = new MesaRemoto(api, () -> "token");
 
-        ResultadoRed<List<MesaDto>> resultado = remoto.listarMesasDesde(null);
+        ResultadoRed<List<MesaDto>> resultado = remoto.listarMesasDesde(null, 0);
 
         assertFalse(resultado.isExitoso());
         assertEquals(ClasificadorDeError.SIN_CODIGO, resultado.getCodigoHttp());
@@ -204,16 +215,18 @@ public class MesaRemotoTest {
         String ultimoFiltro;
         String ultimoOrden;
         int ultimoLimite;
+        int ultimoOffset;
         ActualizarMesaDto ultimoCuerpo;
         CambiarEstadoMesaDto ultimoRpc;
 
         @Override
         public Call<List<MesaDto>> listarMesasDesde(String bearerToken, String select,
                                                     String actualizadoEnMayorQue, String orden,
-                                                    int limite) {
+                                                    int limite, int desplazamiento) {
             ultimoFiltro = actualizadoEnMayorQue;
             ultimoOrden = orden;
             ultimoLimite = limite;
+            ultimoOffset = desplazamiento;
             return respuestaListarDesde;
         }
 

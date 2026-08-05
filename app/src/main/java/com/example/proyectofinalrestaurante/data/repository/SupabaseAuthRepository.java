@@ -30,6 +30,13 @@ import retrofit2.Response;
  */
 public class SupabaseAuthRepository implements AuthRepository {
 
+    /**
+     * Duración por defecto si el servidor no manda {@code expires_in} (no debería pasar,
+     * pero un token sin vencimiento nunca refrescaría). 1 hora es el valor por defecto
+     * documentado de Supabase Auth.
+     */
+    private static final int EXPIRACION_POR_DEFECTO_SEGUNDOS = 3600;
+
     private final SupabaseAuthApi authApi;
     private final SupabasePerfilApi perfilApi;
 
@@ -56,7 +63,7 @@ public class SupabaseAuthRepository implements AuthRepository {
             String accessToken = body.getAccessToken();
             String bearerToken = "Bearer " + accessToken;
 
-            return verificarPerfilYCrearSesion(idUsuario, body.getUser().getEmail(), accessToken, bearerToken);
+            return verificarPerfilYCrearSesion(idUsuario, body.getUser().getEmail(), body, bearerToken);
         } catch (IOException ex) {
             return Result.fail("Sin conexión al servidor. Intentá de nuevo.");
         } catch (SecurityException ex) {
@@ -67,7 +74,7 @@ public class SupabaseAuthRepository implements AuthRepository {
     }
 
     private Result<Sesion> verificarPerfilYCrearSesion(
-            String idUsuario, String correo, String accessToken, String bearerToken) throws IOException {
+            String idUsuario, String correo, LoginResponseDto body, String bearerToken) throws IOException {
 
         Response<List<PerfilDto>> perfilResponse =
                 perfilApi.obtenerPerfil(bearerToken, "eq." + idUsuario).execute();
@@ -83,7 +90,13 @@ public class SupabaseAuthRepository implements AuthRepository {
             return Result.fail("Tu cuenta está inactiva. Contactá al administrador.");
         }
 
-        return Result.ok(new Sesion(idUsuario, correo, accessToken, perfil.getNombre(), perfil.getRol()));
+        // expires_in viene en segundos relativos desde que Supabase lo emitió; se guarda
+        // como instante absoluto (P-009) para que no dependa de cuándo se lea después.
+        int segundos = body.getExpiresIn() != null ? body.getExpiresIn() : EXPIRACION_POR_DEFECTO_SEGUNDOS;
+        long expiraEnMillis = System.currentTimeMillis() + segundos * 1000L;
+
+        return Result.ok(new Sesion(idUsuario, correo, body.getAccessToken(), body.getRefreshToken(),
+                expiraEnMillis, perfil.getNombre(), perfil.getRol()));
     }
 
     @Override

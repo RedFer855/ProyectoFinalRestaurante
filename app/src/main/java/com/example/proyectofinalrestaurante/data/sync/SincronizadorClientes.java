@@ -23,12 +23,18 @@ import java.util.List;
  * {@link SincronizadorMesas}: drena el outbox (FIFO) y después baja el delta. El borrado real
  * ({@code BORRAR_CLIENTE}) sigue el patrón de {@code SincronizadorMenu.borrarCategoria}: la
  * fila local ya se borró al encolar, así que el {@code id_servidor} viaja en el payload.
+ *
+ * <p>El delta pagina por {@code offset} con la marca fija durante toda la pasada (P-029,
+ * 2026-08-04) — mismo bucle que {@link SincronizadorMenu#bajarPlatillos()}.</p>
  */
 public final class SincronizadorClientes implements Sincronizador {
 
     static final int MAX_INTENTOS = 3;
     static final int LOTE = 50;
     static final String TABLA = "clientes";
+
+    /** Tope de páginas por pasada del delta; ver el Javadoc de {@link SincronizadorMenu}. */
+    static final int MAX_PAGINAS = 200;
 
     static final String CAMBIO_LOCAL_PERDIDO =
             "Un cambio de cliente se perdió: el servidor tenía una versión más reciente.";
@@ -37,13 +43,16 @@ public final class SincronizadorClientes implements Sincronizador {
     private final Outbox outbox;
     private final ClienteDao clienteDao;
     private final SincronizacionDao sincronizacionDao;
+    private final EjecutorDeTransaccion transacciones;
 
     public SincronizadorClientes(ClienteRemoto remoto, Outbox outbox, ClienteDao clienteDao,
-                                 SincronizacionDao sincronizacionDao) {
+                                 SincronizacionDao sincronizacionDao,
+                                 EjecutorDeTransaccion transacciones) {
         this.remoto = remoto;
         this.outbox = outbox;
         this.clienteDao = clienteDao;
         this.sincronizacionDao = sincronizacionDao;
+        this.transacciones = transacciones;
     }
 
     @Override
@@ -211,31 +220,55 @@ public final class SincronizadorClientes implements Sincronizador {
     // ------------------------------------------------------------------ delta
 
     private ResultadoSync bajarDelta(@Nullable String errorPermanenteDelDrenado) {
-        String marca = leerMarca();
+        // La marca queda FIJA durante toda la pasada y las páginas avanzan por offset (ver
+        // el Javadoc de la clase y de SincronizadorMenu.bajarPlatillos()).
+        String marcaInicial = leerMarca();
+        String marcaMaxima = marcaInicial;
         boolean huboConflictoLocal = false;
-        while (true) {
-            ResultadoRed<List<ClienteDto>> resultado = remoto.listarClientesDesde(marca);
+        int desplazamiento = 0;
+
+        for (int pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+            ResultadoRed<List<ClienteDto>> resultado =
+                    remoto.listarClientesDesde(marcaInicial, desplazamiento);
             if (!resultado.isExitoso()) {
                 return convertirFalloDelta(resultado);
             }
-            List<ClienteDto> pagina = resultado.getValor();
-            for (ClienteDto dto : pagina) {
-                huboConflictoLocal |= aplicarCliente(dto);
+            List<ClienteDto> filas = resultado.getValor();
+            for (ClienteDto dto : filas) {
                 if (dto.getActualizadoEn() != null) {
-                    marca = mayor(marca, dto.getActualizadoEn());
+                    marcaMaxima = mayor(marcaMaxima, dto.getActualizadoEn());
                 }
             }
-            guardarMarca(marca);
-            if (pagina.size() < ClienteRemoto.LIMITE_DELTA) {
+            huboConflictoLocal |= aplicarPagina(filas);
+            desplazamiento += filas.size();
+            if (filas.size() < ClienteRemoto.LIMITE_DELTA) {
                 break;
             }
         }
+
+        guardarMarca(marcaMaxima);
         if (errorPermanenteDelDrenado != null) {
             return ResultadoSync.permanente(errorPermanenteDelDrenado);
         }
         return huboConflictoLocal
                 ? ResultadoSync.permanente(CAMBIO_LOCAL_PERDIDO)
                 : ResultadoSync.ok();
+    }
+
+    /**
+     * Aplica una página entera en <b>una sola transacción</b> — ver el Javadoc de
+     * {@link EjecutorDeTransaccion} y de {@code SincronizadorMenu.aplicarPagina}.
+     *
+     * @return {@code true} si alguna fila perdió un cambio local por conflicto LWW
+     */
+    private boolean aplicarPagina(List<ClienteDto> pagina) {
+        boolean[] huboConflicto = {false};
+        transacciones.enTransaccion(() -> {
+            for (ClienteDto dto : pagina) {
+                huboConflicto[0] |= aplicarCliente(dto);
+            }
+        });
+        return huboConflicto[0];
     }
 
     private boolean aplicarCliente(ClienteDto dto) {

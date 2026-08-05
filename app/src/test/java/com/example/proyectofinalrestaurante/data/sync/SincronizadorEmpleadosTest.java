@@ -58,9 +58,28 @@ public class SincronizadorEmpleadosTest {
     private final FakeSincronizacionDao marcas = new FakeSincronizacionDao();
     private final Gson gson = new Gson();
 
+    /** Cuenta transacciones abiertas, para verificar que el delta se aplica por página. */
+    private final EjecutorDeTransaccionEspia transacciones = new EjecutorDeTransaccionEspia();
+
     private SincronizadorEmpleados sincronizador() {
         return new SincronizadorEmpleados(
-                new EmpleadoRemoto(api, () -> "token"), outbox, empleados, marcas);
+                new EmpleadoRemoto(api, () -> "token"), outbox, empleados, marcas, transacciones);
+    }
+
+    /**
+     * Corre el bloque tal cual (los fakes de DAO no tienen transacciones reales) pero lleva
+     * la cuenta: lo que importa verificar es cuántas veces se agrupa, no que SQLite haga
+     * commit. Mismo espía que {@code SincronizadorMenuTest}.
+     */
+    private static final class EjecutorDeTransaccionEspia implements EjecutorDeTransaccion {
+
+        private int veces;
+
+        @Override
+        public void enTransaccion(Runnable bloque) {
+            veces++;
+            bloque.run();
+        }
     }
 
     // ------------------------------------------------------------------ drenado
@@ -263,6 +282,105 @@ public class SincronizadorEmpleadosTest {
         assertNull(marcas.porTabla(SincronizadorEmpleados.TABLA));
     }
 
+    // ------------------------------------------------------------------ P-029: paginación del delta
+
+    @Test
+    public void delta_cincuentaFilasConLaMismaMarca_noPierdeLasQueSiguen() {
+        // El escenario de "instalación desde cero": todas las filas de la primera página
+        // comparten actualizado_en. Con la paginación vieja (avanzar la marca por página),
+        // la fila 51 no se bajaba nunca — ver el Javadoc de la clase y P-029.
+        String mismaMarca = "2026-08-01T10:00:00+00:00";
+        List<EmpleadoDto> primeraPagina = new ArrayList<>();
+        for (int i = 0; i < EmpleadoRemoto.LIMITE_DELTA; i++) {
+            primeraPagina.add(empleadoServidor(1000 + i, mismaMarca));
+        }
+        api.respuestaPorPagina = (filtro, offset) -> offset == 0
+                ? FakeCall.deRespuesta(Response.success(primeraPagina))
+                : FakeCall.deRespuesta(Response.success(
+                        List.of(empleadoServidor(2000, mismaMarca))));
+
+        assertTrue(sincronizador().sincronizar().esOk());
+
+        assertEquals(EmpleadoRemoto.LIMITE_DELTA + 1, empleados.filas.size());
+    }
+
+    @Test
+    public void delta_paginaCompleta_pideLaSiguienteConOffsetYLaMismaMarcaInicial() {
+        List<EmpleadoDto> primeraPagina = new ArrayList<>();
+        for (int i = 0; i < EmpleadoRemoto.LIMITE_DELTA; i++) {
+            primeraPagina.add(empleadoServidor(1000 + i,
+                    String.format("2026-08-01T%02d:00:00+00:00", i)));
+        }
+        api.respuestaPorPagina = (filtro, offset) -> offset == 0
+                ? FakeCall.deRespuesta(Response.success(primeraPagina))
+                : FakeCall.deRespuesta(Response.success(
+                        // "50" > "49" lexicográficamente: la última página trae la marca
+                        // más alta de toda la pasada (ver el mismo comentario en
+                        // SincronizadorMesasTest).
+                        List.of(empleadoServidor(2000, "2026-08-01T50:00:00+00:00"))));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esOk());
+        assertEquals(EmpleadoRemoto.LIMITE_DELTA, api.ultimoOffsetPedido);
+        assertEquals("2026-08-01T50:00:00+00:00",
+                marcas.porTabla(SincronizadorEmpleados.TABLA).getMarcaAgua());
+    }
+
+    @Test
+    public void delta_unaPaginaFalla_laMarcaNoAvanza() {
+        List<EmpleadoDto> primeraPagina = new ArrayList<>();
+        for (int i = 0; i < EmpleadoRemoto.LIMITE_DELTA; i++) {
+            primeraPagina.add(empleadoServidor(1000 + i,
+                    String.format("2026-08-01T%02d:00:00+00:00", i)));
+        }
+        api.respuestaPorPagina = (filtro, offset) -> offset == 0
+                ? FakeCall.deRespuesta(Response.success(primeraPagina))
+                : FakeCall.deFallo(new IOException("timeout"));
+
+        ResultadoSync resultado = sincronizador().sincronizar();
+
+        assertTrue(resultado.esTransitorio());
+        // La marca de la primera página nunca se guardó: el reintento vuelve a pedir desde
+        // el principio, no desde una marca a medio camino.
+        assertNull(marcas.porTabla(SincronizadorEmpleados.TABLA));
+    }
+
+    @Test(timeout = 10_000)
+    public void delta_servidorQueSiempreDevuelvePaginasLlenas_cortaPorElTopeDePaginas() {
+        int[] pedidos = {0};
+        api.respuestaPorPagina = (filtro, offset) -> {
+            pedidos[0]++;
+            List<EmpleadoDto> pagina = new ArrayList<>();
+            for (int i = 0; i < EmpleadoRemoto.LIMITE_DELTA; i++) {
+                pagina.add(empleadoServidor(offset + i, null));
+            }
+            return FakeCall.deRespuesta(Response.success(pagina));
+        };
+
+        sincronizador().sincronizar();
+
+        assertEquals(SincronizadorEmpleados.MAX_PAGINAS, pedidos[0]);
+    }
+
+    @Test
+    public void delta_aplicaCadaPaginaEnUnaSolaTransaccion() {
+        List<EmpleadoDto> pagina = new ArrayList<>();
+        for (int i = 0; i < EmpleadoRemoto.LIMITE_DELTA; i++) {
+            pagina.add(empleadoServidor(1000 + i,
+                    String.format("2026-08-01T%02d:00:00+00:00", i)));
+        }
+        api.respuestaPorPagina = (filtro, offset) -> offset == 0
+                ? FakeCall.deRespuesta(Response.success(pagina))
+                : FakeCall.deRespuesta(Response.success(List.of()));
+
+        assertTrue(sincronizador().sincronizar().esOk());
+
+        // Una por página: la llena (1) + la vacía que cierra la paginación (1).
+        assertEquals(2, transacciones.veces);
+        assertEquals(EmpleadoRemoto.LIMITE_DELTA, empleados.filas.size());
+    }
+
     @Test
     public void modulo_esElDeEmpleados() {
         assertEquals(TipoOperacion.Modulo.EMPLEADOS, sincronizador().modulo());
@@ -274,6 +392,18 @@ public class SincronizadorEmpleadosTest {
         List<EmpleadoDto> lista = new ArrayList<>();
         lista.add(gson.fromJson(json, EmpleadoDto.class));
         return lista;
+    }
+
+    /** Fila mínima para los tests de paginación (P-029): solo lo que el delta necesita. */
+    private EmpleadoDto empleadoServidor(int idEmpleado, String marca) {
+        String json = "{\"id_empleado\":" + idEmpleado + ",\"nombres\":\"N" + idEmpleado + "\","
+                + "\"apellidos\":\"A\",\"identidad\":\"0801\",\"correo\":\"e" + idEmpleado
+                + "@r.hn\",\"id_usuario\":1,\"apodo_usuario\":\"u" + idEmpleado
+                + "\",\"id_auth_user\":\"uuid-" + idEmpleado + "\",\"rol\":\"mesero\","
+                + "\"activo\":true"
+                + (marca == null ? "" : ",\"actualizado_en\":\"" + marca + "\"")
+                + "}";
+        return gson.fromJson(json, EmpleadoDto.class);
     }
 
     private static EmpleadoEntity unEmpleado(int id, EstadoSync estado) {
@@ -364,6 +494,17 @@ public class SincronizadorEmpleadosTest {
         Call<Void> respuestaActualizarEmpleado = FakeCall.deRespuesta(Response.success(null));
         Call<Void> respuestaActualizarPerfil = FakeCall.deRespuesta(Response.success(null));
 
+        /**
+         * BiFunction y no un {@code Call} fijo: para probar la paginación por offset hace
+         * falta poder responder distinto según la página pedida (mismo patrón que
+         * {@code SincronizadorMenuTest.FakeMenuApi}). Por defecto delega en
+         * {@code respuestaListarDesde} para no romper los tests que no pagina.
+         */
+        java.util.function.BiFunction<String, Integer, Call<List<EmpleadoDto>>> respuestaPorPagina =
+                (filtro, offset) -> respuestaListarDesde;
+
+        int ultimoOffsetPedido;
+
         @Override
         public Call<List<EmpleadoDto>> listar(String bearerToken) {
             return respuestaListarDesde;
@@ -372,8 +513,9 @@ public class SincronizadorEmpleadosTest {
         @Override
         public Call<List<EmpleadoDto>> listarDesde(String bearerToken, String select,
                                                    String actualizadoEnMayorQue, String orden,
-                                                   int limite) {
-            return respuestaListarDesde;
+                                                   int limite, int desplazamiento) {
+            ultimoOffsetPedido = desplazamiento;
+            return respuestaPorPagina.apply(actualizadoEnMayorQue, desplazamiento);
         }
 
         @Override

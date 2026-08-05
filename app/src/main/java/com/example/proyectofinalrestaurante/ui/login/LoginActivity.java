@@ -17,12 +17,15 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.proyectofinalrestaurante.MainActivity;
 import com.example.proyectofinalrestaurante.R;
 import com.example.proyectofinalrestaurante.core.SesionActual;
+import com.example.proyectofinalrestaurante.core.SyncApplication;
+import com.example.proyectofinalrestaurante.domain.repository.SesionRepository;
 import com.example.proyectofinalrestaurante.ui.recuperacion.SolicitarCodigoActivity;
 import com.google.android.material.textfield.TextInputLayout;
 
 public class LoginActivity extends AppCompatActivity {
 
     private LoginViewModel viewModel;
+    private SesionRepository sesionRepository;
     private EditText txtCorreo;
     private EditText txtContrasenia;
     private TextInputLayout tilCorreo;
@@ -33,6 +36,17 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        sesionRepository = ((SyncApplication) getApplication()).sesionRepository();
+
+        // P-009: SyncApplication.onCreate() ya hidrató SesionActual desde el almacén cifrado
+        // antes de que esta Activity exista. Si hay sesión, la app abre en el tablero, no en
+        // el login — sin esto era necesario volver a loguearse en cada apertura de la app.
+        if (SesionActual.obtener() != null) {
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
+            return;
+        }
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
         aplicarInsets();
@@ -82,6 +96,11 @@ public class LoginActivity extends AppCompatActivity {
 
         if (estadoLogin.debeNavegar()) {
             SesionActual.guardar(estadoLogin.getSesion());
+            // Persistir DESPUÉS de guardar en memoria, nunca antes: si el cifrado fallara,
+            // la sesión de esta ejecución sigue funcionando igual (AlmacenSeguro nunca lanza
+            // — ver su contrato — así que esto no debería fallar, pero el orden es a prueba
+            // de que algún día sí lo haga).
+            sesionRepository.guardar(estadoLogin.getSesion());
             viewModel.onNavegacionConsumida();
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);

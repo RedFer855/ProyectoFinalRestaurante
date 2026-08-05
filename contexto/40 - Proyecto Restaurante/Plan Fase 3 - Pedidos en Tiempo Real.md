@@ -13,6 +13,17 @@ lifecycle: draft
 
 # Plan Fase 3 — Pedidos en Tiempo Real
 
+> [!success] Parte A cerrada y verificada — 2026-08-05
+> Las 4 migraciones (`fase3_pedidos_estado_pedido_y_columnas`,
+> `..._vista_y_rpc_avanzar_estado`, `..._realtime_broadcast`, `..._rls_consolidada_y_no_borrar`)
+> están aplicadas. DDL real documentado en [[Esquema de Base de Datos]]. De las 12 pruebas
+> de aceptación de §2.9: **11 verificadas** en vivo con transacciones `BEGIN…ROLLBACK`
+> (sin tocar datos reales); **A10** (que el `INSERT` dispare el broadcast) queda pendiente
+> del Realtime Inspector del dashboard — no verificable por SQL ni por ningún agente.
+> `get_advisors(security)` → 0 hallazgos nivel `ERROR`.
+>
+> **Parte B (Android) sigue pendiente** — no se tocó código de la app en este pase.
+
 > [!danger] Leé primero [[Protocolo de Ejecución de un Plan]]
 > Ahí está el contrato completo: la división Parte A / Parte B, el orden de lectura, las
 > reglas de oro del código y qué significa "terminado". **No es opcional.**
@@ -363,20 +374,22 @@ Mismo molde que Mesas y Clientes, todo sobre `rol_actual()`:
 
 Cada una dentro de `BEGIN … ROLLBACK`, simulando el rol con los usuarios reales de `perfiles`:
 
-| # | Caso | Esperado |
-|---|---|---|
-| A1 | `avanzar_estado_pedido(p, 2)` como **cocina** sobre un pedido Pendiente | OK, queda En preparación |
-| A2 | `avanzar_estado_pedido(p, 4)` como **cocina** | Excepción "Tu rol no puede…" |
-| A3 | `avanzar_estado_pedido(p, 4)` como **mesero** sobre un pedido Listo | OK |
-| A4 | `avanzar_estado_pedido(p, 3)` como **mesero** | Excepción |
-| A5 | `avanzar_estado_pedido(p, 5)` como **admin** | OK, Cancelado |
-| A6 | `avanzar_estado_pedido` sobre un pedido ya Entregado | Excepción "ya está cerrado" |
-| A7 | `UPDATE public.pedido SET total…` directo como cocina | 0 filas (sin policy de UPDATE) |
-| A8 | `SELECT * FROM vista_pedidos` como los tres roles | Devuelve filas en los tres |
-| A9 | `SELECT` sobre `vista_pedidos` con un perfil `activo = false` | 0 filas |
-| A10 | `INSERT` en `pedido` → ¿el trigger emitió el broadcast? | Verificable con el Realtime Inspector del dashboard |
-| A11 | `execute` de `avisar_cambio_pedidos()` como `authenticated` | Permiso denegado |
-| A12 | `get_advisors(security)` al terminar | **0 errores** |
+| # | Caso | Esperado | Verificado |
+|---|---|---|---|
+| A1 | `avanzar_estado_pedido(p, 2)` como **cocina** sobre un pedido Pendiente | OK, queda En preparación | ✅ 2026-08-05 |
+| A2 | `avanzar_estado_pedido(p, 4)` como **cocina** | Excepción "Tu rol no puede…" | ✅ 2026-08-05 |
+| A3 | `avanzar_estado_pedido(p, 4)` como **mesero** sobre un pedido Listo | OK | ✅ 2026-08-05 |
+| A4 | `avanzar_estado_pedido(p, 3)` como **mesero** | Excepción | ✅ 2026-08-05 (2 variantes: pedido Pendiente y pedido Cancelado) |
+| A5 | `avanzar_estado_pedido(p, 5)` como **admin** | OK, Cancelado | ✅ 2026-08-05 |
+| A6 | `avanzar_estado_pedido` sobre un pedido ya Entregado | Excepción "ya está cerrado" | ✅ 2026-08-05 |
+| A7 | `UPDATE public.pedido SET total…` directo como cocina | 0 filas (sin policy de UPDATE) | ✅ 2026-08-05 |
+| A8 | `SELECT * FROM vista_pedidos` como los tres roles | Devuelve filas en los tres | ✅ 2026-08-05 |
+| A9 | `SELECT` sobre `vista_pedidos` con un perfil `activo = false` | 0 filas | ✅ 2026-08-05 |
+| A10 | `INSERT` en `pedido` → ¿el trigger emitió el broadcast? | Verificable con el Realtime Inspector del dashboard | ⬜ Pendiente — requiere el dashboard, no verificable por SQL ni por un agente |
+| A11 | `execute` de `avisar_cambio_pedidos()` como `authenticated` | Permiso denegado | ✅ 2026-08-05 |
+| A12 | `get_advisors(security)` al terminar | **0 errores** | ✅ 2026-08-05 — 0 nivel `ERROR` (solo `WARN` preexistentes en todo el esquema) |
+
+Detalle de la corrida y el DDL real verificado en [[Esquema de Base de Datos]].
 
 ---
 

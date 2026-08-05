@@ -36,12 +36,18 @@ import java.util.List;
  *
  * <p>No conoce la red ni la UI: usa {@link EmpleadoRemoto} y devuelve un {@link ResultadoSync}
  * que el {@link SyncWorker} traduce a {@code retry()}/{@code success()}.</p>
+ *
+ * <p>El delta pagina por {@code offset} con la marca fija durante toda la pasada (P-029,
+ * 2026-08-04) — mismo bucle que {@link SincronizadorMenu#bajarPlatillos()}.</p>
  */
 public final class SincronizadorEmpleados implements Sincronizador {
 
     static final int MAX_INTENTOS = 3;
     static final int LOTE = 50;
     static final String TABLA = "empleados";
+
+    /** Tope de páginas por pasada del delta; ver el Javadoc de {@link SincronizadorMenu}. */
+    static final int MAX_PAGINAS = 200;
 
     /** Mensaje con que el conflicto LWW avisa que un cambio local se perdió. */
     static final String CAMBIO_LOCAL_PERDIDO =
@@ -51,14 +57,17 @@ public final class SincronizadorEmpleados implements Sincronizador {
     private final Outbox outbox;
     private final EmpleadoDao empleadoDao;
     private final SincronizacionDao sincronizacionDao;
+    private final EjecutorDeTransaccion transacciones;
 
     public SincronizadorEmpleados(EmpleadoRemoto remoto, Outbox outbox,
                                   EmpleadoDao empleadoDao,
-                                  SincronizacionDao sincronizacionDao) {
+                                  SincronizacionDao sincronizacionDao,
+                                  EjecutorDeTransaccion transacciones) {
         this.remoto = remoto;
         this.outbox = outbox;
         this.empleadoDao = empleadoDao;
         this.sincronizacionDao = sincronizacionDao;
+        this.transacciones = transacciones;
     }
 
     @Override
@@ -195,31 +204,55 @@ public final class SincronizadorEmpleados implements Sincronizador {
     // ------------------------------------------------------------------ delta
 
     private ResultadoSync bajarDelta(@Nullable String errorPermanenteDelDrenado) {
-        String marca = leerMarca();
+        // La marca queda FIJA durante toda la pasada y las páginas avanzan por offset (ver
+        // el Javadoc de la clase y de SincronizadorMenu.bajarPlatillos()).
+        String marcaInicial = leerMarca();
+        String marcaMaxima = marcaInicial;
         boolean huboConflictoLocal = false;
-        while (true) {
-            ResultadoRed<List<EmpleadoDto>> resultado = remoto.listarDesde(marca);
+        int desplazamiento = 0;
+
+        for (int pagina = 0; pagina < MAX_PAGINAS; pagina++) {
+            ResultadoRed<List<EmpleadoDto>> resultado =
+                    remoto.listarDesde(marcaInicial, desplazamiento);
             if (!resultado.isExitoso()) {
                 return convertirFalloDelta(resultado);
             }
-            List<EmpleadoDto> pagina = resultado.getValor();
-            for (EmpleadoDto dto : pagina) {
-                huboConflictoLocal |= aplicarEmpleado(dto);
+            List<EmpleadoDto> filas = resultado.getValor();
+            for (EmpleadoDto dto : filas) {
                 if (dto.getActualizadoEn() != null) {
-                    marca = mayor(marca, dto.getActualizadoEn());
+                    marcaMaxima = mayor(marcaMaxima, dto.getActualizadoEn());
                 }
             }
-            guardarMarca(marca);
-            if (pagina.size() < EmpleadoRemoto.LIMITE_DELTA) {
+            huboConflictoLocal |= aplicarPagina(filas);
+            desplazamiento += filas.size();
+            if (filas.size() < EmpleadoRemoto.LIMITE_DELTA) {
                 break;
             }
         }
+
+        guardarMarca(marcaMaxima);
         if (errorPermanenteDelDrenado != null) {
             return ResultadoSync.permanente(errorPermanenteDelDrenado);
         }
         return huboConflictoLocal
                 ? ResultadoSync.permanente(CAMBIO_LOCAL_PERDIDO)
                 : ResultadoSync.ok();
+    }
+
+    /**
+     * Aplica una página entera en <b>una sola transacción</b> — ver el Javadoc de
+     * {@link EjecutorDeTransaccion} y de {@code SincronizadorMenu.aplicarPagina}.
+     *
+     * @return {@code true} si alguna fila perdió un cambio local por conflicto LWW
+     */
+    private boolean aplicarPagina(List<EmpleadoDto> pagina) {
+        boolean[] huboConflicto = {false};
+        transacciones.enTransaccion(() -> {
+            for (EmpleadoDto dto : pagina) {
+                huboConflicto[0] |= aplicarEmpleado(dto);
+            }
+        });
+        return huboConflicto[0];
     }
 
     /** @return {@code true} si el servidor pisó un cambio local que no se había subido. */

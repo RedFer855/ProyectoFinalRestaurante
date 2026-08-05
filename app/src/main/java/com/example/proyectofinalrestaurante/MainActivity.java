@@ -22,6 +22,7 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
 import com.example.proyectofinalrestaurante.core.SesionActual;
+import com.example.proyectofinalrestaurante.core.SyncApplication;
 import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.domain.Modulo;
 import com.example.proyectofinalrestaurante.domain.VisibilidadMenu;
@@ -337,6 +338,10 @@ public class MainActivity extends AppCompatActivity implements NavegacionModulos
 
     private void cerrarSesion() {
         SesionActual.limpiar();
+        // P-009: sin esto, el almacén cifrado seguía teniendo la sesión vieja y
+        // SyncApplication.onCreate() la hidrataba de nuevo en el próximo arranque —
+        // "cerrar sesión" no cerraba nada de verdad.
+        ((SyncApplication) getApplication()).sesionRepository().borrar();
         Intent intent = new Intent(this, LoginActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

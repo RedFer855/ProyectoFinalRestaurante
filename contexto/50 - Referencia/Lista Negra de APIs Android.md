@@ -40,6 +40,7 @@ lifecycle: verified
 | APK universal en Play | **AAB** | Ver [[Requisitos de Google Play 2026]] |
 | `Thread.sleep()` / `.get()` bloqueante en hilo principal | Callbacks / `postValue` | ANR directo |
 | `AndroidViewModel` (por el `Context`) | `ViewModel` + dependencias inyectadas | Acopla el VM al framework y lo vuelve intesteable |
+| `androidx.security:security-crypto` (`EncryptedSharedPreferences`, todas sus APIs) | Android Keystore directo (AES/GCM) | Google deprecó **todas** las APIs en `1.1.0-alpha07` (abril 2025): "in favour of existing platform APIs and direct use of Android Keystore". Ver `core/AlmacenSeguro.java` (P-009) y [[Seguridad y Privacidad Android]] §1 |
 
 ## Cómo se verifica
 

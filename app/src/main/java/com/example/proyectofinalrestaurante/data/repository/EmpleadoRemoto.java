@@ -63,7 +63,8 @@ public final class EmpleadoRemoto {
      * filtro": Retrofit omite el query cuando el valor es {@code null}, así que la primera
      * sincronización baja la tabla entera.
      */
-    public ResultadoRed<List<EmpleadoDto>> listarDesde(@Nullable String marcaAgua) {
+    public ResultadoRed<List<EmpleadoDto>> listarDesde(@Nullable String marcaAgua,
+                                                       int desplazamiento) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
@@ -71,7 +72,8 @@ public final class EmpleadoRemoto {
         try {
             String filtro = marcaAgua == null ? null : "gt." + marcaAgua;
             Response<List<EmpleadoDto>> respuesta = api.listarDesde(
-                    bearer, "*", filtro, "actualizado_en.asc", LIMITE_DELTA).execute();
+                    bearer, "*", filtro, "actualizado_en.asc,id_empleado.asc", LIMITE_DELTA,
+                    desplazamiento).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(),
                         "No se pudo sincronizar la lista de empleados.");

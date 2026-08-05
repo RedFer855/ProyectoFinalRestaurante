@@ -12,6 +12,7 @@ import com.example.proyectofinalrestaurante.data.remote.dto.LoginRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.LoginResponseDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PerfilDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.RecuperarRequestDto;
+import com.example.proyectofinalrestaurante.data.remote.dto.RefrescarRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoRequestDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.VerificarCodigoResponseDto;
 import com.example.proyectofinalrestaurante.domain.Result;
@@ -52,6 +53,50 @@ public class SupabaseAuthRepositoryTest {
         assertEquals("Ana", resultado.getValue().getNombre());
         assertEquals("mesero", resultado.getValue().getRol());
         assertFalse(authApi.logoutLlamado);
+    }
+
+    @Test
+    public void login_exitoso_persisteRefreshTokenYExpiracionAbsoluta() {
+        // P-009: expires_in viene en segundos relativos; el repositorio lo convierte a un
+        // instante absoluto para que no dependa de cuándo se lea después.
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        String json = "{\"access_token\":\"token-1\",\"refresh_token\":\"refresh-1\","
+                + "\"expires_in\":3600,\"user\":{\"id\":\"id-1\",\"email\":\"ana@restaurante.hn\"}}";
+        authApi.respuestaLogin = FakeCall.deRespuesta(Response.success(gson.fromJson(json, LoginResponseDto.class)));
+        FakeSupabasePerfilApi perfilApi = new FakeSupabasePerfilApi();
+        perfilApi.respuesta = FakeCall.deRespuesta(Response.success(
+                perfilesDto("[{\"nombre\":\"Ana\",\"rol\":\"mesero\",\"activo\":true}]")));
+
+        long antes = System.currentTimeMillis();
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, perfilApi);
+        Result<Sesion> resultado = repositorio.login("ana@restaurante.hn", "Clave123!");
+        long despues = System.currentTimeMillis();
+
+        assertTrue(resultado.isSuccess());
+        Sesion sesion = resultado.getValue();
+        assertEquals("refresh-1", sesion.getRefreshToken());
+        // El instante absoluto cae dentro de la ventana [antes, despues] + 3600s, con margen
+        // por el tiempo que tarda en correr el test.
+        assertTrue(sesion.getExpiraEnMillis() >= antes + 3600_000L);
+        assertTrue(sesion.getExpiraEnMillis() <= despues + 3600_000L + 1_000L);
+    }
+
+    @Test
+    public void login_sinExpiresIn_usaLaDuracionPorDefecto() {
+        // Defensivo: si el servidor no manda expires_in, el token no debería quedar sin
+        // vencimiento nunca (eso lo dejaría sin refrescar jamás).
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        authApi.respuestaLogin = FakeCall.deRespuesta(
+                Response.success(loginDto("id-1", "ana@restaurante.hn", "token-1")));
+        FakeSupabasePerfilApi perfilApi = new FakeSupabasePerfilApi();
+        perfilApi.respuesta = FakeCall.deRespuesta(Response.success(
+                perfilesDto("[{\"nombre\":\"Ana\",\"rol\":\"mesero\",\"activo\":true}]")));
+
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, perfilApi);
+        Result<Sesion> resultado = repositorio.login("ana@restaurante.hn", "Clave123!");
+
+        assertTrue(resultado.isSuccess());
+        assertTrue(resultado.getValue().getExpiraEnMillis() > System.currentTimeMillis());
     }
 
     @Test
@@ -138,6 +183,11 @@ public class SupabaseAuthRepositoryTest {
         public Call<Void> logout(String bearerToken) {
             logoutLlamado = true;
             return FakeCall.deRespuesta(Response.success(null));
+        }
+
+        @Override
+        public Call<LoginResponseDto> refrescar(RefrescarRequestDto body) {
+            throw new UnsupportedOperationException("No usado en este test");
         }
 
         @Override

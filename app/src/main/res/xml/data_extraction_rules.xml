@@ -4,16 +4,18 @@
    for details.
 -->
 <data-extraction-rules>
-    <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
-    </cloud-backup>
     <!--
-    <device-transfer>
-        <include .../>
-        <exclude .../>
-    </device-transfer>
+        P-009: excluir el SharedPreferences de AlmacenSeguro (nombre "almacen_seguro", ver
+        core/AlmacenSeguro.java) del backup/restore y de la transferencia entre dispositivos.
+        El valor que guarda está cifrado con una clave del Android Keystore que NUNCA se
+        exporta, así que restaurado en otro dispositivo (o el mismo, reinstalado) sería un
+        texto cifrado indescifrable — AlmacenSeguro.leer() ya lo trataría como corrupto y lo
+        borraría solo, pero es más prolijo no restaurar basura en primer lugar.
     -->
+    <cloud-backup>
+        <exclude domain="sharedpref" path="almacen_seguro.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="almacen_seguro.xml"/>
+    </device-transfer>
 </data-extraction-rules>
