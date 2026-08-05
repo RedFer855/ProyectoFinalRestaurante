@@ -588,7 +588,7 @@ se arme el harness de instrumentación, no antes.
 
 ---
 
-### P-025 · `actualizado_en` usa `now()`, que es la hora de **inicio** de la transacción
+### ~~P-025~~ ✅ · `actualizado_en` usa `now()`, que es la hora de **inicio** de la transacción
 
 **Alcance:** `tocar_actualizado_en()` en Supabase + el sync delta de
 [[Plan Fase 2b - Offline-First con Room y Outbox]].
@@ -619,11 +619,11 @@ momento. No es gratis: dos filas actualizadas en la misma transacción dejarían
 timestamp, lo que es más correcto pero cambia el orden observable. Alternativa más sólida y
 más cara: numerar los cambios con una secuencia monótona en vez de con reloj.
 
-**Estado:** `[ ] Pendiente — revisar antes de que exista la primera escritura multi-sentencia (Pedidos, Fase 4)`
+**Estado:** `[x] Resuelto` (2026-08-05, [[Plan Fase 3b - Toma del Pedido]] E10 / [[ADR-011 - El cursor del sync delta es un reloj clock_timestamp mas solapamiento]]) — el trigger pasa a `clock_timestamp()` y el delta usa **solapamiento −2 s** (marca fija + `actualizado_en > marca − 2s`), aplicado en `SincronizadorPedidos`. El solapamiento cubre la ventana entre el inicio y la confirmación de la transacción del RPC de cabecera. La alternativa de secuencia monótona queda anotada como **P-030**.
 
 ---
 
-### P-026 · El id de cliente offline para Pedidos sigue sin resolver
+### ~~P-026~~ ✅ · El id de cliente offline para Pedidos queda resuelto con el outbox encolado
 
 **Alcance:** `domain/repository/ClienteRepository.buscarOCrearCliente(...)`, Fase 4 (Pedidos).
 
@@ -642,7 +642,13 @@ diseñado.
 **Solución:** diseñarlo al abrir la Fase 4, con el caso de uso real de Pedidos delante en vez
 de anticiparlo en abstracto.
 
-**Estado:** `[ ] Pendiente — registrado al cerrar la Fase 2d (Parte B), 2026-08-01`
+**Estado:** `[x] Resuelto` (2026-08-05, [[Plan Fase 3b - Toma del Pedido]] E6/E10) — sí se
+diseñó con el caso real: `PedidoRepositorioLocal.crear()` escribe cabecera + líneas en una
+transacción y encola el `CREAR_PEDIDO`; el `SincronizadorPedidos` recibe **el outbox de
+Clientes** (por constructor) y resuelve el `id_cliente` (y
+`id_mesa`) local → servidor al drenar el orden global, notificando `PEDIDO_SIN_CLIENTE`/
+`PEDIDO_SIN_MESA`
+cuando el `idServidor` no existe aún (B2–B5).
 
 ---
 
@@ -774,6 +780,48 @@ transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 
 
 ---
 
+### P-030 · El cursor del sync delta es un reloj; la secuencia monótona queda pendiente
+
+**Alcance:** trigger `tocar_actualizado_en()` en Supabase + `data/sync/SincronizadorPedidos.java`.
+
+El [[ADR-011 - El cursor del sync delta es un reloj clock_timestamp mas solapamiento]]
+descarta por ahora la **secuencia monótona** como cursor del delta (en vez de reloj): el reloj
+`clock_timestamp()` + solapamiento −2 s cubre la ventana de confirmación del RPC de cabecera,
+pero **no garantiza** un orden estrictamente monótono ni evita re-bajar filas ya vistas
+(re-trabajo idempotente).
+
+**Riesgo:** bajo hoy (upsert idempotente por `idServidor` + LWW lo absorbe). Sube si aparece
+otra escritura multi-sentencia larga (además del RPC de pedido) o si el volumen del delta
+hace que el re-trabajo de las filas solapadas sea caro.
+
+**Solución:** migrar el delta a una secuencia monótona (una sequence/columna de orden por
+cambio) cuando el costo lo justifique: implica trigger nuevo, columna de orden, y coordinación
+con todas las tablas que participan del delta. Origen: [[ADR-011]], 2026-08-05.
+
+**Estado:** `[ ] Pendiente`
+
+---
+
+### P-031 · "Editar pedido" no existe: los pedidos no se pueden corregir tras confirmar
+
+**Alcance:** `ui/nuevopedido/` + `PedidoRepository`, [[Plan Fase 3b - Toma del Pedido]] §1.2.
+
+La Fase 3b explícitamente **no** incluye editar un pedido ya confirmado (el menú de acciones
+de la tarjeta solo ofrece avanzar/cancelar; el `onAccion` con id distinto de eliminar muestra
+"maqueta sin función"). Un mesero que se equivocó (platillo de más, cantidad mal) solo puede
+cancelar y retomar.
+
+**Riesgo:** medio — es un camino común en el restaurante y hoy obliga a cancelar + re-tomar
+(se pierde el número/historia del pedido). No corrompe datos: el pedido confirmado no se toca.
+
+**Solución:** diseñarlo como deuda futura respetando [[ADR-010 - El servidor sella el precio
+el del dispositivo es una estimacion]] (re-sellar precios al editar) y la matriz de permisos
+(`PEDIDOS/EDITAR`: admin y mesero). Registrado 2026-08-05 al cerrar la Fase 3b.
+
+**Estado:** `[ ] Pendiente`
+
+---
+
 ## Historial de resolución
 
 | ID | Descripción | Severidad | Estado | Sesión |
@@ -802,11 +850,13 @@ transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 
 | ~~P-021~~ | Dos sistemas de auth: `usuarios.contrasena` vs `perfiles`+Auth | 🔴 | `[x]` **Resuelto** 2026-07-29 | [[Sesión 2026-07-29 - Resolución P-021 y admin pendiente de datos]] |
 | P-023 | Archivos huérfanos en el bucket `platillos` sin recolector | 🟢 | `[ ]` Pendiente | [[Sesión 2026-07-31 - Plan técnico de Fase 2a (CRUD de Menú) y preparación de Supabase]] |
 | P-024 | `CompresorDeImagen` sin pruebas | 🟢 | `[ ]` Pendiente — **desbloqueado** 2026-08-01 (Robolectric ya está) | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
-| P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Indices del sync delta y puesta al dia de P-014 y P-024]] |
-| P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[ ]` Pendiente | [[Sesión 2026-08-01 - Fase 2c y 2d completas, Parte B — Mesas y Clientes]] |
+| P-025 | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | ~~`[ ]` Pendiente~~ → `[x]` **Resuelto** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] E10 / [[ADR-011 - El cursor del sync delta es un reloj clock_timestamp mas solapamiento]] |
+| P-026 | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | ~~`[ ]` Pendiente~~ → `[x]` **Resuelto** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] E6/E10 |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 | P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
 | ~~P-029~~ | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
+| P-030 | Cursor del sync delta es un reloj; la secuencia monótona queda pendiente | 🟢 | `[ ]` Pendiente | [[ADR-011 - El cursor del sync delta es un reloj clock_timestamp mas solapamiento]] |
+| P-031 | "Editar pedido" no existe: no se puede corregir un pedido tras confirmar | 🟡 | `[ ]` Pendiente | [[Plan Fase 3b - Toma del Pedido]] E10 |
 
 ---
 
