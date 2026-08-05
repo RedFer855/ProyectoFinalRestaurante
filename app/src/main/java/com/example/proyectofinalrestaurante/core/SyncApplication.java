@@ -18,24 +18,32 @@ import com.example.proyectofinalrestaurante.data.local.AppDatabase;
 import com.example.proyectofinalrestaurante.data.local.Migraciones;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.realtime.CanalRealtimeSupabase;
 import com.example.proyectofinalrestaurante.data.repository.ClienteRemoto;
 import com.example.proyectofinalrestaurante.data.repository.EmpleadoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MenuRemoto;
 import com.example.proyectofinalrestaurante.data.repository.MesaRemoto;
+import com.example.proyectofinalrestaurante.data.repository.PedidoRemoto;
 import com.example.proyectofinalrestaurante.data.sync.ObservadorSincronizacion;
 import com.example.proyectofinalrestaurante.data.sync.Sincronizador;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorClientes;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorEmpleados;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMenu;
 import com.example.proyectofinalrestaurante.data.sync.SincronizadorMesas;
+import com.example.proyectofinalrestaurante.data.sync.SincronizadorPedidos;
 import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.SyncWorker;
 import com.example.proyectofinalrestaurante.domain.model.Sesion;
+import com.google.gson.Gson;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * Application = composition root de la app (Plan Fase 2b, E5/E6).
@@ -53,6 +61,8 @@ public final class SyncApplication extends Application implements Configuration.
     private static final String NOMBRE_BASE = "restaurante.db";
 
     private AppDatabase baseDeDatos;
+    private SupervisorTiempoReal supervisorTiempoReal;
+    private ScheduledExecutorService programadorTiempoReal;
 
     /**
      * Quién avisa a la UI del estado de la sincronización, <b>por módulo</b>.
@@ -110,7 +120,15 @@ public final class SyncApplication extends Application implements Configuration.
                 // MainActivity dispara la sincronización apenas hay sesión.
                 if (SesionActual.obtener() != null) {
                     SyncScheduler.solicitar(SyncApplication.this);
+                    // Un socket por proceso (Plan Fase 3, §4.2): se une al canal cuando la app
+                    // vuelve a primer plano y hay sesión; al ir a segundo plano se desconecta.
+                    supervisorTiempoReal().conectarConSesion();
                 }
+            }
+
+            @Override
+            public void onStop(@NonNull LifecycleOwner owner) {
+                supervisorTiempoReal().desconectar();
             }
         });
     }
@@ -137,6 +155,39 @@ public final class SyncApplication extends Application implements Configuration.
             }
         }
         return baseDeDatos;
+    }
+
+    /**
+     * El supervisor de tiempo real, único por proceso (Plan Fase 3, E6). El programador de
+     * reintentos es el mismo que alimenta el heartbeat del canal: un solo hilo para todo el
+     * real-time. La reconexión exitosa fuerza una sincronización (B12) porque las señales
+     * pudieron perderse mientras el socket estuvo caído.
+     */
+    public SupervisorTiempoReal supervisorTiempoReal() {
+        if (supervisorTiempoReal == null) {
+            synchronized (this) {
+                if (supervisorTiempoReal == null) {
+                    ScheduledExecutorService programador = programadorTiempoReal();
+                    CanalRealtimeSupabase canal = CanalRealtimeSupabase.desdeConfiguracion(
+                            new Gson(), System::currentTimeMillis, programador);
+                    supervisorTiempoReal = SupervisorTiempoReal.conJitterAleatorio(canal,
+                            SyncApplication::tokenDeLaSesion, programador,
+                            System::currentTimeMillis, () -> SyncScheduler.solicitar(this));
+                }
+            }
+        }
+        return supervisorTiempoReal;
+    }
+
+    private ScheduledExecutorService programadorTiempoReal() {
+        if (programadorTiempoReal == null) {
+            synchronized (this) {
+                if (programadorTiempoReal == null) {
+                    programadorTiempoReal = Executors.newScheduledThreadPool(1);
+                }
+            }
+        }
+        return programadorTiempoReal;
     }
 
     private static final class FactoryDeSync extends WorkerFactory {
@@ -182,10 +233,25 @@ public final class SyncApplication extends Application implements Configuration.
                     new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.CLIENTES),
                     base.clienteDao(), base.sincronizacionDao());
 
+            // Fase 3: Pedidos se suma a la lista del worker. En frío (sin marca) pide desde
+            // ahora − 48 h (R6 también del lado servidor); el delta va al molde del Menú.
+            PedidoRemoto pedidoRemoto = new PedidoRemoto(
+                    SupabaseClient.getPedidoApi(), SyncApplication::tokenDeLaSesion);
+            Sincronizador pedidos = new SincronizadorPedidos(pedidoRemoto,
+                    new Outbox(base.operacionPendienteDao(), TipoOperacion.Modulo.PEDIDOS),
+                    base.pedidoDao(), base.notificacionDao(), base.sincronizacionDao(),
+                    base::runInTransaction, SyncApplication::pisoDeArranqueDePedidos,
+                    System::currentTimeMillis);
+
             return new SyncWorker(contexto, parametros,
-                    Arrays.asList(menu, empleados, mesas, clientes),
+                    Arrays.asList(menu, empleados, mesas, clientes, pedidos),
                     SyncApplication::tokenDeLaSesion, observadorDeTodos());
         }
+    }
+
+    /** Piso de arranque en frío del delta de Pedidos: ahora − 48 h (Plan Fase 3, §4.4). */
+    private static String pisoDeArranqueDePedidos() {
+        return Instant.now().minus(48, ChronoUnit.HOURS).toString();
     }
 
     @Nullable
