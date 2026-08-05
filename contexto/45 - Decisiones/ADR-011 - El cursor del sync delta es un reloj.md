@@ -42,6 +42,13 @@ cambiar el tipo de la marca de agua en las 5 tablas y sus 5 sincronizadores. Se 
 **P-030** y se difiere: desproporcionado para esta fase, candidato natural cuando otra fase ya
 esté tocando las 5 tablas por otro motivo.
 
+## Implementación (Parte B, verificada 2026-08-05)
+
+`SincronizadorPedidos` pide `actualizado_en > marca − 2s`
+(`OffsetDateTime.parse(marca).minusSeconds(2)`) en vez de `> marca`. El tablero ordena por
+`fecha`, no por `actualizado_en` — es la costura que hace que el cambio de orden observable
+entre filas de una misma transacción no se lea como un bug del tablero.
+
 ## Alternativas consideradas
 
 | Opción | Contra | ¿Elegida? |

@@ -32,6 +32,18 @@ servidor inserta cabecera y líneas en una sola transacción; si la clave ya exi
 | **1 operación de outbox, N llamadas HTTP al drenar** | La cola queda coherente, pero `POST` **no es idempotente**: un timeout tras insertar la cabecera deja una huérfana *y* el reintento crea otra. `ClasificadorDeError` marca el timeout como transitorio (correcto) → hasta 3 pedidos duplicados en cocina por un pedido real | ❌ |
 | **1 operación de outbox, 1 RPC idempotente** | Es la única de las tres donde ninguna falla parcial es representable: o el pedido existe completo, o no existe | ✅ |
 
+## Implementación (Parte B, verificada 2026-08-05)
+
+- `NuevoPedidoViewModel.confirmar()` genera la `clave_idempotencia` (`UUID`) y la mete en
+  `NuevoPedido`.
+- `PedidoRepositorioLocal.crear()` escribe la cabecera + las N líneas y encola **una**
+  operación `CREAR_PEDIDO` en el outbox, todo en una transacción de Room.
+- Al drenar, `PayloadCrearPedido` arma el `jsonb` con la clave, y `PedidoRemoto.crearPedido`
+  lo manda al RPC.
+- Un `raise exception` del RPC (rol inválido, carrito vacío, >50 líneas, platillo inexistente
+  o inactivo) llega como **400** → `ClasificadorDeError` lo clasifica **permanente**: el
+  outbox descarta la operación en vez de reintentarla 3 veces.
+
 ## Consecuencias
 
 **Se gana:**

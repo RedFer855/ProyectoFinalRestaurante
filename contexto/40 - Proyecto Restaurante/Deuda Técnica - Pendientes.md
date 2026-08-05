@@ -625,9 +625,10 @@ las 5 tablas (`pedido`, `mesa`, `clientes`, `platillo`, `categoria`): el trigger
 `BEFORE UPDATE`, y un pedido nuevo es un `INSERT` que toma el default — arreglar solo el
 trigger dejaba sin arreglar el caso que motiva la fase. `pedido.fecha` se queda con `now()`
 (hora de negocio, no cursor de sync). Verificado en vivo: dos `UPDATE` en la misma transacción
-dan `actualizado_en` distintos y crecientes. Mitigación complementaria (no elimina la ventana
-del todo, solo la reduce): solapamiento de la marca de agua de 2s en `SincronizadorPedidos`,
-pendiente en la Parte B. Abre **P-030**.
+dan `actualizado_en` distintos y crecientes. **Parte B ya implementada:** `SincronizadorPedidos`
+aplica el solapamiento de marca (`actualizado_en > marca − 2s`), cubriendo la ventana entre el
+inicio y la confirmación de la transacción del RPC de cabecera. No elimina la ventana del todo,
+solo la reduce — ver [[ADR-011 - El cursor del sync delta es un reloj]]. Abre **P-030**.
 
 ---
 
@@ -654,9 +655,12 @@ de anticiparlo en abstracto.
 **Pedidos no consume `buscar_o_crear_cliente`.** El selector de cliente del carrito reutiliza
 la lista y el alta del módulo Clientes, que ya es offline-first. El RPC queda sin consumidor y
 se marca deprecado (`comment on function`). Queda el caso legítimo — cliente creado sin red
-referenciado por un pedido — resuelto en la Parte B con `cliente_id_local` en el payload del
-outbox y resolución al drenar, con `SincronizadorClientes` antes que `SincronizadorPedidos`
-en el orden del `SyncWorker`.
+referenciado por un pedido — resuelto con `cliente_id_local`/`mesa_id_local` en el payload del
+outbox. **Parte B ya implementada:** `PedidoRepositorioLocal.crear()` escribe cabecera + líneas
+en una transacción y encola el `CREAR_PEDIDO`; `SincronizadorPedidos` recibe el outbox de
+Clientes por constructor y resuelve `id_cliente`/`id_mesa` local → servidor al drenar (orden
+global en `SyncWorker`: Clientes/Mesas antes que Pedidos), notificando `PEDIDO_SIN_CLIENTE`/
+`PEDIDO_SIN_MESA` cuando el `idServidor` todavía no existe (casos B2–B5 del plan).
 
 ---
 
@@ -788,7 +792,7 @@ transacción. `./gradlew testDebugUnitTest assembleDebug` → BUILD SUCCESSFUL, 
 
 ### P-030 · El cursor del sync delta es un reloj, y `clock_timestamp()` no lo cambia del todo
 
-**Alcance:** `tocar_actualizado_en()` en Supabase + `SincronizadorPedidos`.
+**Alcance:** `tocar_actualizado_en()` en Supabase + `data/sync/SincronizadorPedidos.java`.
 
 Al resolver **P-025** (`now()` → `clock_timestamp()`, [[Plan Fase 3b - Toma del Pedido]] §3) la
 ventana de pérdida se redujo pero no desapareció: de *"toda la transacción"* pasa a *"desde la
@@ -813,8 +817,34 @@ puntual; candidato natural cuando una fase ya esté tocando las 5 tablas por otr
 pase de deuda P1/P2 es el más cercano).
 
 **Descubierto:** 2026-08-05, diseñando la Parte A de [[Plan Fase 3b - Toma del Pedido]] §3.3.
+Verificado también desde la Parte B: `SincronizadorPedidos` aplica el solapamiento
+(`actualizado_en > marca − 2s`), que cubre la ventana de confirmación del RPC de cabecera pero
+**no garantiza** un orden estrictamente monótono ni evita re-bajar filas ya vistas — es
+re-trabajo idempotente (upsert por `idServidor` + LWW lo absorbe), no una prueba matemática.
+Ver [[ADR-011 - El cursor del sync delta es un reloj]].
 
 **Estado:** `[ ] Pendiente — mitigado, no resuelto. Ver Plan Fase 3b §3.3`
+
+---
+
+### P-031 · "Editar pedido" no existe: los pedidos no se pueden corregir tras confirmar
+
+**Alcance:** `ui/nuevopedido/` + `PedidoRepository`, [[Plan Fase 3b - Toma del Pedido]] §1.2.
+
+La Fase 3b explícitamente **no** incluye editar un pedido ya confirmado (el menú de acciones
+de la tarjeta solo ofrece avanzar/cancelar; el `onAccion` con id distinto de eliminar muestra
+"maqueta sin función"). Un mesero que se equivocó (platillo de más, cantidad mal) solo puede
+cancelar y retomar.
+
+**Riesgo:** medio — es un camino común en el restaurante y hoy obliga a cancelar + re-tomar
+(se pierde el número/historia del pedido). No corrompe datos: el pedido confirmado no se toca.
+
+**Solución:** diseñarlo como deuda futura respetando
+[[ADR-010 - El servidor sella el precio, el del dispositivo es una estimacion]] (re-sellar
+precios al editar) y la matriz de permisos (`PEDIDOS/EDITAR`: admin y mesero). Registrado
+2026-08-05 al cerrar la Fase 3b.
+
+**Estado:** `[ ] Pendiente`
 
 ---
 
@@ -848,11 +878,11 @@ pase de deuda P1/P2 es el más cercano).
 | P-024 | `CompresorDeImagen` sin pruebas | 🟢 | `[ ]` Pendiente — **desbloqueado** 2026-08-01 (Robolectric ya está) | [[Sesión 2026-07-31 - Fase 2a implementada (CRUD de Menú con fotos en Storage)]] |
 | ~~P-025~~ | `actualizado_en` usa `now()` (inicio de transacción) — ventana en el sync delta | 🟢 | `[x]` **Resuelto** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] |
 | ~~P-026~~ | Id de cliente offline sin resolver para Pedidos (buscar-o-crear exige conexión) | 🟢 | `[x]` **Resuelto por disolución** 2026-08-05 | [[Plan Fase 3b - Toma del Pedido]] |
-| P-030 | El cursor del sync delta es un reloj: `clock_timestamp()` reduce la ventana de P-025 pero no la elimina | 🟢 | `[ ]` Pendiente | [[Plan Fase 3b - Toma del Pedido]] |
 | P-027 | Datos personales de clientes sin cifrar en Room | 🟢 | `[ ]` Pendiente | idem |
 | P-028 | Capa HTTP fragmentada: 7 `OkHttpClient`, sin caché, timeouts incompletos | 🟡 | `[ ]` Pendiente | [[Sesión 2026-08-04 - La carga inicial del Menú y el trabajo único envenenado]] |
 | ~~P-029~~ | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
-| P-030 | El cursor del sync delta es un reloj; `clock_timestamp()` reduce la ventana de P-025 pero no la elimina | 🟢 | `[ ]` Pendiente — mitigado | [[Plan Fase 3b - Toma del Pedido]] |
+| P-030 | El cursor del sync delta es un reloj; `clock_timestamp()` + solapamiento reduce la ventana de P-025 pero no la elimina (secuencia monótona queda pendiente) | 🟢 | `[ ]` Pendiente — mitigado | [[ADR-011 - El cursor del sync delta es un reloj]] |
+| P-031 | "Editar pedido" no existe: no se puede corregir un pedido tras confirmar | 🟡 | `[ ]` Pendiente | [[Plan Fase 3b - Toma del Pedido]] |
 
 ---
 

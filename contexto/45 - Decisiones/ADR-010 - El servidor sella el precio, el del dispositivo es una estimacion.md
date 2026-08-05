@@ -28,6 +28,15 @@ sellado por el servidor reemplaza a la estimación.
 Si difieren — cambió el precio del platillo entre que se tomó el pedido y que subió — se emite
 una `NotificacionEntity` de tipo `PRECIO_AJUSTADO` (Parte B).
 
+## Implementación (Parte B, verificada 2026-08-05)
+
+`LineaCarrito.subtotal()` y `Carrito.total()` muestran la estimación local mientras se arma
+el pedido. El total real es el que sella el RPC y el que baja después por el delta de
+`vista_pedidos`; `DetallePedidoHoja` muestra las líneas ya selladas por el servidor. No hay
+pantalla de "aceptar la diferencia" en esta fase — si el precio cambió entre armar el carrito
+y confirmar, el usuario ve directamente el total del servidor, sin aviso intermedio. La deuda
+**P-031** ("editar pedido") tendrá que respetar la misma regla al re-sellar precios.
+
 ## Alternativas consideradas
 
 | Opción | Contra | ¿Elegida? |
