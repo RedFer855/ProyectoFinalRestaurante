@@ -40,4 +40,8 @@ public interface EmpleadoDao {
 
     @Query("SELECT COUNT(*) FROM empleados WHERE estado_sync != 'SINCRONIZADO'")
     int contarNoSincronizados();
+
+    /** Empleados activos (Plan Fase 3c, §5): tarjeta "Empleados activos" del dashboard. */
+    @Query("SELECT COUNT(*) FROM empleados WHERE activo = 1")
+    LiveData<Integer> observarConteoActivos();
 }

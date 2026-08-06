@@ -8,6 +8,7 @@ import com.example.proyectofinalrestaurante.data.remote.SupabaseMenuApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseMesaApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePerfilApi;
+import com.example.proyectofinalrestaurante.data.remote.SupabaseReporteApi;
 import com.example.proyectofinalrestaurante.data.remote.SupabaseStorageApi;
 
 import java.util.concurrent.TimeUnit;
@@ -33,6 +34,7 @@ public final class SupabaseClient {
     private static volatile SupabaseClienteApi clienteApi;
     private static volatile SupabasePedidoApi pedidoApi;
     private static volatile SupabaseStorageApi storageApi;
+    private static volatile SupabaseReporteApi reporteApi;
 
     private SupabaseClient() {
     }
@@ -123,6 +125,17 @@ public final class SupabaseClient {
             }
         }
         return pedidoApi;
+    }
+
+    public static SupabaseReporteApi getReporteApi() {
+        if (reporteApi == null) {
+            synchronized (SupabaseClient.class) {
+                if (reporteApi == null) {
+                    reporteApi = buildRetrofit().create(SupabaseReporteApi.class);
+                }
+            }
+        }
+        return reporteApi;
     }
 
     private static Retrofit buildRetrofit() {

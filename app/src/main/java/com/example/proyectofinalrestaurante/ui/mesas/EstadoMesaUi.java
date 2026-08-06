@@ -12,9 +12,8 @@ import com.example.proyectofinalrestaurante.domain.model.EstadoMesa;
  * no sabe de {@code R}: {@link EstadoMesa} documenta que "las etiquetas y colores que la UI
  * pinta viven en la capa de presentación, no acá" — esta clase es esa capa.
  *
- * <p>Mismos tres colores que ya usaba la maqueta de la Fase 1c
- * ({@code DatosMaqueta.EstadoMesa}), tomados de la paleta compartida de estados
- * (nunca hardcodeados) — ver [[Guía de Diseño Visual]].</p>
+ * <p>Mismos tres colores que ya usaba la maqueta de la Fase 1c, tomados de la paleta
+ * compartida de estados (nunca hardcodeados) — ver [[Guía de Diseño Visual]].</p>
  */
 final class EstadoMesaUi {
 

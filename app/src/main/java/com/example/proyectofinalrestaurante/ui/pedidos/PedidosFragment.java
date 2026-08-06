@@ -31,7 +31,7 @@ import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
 
 /**
- * Tablero de Pedidos conectado a Room + tiempo real (Plan Fase 3, E8). Sin {@code DatosMaqueta}:
+ * Tablero de Pedidos conectado a Room + tiempo real (Plan Fase 3, E8). Sin datos de maqueta:
  * la fuente es {@link PedidosViewModel} y su {@link PedidoRepository}, con la lista paginada
  * por <b>ventana creciente</b> (§4.5) — el scroll pide otra ventana cuando se acerca al final
  * y {@code hayMas} es cierto.
