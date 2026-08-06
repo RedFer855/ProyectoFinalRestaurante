@@ -49,7 +49,10 @@ public final class Permisos {
         Map<Modulo, Set<Accion>> mesero = new EnumMap<>(Modulo.class);
         mesero.put(Modulo.INICIO, EnumSet.of(Accion.VER));
         mesero.put(Modulo.MENU, EnumSet.of(Accion.VER));
-        mesero.put(Modulo.PEDIDOS, EnumSet.of(Accion.VER, Accion.CREAR, Accion.EDITAR));
+        // CAMBIAR_ESTADO habilita el chip "avanzar" de la tarjeta; ReglasPedido.puedeCambiarA
+        // es quien de verdad limita al mesero a Listo → Entregado (ver esa clase).
+        mesero.put(Modulo.PEDIDOS,
+                EnumSet.of(Accion.VER, Accion.CREAR, Accion.EDITAR, Accion.CAMBIAR_ESTADO));
         mesero.put(Modulo.MESAS, EnumSet.of(Accion.VER, Accion.CAMBIAR_ESTADO));
         mesero.put(Modulo.CLIENTES, EnumSet.of(Accion.VER, Accion.CREAR, Accion.EDITAR));
         matriz.put(ROL_MESERO, mesero);

@@ -8,11 +8,15 @@ import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoD
 import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.function.Supplier;
 
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import retrofit2.Response;
 
 /**
@@ -29,6 +33,8 @@ public final class PedidoRemoto {
     static final String SIN_PERMISO_RED =
             "La app no tiene permiso de red. Contactá al desarrollador.";
     static final String SIN_SESION = "Tu sesión venció. Volvé a iniciar sesión.";
+
+    private static final MediaType TIPO_JSON = MediaType.parse("application/json");
 
     /** Tamaño de página del sync delta; repetir hasta recibir menos que esto (§4.3). */
     public static final int LIMITE_DELTA = 50;
@@ -96,7 +102,12 @@ public final class PedidoRemoto {
             return ResultadoRed.fallo(401, SIN_SESION);
         }
         try {
-            Response<CrearPedidoDto> respuesta = api.crearPedido(bearer, payloadJson).execute();
+            // Envuelto en "p_payload" + RequestBody (no un @Body String): ver el porqué de
+            // las dos cosas en SupabasePedidoApi.crearPedido.
+            JsonObject cuerpoRpc = new JsonObject();
+            cuerpoRpc.add("p_payload", JsonParser.parseString(payloadJson));
+            RequestBody cuerpo = RequestBody.create(TIPO_JSON, cuerpoRpc.toString());
+            Response<CrearPedidoDto> respuesta = api.crearPedido(bearer, cuerpo).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(),
                         mensajeDeError(respuesta, "No se pudo tomar el pedido."));

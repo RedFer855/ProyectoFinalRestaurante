@@ -20,6 +20,19 @@
 
     <style name="Theme.ProyectoFinalRestaurante" parent="Base.Theme.ProyectoFinalRestaurante" />
 
+    <!--
+      La Toolbar pinta su fondo con colorPrimary (terracota) a mano en el layout, pero
+      MaterialToolbar no deriva colorControlNormal de colorOnPrimary por su cuenta: el
+      ícono de hamburguesa (ActionBarDrawerToggle) y los íconos de acción (ic_campana,
+      que usa android:tint="?attr/colorControlNormal") caían al valor por defecto del
+      tema —oscuro, para la superficie clara— y quedaban sin contraste sobre la barra
+      oscura. Este overlay fuerza colorControlNormal a colorOnPrimary (blanco) para esa
+      Toolbar únicamente.
+    -->
+    <style name="ThemeOverlay.App.Toolbar" parent="">
+        <item name="colorControlNormal">?attr/colorOnPrimary</item>
+    </style>
+
     <!-- Esquinas de las fotos de platillo, para que acompañen el radio de las tarjetas. -->
     <style name="EsquinaRedondeadaFoto">
         <item name="cornerFamily">rounded</item>

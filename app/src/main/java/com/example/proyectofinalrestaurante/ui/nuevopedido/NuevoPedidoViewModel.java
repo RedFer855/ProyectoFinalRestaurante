@@ -11,6 +11,7 @@ import com.example.proyectofinalrestaurante.domain.Result;
 import com.example.proyectofinalrestaurante.domain.ValidadorPedido;
 import com.example.proyectofinalrestaurante.domain.model.Carrito;
 import com.example.proyectofinalrestaurante.domain.model.Cliente;
+import com.example.proyectofinalrestaurante.domain.model.EstadoMesa;
 import com.example.proyectofinalrestaurante.domain.model.Mesa;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Platillo;
@@ -158,7 +159,7 @@ public class NuevoPedidoViewModel extends ViewModel {
     }
 
     private void cuandoLleganMesas(List<Mesa> mesas) {
-        this.mesas = mesas == null ? Collections.emptyList() : mesas;
+        this.mesas = filtrarDisponibles(mesas);
         recalcular();
     }
 
@@ -235,6 +236,24 @@ public class NuevoPedidoViewModel extends ViewModel {
         for (Platillo platillo : platillos) {
             if (ReglasPedido.puedePedirse(platillo)) {
                 resultado.add(platillo);
+            }
+        }
+        return resultado;
+    }
+
+    /**
+     * El selector de mesas de un pedido nuevo solo ofrece mesas libres y dadas de alta: una
+     * mesa ocupada o reservada ya tiene otro pedido en curso, y una de baja no debería
+     * recibir pedidos nuevos.
+     */
+    private static List<Mesa> filtrarDisponibles(@Nullable List<Mesa> mesas) {
+        if (mesas == null) {
+            return Collections.emptyList();
+        }
+        List<Mesa> resultado = new ArrayList<>();
+        for (Mesa mesa : mesas) {
+            if (mesa.isActivo() && mesa.getEstado() == EstadoMesa.LIBRE) {
+                resultado.add(mesa);
             }
         }
         return resultado;

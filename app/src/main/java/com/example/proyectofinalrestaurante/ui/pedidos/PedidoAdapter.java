@@ -25,8 +25,8 @@ import com.google.android.material.chip.Chip;
 /**
  * Lista de pedidos del tablero (Plan Fase 3, E8), ahora sobre {@link Pedido} del dominio
  * (los datos falsos de la maqueta se fueron en la E10). Tres permisos distintos conviven
- * en la misma tarjeta:
- * avanzar el estado (admin y cocina), editar (admin y mesero) y cancelar (solo admin).
+ * en la misma tarjeta: avanzar el estado (admin, cocina, y mesero solo Listo → Entregado —
+ * ver {@code ReglasPedido.puedeCambiarA}), editar (admin y mesero) y cancelar (solo admin).
  *
  * <p>El chip de estado también es el botón de "avanzar": por eso queda clickeable solo cuando
  * la matriz de permisos lo permite. La validación fina de la transición (rol + estado actual)

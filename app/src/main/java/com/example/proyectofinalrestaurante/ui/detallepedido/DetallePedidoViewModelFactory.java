@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.proyectofinalrestaurante.core.SyncApplication;
 import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
+import com.example.proyectofinalrestaurante.data.repository.MesaRepositorioLocal;
 import com.example.proyectofinalrestaurante.data.repository.PedidoRepositorioLocal;
 
 import java.util.concurrent.Executors;
@@ -32,10 +33,16 @@ public class DetallePedidoViewModelFactory implements ViewModelProvider.Factory 
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         SyncApplication app = (SyncApplication) aplicacion;
+        Outbox outboxMesas = new Outbox(app.baseDeDatos().operacionPendienteDao(),
+                TipoOperacion.Modulo.MESAS);
+        MesaRepositorioLocal mesaRepositorio = new MesaRepositorioLocal(
+                app.baseDeDatos(), outboxMesas, app, Executors.newSingleThreadExecutor());
+        SyncApplication.registrarObservador(TipoOperacion.Modulo.MESAS, mesaRepositorio);
+
         Outbox outbox = new Outbox(app.baseDeDatos().operacionPendienteDao(),
                 TipoOperacion.Modulo.PEDIDOS);
         PedidoRepositorioLocal repositorio =
-                new PedidoRepositorioLocal(app.baseDeDatos(), outbox, app);
+                new PedidoRepositorioLocal(app.baseDeDatos(), outbox, app, mesaRepositorio);
         SyncApplication.registrarObservador(TipoOperacion.Modulo.PEDIDOS, repositorio);
         return (T) new DetallePedidoViewModel(repositorio, Executors.newSingleThreadExecutor());
     }

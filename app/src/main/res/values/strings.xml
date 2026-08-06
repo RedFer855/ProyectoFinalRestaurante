@@ -127,7 +127,7 @@
     <string name="nuevo_pedido_mesa_label">Mesa</string>
     <string name="nuevo_pedido_sin_mesa">Sin asignar</string>
     <string name="nuevo_pedido_cambiar_mesa">Cambiar mesa</string>
-    <string name="nuevo_pedido_mesa_numero">Mesa %1$d</string>
+    <string name="nuevo_pedido_mesa_numero">Mesa %1$s</string>
     <string name="nuevo_pedido_cliente_label">Cliente</string>
     <string name="nuevo_pedido_sin_cliente">Sin asignar</string>
     <string name="nuevo_pedido_cambiar_cliente">Cambiar cliente</string>

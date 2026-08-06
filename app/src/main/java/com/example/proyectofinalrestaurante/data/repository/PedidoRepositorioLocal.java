@@ -4,7 +4,9 @@ import android.content.Context;
 
 import androidx.annotation.Nullable;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 
 import com.example.proyectofinalrestaurante.data.local.AppDatabase;
@@ -28,6 +30,7 @@ import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.sync.SyncScheduler;
 import com.example.proyectofinalrestaurante.data.sync.payload.PayloadCrearPedido;
 import com.example.proyectofinalrestaurante.domain.Result;
+import com.example.proyectofinalrestaurante.domain.model.EstadoMesa;
 import com.example.proyectofinalrestaurante.domain.model.EstadoPedido;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSincronizacion;
 import com.example.proyectofinalrestaurante.domain.model.EstadoSync;
@@ -35,6 +38,7 @@ import com.example.proyectofinalrestaurante.domain.model.LineaCarrito;
 import com.example.proyectofinalrestaurante.domain.model.LineaPedido;
 import com.example.proyectofinalrestaurante.domain.model.NuevoPedido;
 import com.example.proyectofinalrestaurante.domain.model.Pedido;
+import com.example.proyectofinalrestaurante.domain.repository.MesaRepository;
 import com.example.proyectofinalrestaurante.domain.repository.PedidoRepository;
 import com.example.proyectofinalrestaurante.domain.ValidadorPedido;
 
@@ -68,11 +72,13 @@ private final PedidoDao pedidoDao;
     private final Outbox outbox;
     private final Context contexto;
     private final AppDatabase base;
+    private final MesaRepository mesaRepositorio;
 
     private final MutableLiveData<EstadoSincronizacion> estadoSincronizacion =
             new MutableLiveData<>(new EstadoSincronizacion(false, null));
 
-    public PedidoRepositorioLocal(AppDatabase base, Outbox outbox, Context contexto) {
+    public PedidoRepositorioLocal(AppDatabase base, Outbox outbox, Context contexto,
+                                  MesaRepository mesaRepositorio) {
         this.pedidoDao = base.pedidoDao();
         this.detallePedidoDao = base.detallePedidoDao();
         this.platilloDao = base.platilloDao();
@@ -81,6 +87,7 @@ private final PedidoDao pedidoDao;
         this.outbox = outbox;
         this.contexto = contexto;
         this.base = base;
+        this.mesaRepositorio = mesaRepositorio;
     }
 
     // ------------------------------------------------------------------ lecturas
@@ -144,6 +151,13 @@ private final PedidoDao pedidoDao;
         outbox.encolar(TipoOperacion.AVANZAR_ESTADO_PEDIDO, idLocal,
                 PayloadOperacion.avanzarEstado(nuevo.getId()), null);
         sincronizar();
+
+        if (fila.getNumeroMesa() != null
+                && (nuevo == EstadoPedido.ENTREGADO || nuevo == EstadoPedido.CANCELADO)) {
+            // La mesa vuelve a quedar libre cuando el pedido cierra. Best-effort: si la mesa
+            // ya no existe o está de baja, el avance de estado del pedido igual quedó hecho.
+            mesaRepositorio.cambiarEstadoMesa(fila.getNumeroMesa(), EstadoMesa.LIBRE);
+        }
         return Result.ok(null);
     }
 
@@ -163,8 +177,11 @@ private final PedidoDao pedidoDao;
             cabecera.setClaveIdempotencia(nuevo.getClaveIdempotencia());
             cabecera.setNumeroMesa(nuevo.getIdLocalMesa());
             cabecera.setCliente(clienteDe(nuevo));
-            cabecera.setTotal(0);
-            cabecera.setCantidadItems(0);
+            // El total y la cantidad de líneas se calculan del carrito (ADR-010): quedaban en
+            // 0 a propósito de nada — nadie los recalculaba tras insertar la cabecera, así que
+            // el tablero mostraba L 0.00 hasta que el servidor sellara el pedido.
+            cabecera.setTotal(nuevo.getCarrito().total());
+            cabecera.setCantidadItems(nuevo.getCarrito().cantidadItems());
             cabecera.setEstadoSync(EstadoSync.PENDIENTE.name());
             idLocal[0] = pedidoDao.insertar(cabecera);
             if (idLocal[0] <= 0) {
@@ -181,6 +198,12 @@ private final PedidoDao pedidoDao;
         outbox.encolar(TipoOperacion.CREAR_PEDIDO, idLocal[0],
                 payloadDe(nuevo), null);
         sincronizar();
+
+        if (nuevo.getIdLocalMesa() != null) {
+            // La mesa pasa a ocupada apenas se toma el pedido. Best-effort: si la mesa ya no
+            // existe o está de baja, el pedido igual quedó creado.
+            mesaRepositorio.cambiarEstadoMesa(nuevo.getIdLocalMesa(), EstadoMesa.OCUPADA);
+        }
         return Result.ok(idLocal[0]);
     }
 
@@ -188,20 +211,42 @@ private final PedidoDao pedidoDao;
 
     @Override
     public LiveData<List<LineaPedido>> observarDetalle(long idLocal) {
-        return Transformations.map(
-                detallePedidoDao.observarDelPedido(idLocal),
-                lineas -> {
-                    List<LineaPedido> dominio = new ArrayList<>(lineas.size());
-                    for (DetallePedidoEntity detalle : lineas) {
-                        StringBuilder nombre = new StringBuilder();
-                        PlatilloEntity platillo = platilloDao.porIdLocal(detalle.getIdPlatilloLocal());
-                        if (platillo != null) {
-                            nombre.append(platillo.getNombre());
-                        }
-                        dominio.add(DetallePedidoMapper.aDominio(detalle, nombre.toString()));
-                    }
-                    return dominio;
-                });
+        // No se puede resolver el nombre con platilloDao.porIdLocal() acá adentro: el valor de
+        // un LiveData de Room se entrega en el hilo principal (postValue), así que una consulta
+        // síncrona en este mapeo revienta con "Cannot access database on the main thread".
+        // En cambio, se combina con el catálogo (ya es LiveData) y el join queda en memoria.
+        MediatorLiveData<List<LineaPedido>> resultado = new MediatorLiveData<>();
+        LiveData<List<DetallePedidoEntity>> detalles = detallePedidoDao.observarDelPedido(idLocal);
+        LiveData<List<PlatilloEntity>> catalogo = platilloDao.observarTodos();
+        Observer<Object> combinar = ignorado ->
+                resultado.setValue(combinarDetalle(detalles.getValue(), catalogo.getValue()));
+        resultado.addSource(detalles, combinar);
+        resultado.addSource(catalogo, combinar);
+        return resultado;
+    }
+
+    private static List<LineaPedido> combinarDetalle(@Nullable List<DetallePedidoEntity> lineas,
+                                                      @Nullable List<PlatilloEntity> catalogo) {
+        if (lineas == null) {
+            return new ArrayList<>();
+        }
+        List<LineaPedido> dominio = new ArrayList<>(lineas.size());
+        for (DetallePedidoEntity detalle : lineas) {
+            dominio.add(DetallePedidoMapper.aDominio(detalle, nombreDe(detalle, catalogo)));
+        }
+        return dominio;
+    }
+
+    private static String nombreDe(DetallePedidoEntity detalle,
+                                   @Nullable List<PlatilloEntity> catalogo) {
+        if (catalogo != null) {
+            for (PlatilloEntity platillo : catalogo) {
+                if (platillo.getIdLocal() == detalle.getIdPlatilloLocal()) {
+                    return platillo.getNombre();
+                }
+            }
+        }
+        return "";
     }
 
     /**

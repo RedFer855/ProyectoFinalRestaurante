@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.util.List;
 
 import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import okio.Buffer;
 import retrofit2.Call;
 import retrofit2.Response;
 
@@ -169,8 +171,14 @@ public class PedidoRemotoTest {
         }
 
         @Override
-        public Call<CrearPedidoDto> crearPedido(String bearerToken, String cuerpoJson) {
-            ultimoPayloadCrear = cuerpoJson;
+        public Call<CrearPedidoDto> crearPedido(String bearerToken, RequestBody cuerpo) {
+            try {
+                Buffer buffer = new Buffer();
+                cuerpo.writeTo(buffer);
+                ultimoPayloadCrear = buffer.readUtf8();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
             return respuestaCrear;
         }
     }

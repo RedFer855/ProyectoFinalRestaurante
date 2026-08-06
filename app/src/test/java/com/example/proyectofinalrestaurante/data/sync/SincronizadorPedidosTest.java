@@ -34,6 +34,7 @@ import com.google.gson.Gson;
 
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -41,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import okhttp3.RequestBody;
+import okio.Buffer;
 import retrofit2.Call;
 import retrofit2.Response;
 
@@ -814,8 +817,14 @@ public class SincronizadorPedidosTest {
         }
 
         @Override
-        public Call<CrearPedidoDto> crearPedido(String bearerToken, String cuerpoJson) {
-            ultimoPayloadCrear = cuerpoJson;
+        public Call<CrearPedidoDto> crearPedido(String bearerToken, RequestBody cuerpo) {
+            try {
+                Buffer buffer = new Buffer();
+                cuerpo.writeTo(buffer);
+                ultimoPayloadCrear = buffer.readUtf8();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
             return respuestaCrear;
         }
     }

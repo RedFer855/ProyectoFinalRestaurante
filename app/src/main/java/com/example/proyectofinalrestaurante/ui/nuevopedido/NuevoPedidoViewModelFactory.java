@@ -40,18 +40,6 @@ public class NuevoPedidoViewModelFactory implements ViewModelProvider.Factory {
     @SuppressWarnings("unchecked")
     public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
         SyncApplication app = (SyncApplication) aplicacion;
-        Outbox outboxPedidos = new Outbox(app.baseDeDatos().operacionPendienteDao(),
-                TipoOperacion.Modulo.PEDIDOS);
-        PedidoRepositorioLocal pedidoRepositorio =
-                new PedidoRepositorioLocal(app.baseDeDatos(), outboxPedidos, app);
-        SyncApplication.registrarObservador(TipoOperacion.Modulo.PEDIDOS, pedidoRepositorio);
-
-        Outbox outboxMenu = new Outbox(app.baseDeDatos().operacionPendienteDao(),
-                TipoOperacion.Modulo.MENU);
-        MenuRepositorioLocal menuRepositorio = new MenuRepositorioLocal(
-                app.baseDeDatos(), outboxMenu, app.getFilesDir(), app);
-        SyncApplication.registrarObservador(TipoOperacion.Modulo.MENU, menuRepositorio);
-
         ExecutorService executor = Executors.newSingleThreadExecutor();
 
         Outbox outboxMesas = new Outbox(app.baseDeDatos().operacionPendienteDao(),
@@ -59,6 +47,18 @@ public class NuevoPedidoViewModelFactory implements ViewModelProvider.Factory {
         MesaRepositorioLocal mesaRepositorio =
                 new MesaRepositorioLocal(app.baseDeDatos(), outboxMesas, app, executor);
         SyncApplication.registrarObservador(TipoOperacion.Modulo.MESAS, mesaRepositorio);
+
+        Outbox outboxPedidos = new Outbox(app.baseDeDatos().operacionPendienteDao(),
+                TipoOperacion.Modulo.PEDIDOS);
+        PedidoRepositorioLocal pedidoRepositorio =
+                new PedidoRepositorioLocal(app.baseDeDatos(), outboxPedidos, app, mesaRepositorio);
+        SyncApplication.registrarObservador(TipoOperacion.Modulo.PEDIDOS, pedidoRepositorio);
+
+        Outbox outboxMenu = new Outbox(app.baseDeDatos().operacionPendienteDao(),
+                TipoOperacion.Modulo.MENU);
+        MenuRepositorioLocal menuRepositorio = new MenuRepositorioLocal(
+                app.baseDeDatos(), outboxMenu, app.getFilesDir(), app);
+        SyncApplication.registrarObservador(TipoOperacion.Modulo.MENU, menuRepositorio);
 
         ClienteRemoto remoto = new ClienteRemoto(
                 SupabaseClient.getClienteApi(),
