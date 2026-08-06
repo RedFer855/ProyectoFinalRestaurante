@@ -427,6 +427,12 @@ public class SincronizadorEmpleadosTest {
 
     private static final class FakeEmpleadoDao implements EmpleadoDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivos() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         private final Map<Integer, EmpleadoEntity> filas = new HashMap<>();
 
         void guardar(EmpleadoEntity fila) {

@@ -637,6 +637,12 @@ public class SincronizadorPedidosTest {
 
     private static final class FakePedidoDao implements PedidoDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoPorEstado(int idEstadoPedido) {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         final Map<Long, PedidoEntity> porIdLocal = new LinkedHashMap<>();
         final Map<Integer, PedidoEntity> porIdServidor = new HashMap<>();
         long siguienteId = 1;
@@ -837,6 +843,12 @@ public class SincronizadorPedidosTest {
     /** Fake mínimo de {@link ClienteDao}: solo lo que el sincronizador usa para resolver ids. */
     private static final class FakeClienteDao implements ClienteDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivos() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         final Map<Long, ClienteEntity> porIdLocal = new HashMap<>();
 
         @Override
@@ -875,6 +887,17 @@ public class SincronizadorPedidosTest {
 
     /** Fake mínimo de {@link MesaDao}: solo lo que el sincronizador usa para resolver ids. */
     private static final class FakeMesaDao implements MesaDao {
+
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivas() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoPorEstadoOperativo(int idEstadoMesa) {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
 
         final Map<Long, MesaEntity> porIdLocal = new HashMap<>();
 

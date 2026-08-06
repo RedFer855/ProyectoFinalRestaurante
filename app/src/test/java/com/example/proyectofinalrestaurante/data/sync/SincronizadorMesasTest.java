@@ -267,6 +267,17 @@ public class SincronizadorMesasTest {
 
     private static final class FakeMesaDao implements MesaDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivas() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoPorEstadoOperativo(int idEstadoMesa) {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         final Map<Integer, MesaEntity> porIdLocal = new HashMap<>();
         final Map<Integer, MesaEntity> porIdServidor = new HashMap<>();
         int siguienteId = 1;

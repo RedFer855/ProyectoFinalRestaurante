@@ -520,6 +520,12 @@ public class SincronizadorMenuTest {
 
     private static final class FakePlatilloDao implements PlatilloDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivos() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         final Map<Integer, PlatilloEntity> porIdLocal = new LinkedHashMap<>();
         final Map<Integer, PlatilloEntity> porIdServidor = new HashMap<>();
         int siguienteId = 1;

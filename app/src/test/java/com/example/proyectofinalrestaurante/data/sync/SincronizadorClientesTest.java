@@ -275,6 +275,12 @@ public class SincronizadorClientesTest {
 
     private static final class FakeClienteDao implements ClienteDao {
 
+        // Conteos del dashboard (Fase 3c): el sincronizador no observa.
+        @Override
+        public LiveData<Integer> observarConteoActivos() {
+            throw new UnsupportedOperationException("el sincronizador no observa");
+        }
+
         final Map<Integer, ClienteEntity> porIdLocal = new HashMap<>();
         final Map<Integer, ClienteEntity> porIdServidor = new HashMap<>();
         int siguienteId = 1;
