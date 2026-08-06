@@ -30,7 +30,9 @@ import retrofit2.Response;
 
 /**
  * Cubre los 4 caminos de error de {@link SupabaseAuthRepository#login} más el camino
- * feliz, sin red real (ver P-020 en Deuda Técnica - Pendientes). Los DTOs se arman con
+ * feliz, y los caminos de {@link SupabaseAuthRepository#solicitarCodigo} (incluido el
+ * límite de correos por hora), sin red real (ver P-020 en Deuda Técnica - Pendientes).
+ * Los DTOs se arman con
  * Gson desde JSON en vez de agregarles constructores solo para testear: Gson usa
  * reflexión y no necesita que la clase de producción cambie.
  */
@@ -158,6 +160,61 @@ public class SupabaseAuthRepositoryTest {
         assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getError());
     }
 
+    @Test
+    public void solicitarCodigo_limiteDeCorreosExcedido_devuelveFallo() {
+        // Supabase corta el envío con 429 / over_email_send_rate_limit cuando el proyecto
+        // pasó su cuota de correos por hora. Tragárselo dejaba al usuario en la pantalla
+        // del código esperando un correo que nunca salió.
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        authApi.respuestaSolicitarCodigo = FakeCall.deRespuesta(
+                Response.error(429, okhttp3.ResponseBody.create(
+                        okhttp3.MediaType.get("application/json"),
+                        "{\"error_code\":\"over_email_send_rate_limit\",\"msg\":\"email rate limit exceeded\"}")));
+
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, new FakeSupabasePerfilApi());
+        Result<Void> resultado = repositorio.solicitarCodigo("ana@restaurante.hn");
+
+        assertFalse(resultado.isSuccess());
+        assertEquals("Se alcanzó el límite de correos por hora. Esperá un momento y volvé a intentar.",
+                resultado.getError());
+    }
+
+    @Test
+    public void solicitarCodigo_correoNoRegistrado_devuelveExitoParaNoDelatarLaCuenta() {
+        // Cualquier error que no sea el límite de envíos se reporta como éxito: la app
+        // nunca revela si una cuenta existe.
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        authApi.respuestaSolicitarCodigo = FakeCall.deRespuesta(
+                Response.error(400, okhttp3.ResponseBody.create(
+                        okhttp3.MediaType.get("application/json"), "{\"msg\":\"user not found\"}")));
+
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, new FakeSupabasePerfilApi());
+
+        assertTrue(repositorio.solicitarCodigo("noexiste@restaurante.hn").isSuccess());
+    }
+
+    @Test
+    public void solicitarCodigo_exitoso_devuelveOk() {
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        authApi.respuestaSolicitarCodigo = FakeCall.deRespuesta(Response.success(null));
+
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, new FakeSupabasePerfilApi());
+
+        assertTrue(repositorio.solicitarCodigo("ana@restaurante.hn").isSuccess());
+    }
+
+    @Test
+    public void solicitarCodigo_sinConexion_devuelveFalloDeRed() {
+        FakeSupabaseAuthApi authApi = new FakeSupabaseAuthApi();
+        authApi.respuestaSolicitarCodigo = FakeCall.deFallo(new IOException("host no resuelve"));
+
+        SupabaseAuthRepository repositorio = new SupabaseAuthRepository(authApi, new FakeSupabasePerfilApi());
+        Result<Void> resultado = repositorio.solicitarCodigo("ana@restaurante.hn");
+
+        assertFalse(resultado.isSuccess());
+        assertEquals("Sin conexión al servidor. Intentá de nuevo.", resultado.getError());
+    }
+
     private LoginResponseDto loginDto(String id, String email, String accessToken) {
         String json = "{\"access_token\":\"" + accessToken + "\",\"user\":{\"id\":\"" + id + "\",\"email\":\"" + email + "\"}}";
         return gson.fromJson(json, LoginResponseDto.class);
@@ -172,6 +229,7 @@ public class SupabaseAuthRepositoryTest {
     private static final class FakeSupabaseAuthApi implements SupabaseAuthApi {
 
         Call<LoginResponseDto> respuestaLogin;
+        Call<Void> respuestaSolicitarCodigo;
         boolean logoutLlamado = false;
 
         @Override
@@ -192,7 +250,10 @@ public class SupabaseAuthRepositoryTest {
 
         @Override
         public Call<Void> solicitarCodigo(RecuperarRequestDto body) {
-            throw new UnsupportedOperationException("No usado en este test");
+            if (respuestaSolicitarCodigo == null) {
+                throw new UnsupportedOperationException("No usado en este test");
+            }
+            return respuestaSolicitarCodigo;
         }
 
         @Override

@@ -313,6 +313,32 @@ Con el error como `String`, la UI no puede reaccionar distinto según el tipo de
 
 ---
 
+### P-032 · Recuperación de contraseña sin SMTP propio: el servicio de correo integrado de Supabase corta a las pocas horas
+
+**Dónde:** Supabase → **Authentication → Emails → SMTP Settings** (proyecto `mxarlisuueovxvttytcm`). No es código de la app.
+
+El proyecto usa el **servicio de correo integrado** de Supabase (`noreply@mail.app.supabase.io`). Ese servicio es *solo para desarrollo*: tiene un límite de **2 mensajes por hora para todo el proyecto** y se entrega "best-effort", sin garantía. El límite es **global, no por usuario**: un `password_changed_notification` a un empleado consume la cuota del código OTP de otro.
+
+Confirmado en los logs de Auth del 2026-08-06 (ver [[Sesión 2026-08-05 - La recuperación de contraseña que se rompía en silencio]]):
+
+```
+01:04:32  mail.send  recovery → kelvinizaguirre914@gmail.com     ← cuota 1/2
+01:05:13  mail.send  password_changed_notification → idem        ← cuota 2/2
+01:54:42  POST /recover → 429 over_email_send_rate_limit
+01:55:49  POST /recover → 429 over_email_send_rate_limit
+01:57:16  POST /recover → 429 over_email_send_rate_limit
+```
+
+El flujo OTP en sí **funciona** — el `/verify` y el `PUT /user` de las 01:05 son un cambio de contraseña completo y exitoso. Lo que falla es el envío del correo a partir del tercer mensaje de la hora.
+
+**Riesgo:** alto para la demo/defensa. Con más de un evaluador probando "olvidé mi contraseña", el segundo se queda sin correo y parece que la app está rota.
+
+**Solución:** configurar un **SMTP propio** (Resend, Brevo, SendGrid o Gmail con contraseña de aplicación) en Authentication → Emails → SMTP Settings, y luego subir el límite en Authentication → Rate Limits (con SMTP propio el techo por defecto pasa a **30 correos por hora** y es ajustable). El límite de `/recover` por IP y el de `/verify` (360/hora) no son el problema acá.
+
+**Estado:** `[ ] Pendiente` — la mitad de app ya se cerró: el 429 ahora se le muestra al usuario en vez de tragárselo (ver la sesión enlazada). Falta la configuración en el panel de Supabase, que no se puede hacer desde el repo.
+
+---
+
 ## 🟢 Menores — aceptables por ahora
 
 ---
@@ -883,6 +909,7 @@ precios al editar) y la matriz de permisos (`PEDIDOS/EDITAR`: admin y mesero). R
 | ~~P-029~~ | Mesas, Clientes y Empleados aún pierden filas al paginar el delta (solo el Menú se corrigió) | 🟡 | `[x]` **Resuelto** 2026-08-04 | [[Plan Fase 0b - Cierre de la deuda P0]] |
 | P-030 | El cursor del sync delta es un reloj; `clock_timestamp()` + solapamiento reduce la ventana de P-025 pero no la elimina (secuencia monótona queda pendiente) | 🟢 | `[ ]` Pendiente — mitigado | [[ADR-011 - El cursor del sync delta es un reloj]] |
 | P-031 | "Editar pedido" no existe: no se puede corregir un pedido tras confirmar | 🟡 | `[ ]` Pendiente | [[Plan Fase 3b - Toma del Pedido]] |
+| P-032 | Sin SMTP propio: el correo integrado de Supabase corta a 2 mensajes/hora y mata la recuperación de contraseña | 🟡 | `[ ]` Pendiente — falta config en el panel | [[Sesión 2026-08-05 - La recuperación de contraseña que se rompía en silencio]] |
 
 ---
 

@@ -37,6 +37,13 @@ public class SupabaseAuthRepository implements AuthRepository {
      */
     private static final int EXPIRACION_POR_DEFECTO_SEGUNDOS = 3600;
 
+    /**
+     * 429 de Supabase Auth ({@code over_email_send_rate_limit}): el servidor de correo
+     * cortó el envío por límite de mensajes por hora. Es el único fallo de {@code /recover}
+     * que se le muestra al usuario — ver {@link #solicitarCodigo(String)}.
+     */
+    private static final int HTTP_LIMITE_DE_ENVIOS = 429;
+
     private final SupabaseAuthApi authApi;
     private final SupabasePerfilApi perfilApi;
 
@@ -102,10 +109,17 @@ public class SupabaseAuthRepository implements AuthRepository {
     @Override
     public Result<Void> solicitarCodigo(String correo) {
         try {
-            // Supabase responde 200 incluso si el correo no existe. Si llegara a
-            // responder error (p. ej. "correo no encontrado"), se trata igual que
-            // el éxito: nunca se revela si una cuenta está registrada.
-            authApi.solicitarCodigo(new RecuperarRequestDto(correo)).execute();
+            Response<Void> response = authApi.solicitarCodigo(new RecuperarRequestDto(correo)).execute();
+
+            // El 429 sí se reporta: no delata si la cuenta existe (el límite es del
+            // proyecto entero, no del correo pedido) y tragárselo dejaba al usuario
+            // esperando en la pantalla del código un correo que nunca se envió.
+            if (response.code() == HTTP_LIMITE_DE_ENVIOS) {
+                return Result.fail("Se alcanzó el límite de correos por hora. Esperá un momento y volvé a intentar.");
+            }
+
+            // Cualquier otro estado se trata como éxito: Supabase responde 200 incluso
+            // si el correo no existe, y la app nunca revela si una cuenta está registrada.
             return Result.ok(null);
         } catch (IOException ex) {
             return Result.fail("Sin conexión al servidor. Intentá de nuevo.");

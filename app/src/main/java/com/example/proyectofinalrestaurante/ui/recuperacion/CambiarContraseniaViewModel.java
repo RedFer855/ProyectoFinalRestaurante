@@ -79,7 +79,14 @@ public class CambiarContraseniaViewModel extends ViewModel {
         if (cargando || correo == null) {
             return;
         }
-        executor.execute(() -> authRepository.solicitarCodigo(correo));
+        // El reenvío puede fallar (p. ej. límite de correos por hora del proyecto). Si se
+        // ignora, el usuario se queda esperando un código que nunca se mandó.
+        executor.execute(() -> {
+            Result<Void> resultado = authRepository.solicitarCodigo(correo);
+            if (!resultado.isSuccess()) {
+                estado.postValue(estadoActual().error(resultado.getError()).build());
+            }
+        });
         iniciarContador();
         publicar();
     }
