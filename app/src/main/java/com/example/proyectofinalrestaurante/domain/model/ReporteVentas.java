@@ -64,4 +64,15 @@ public final class ReporteVentas {
     public List<DesempenoMesero> getDesempenoMeseros() {
         return desempenoMeseros;
     }
+
+    /**
+     * La instantánea existe pero el rango no tuvo ninguna venta. Es un caso distinto de "no hay
+     * instantánea": acá el servidor sí respondió, con ceros y listas vacías (el RPC devuelve
+     * {@code coalesce(..., '[]')}, nunca {@code null}). Se deriva de {@code cantidadPedidos} y
+     * no de {@code totalVentas} porque un pedido de cortesía por L 0.00 igual es actividad del
+     * día — lo que define el vacío es que no hubo pedidos.
+     */
+    public boolean sinVentas() {
+        return cantidadPedidos == 0;
+    }
 }

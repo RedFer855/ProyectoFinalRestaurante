@@ -265,6 +265,7 @@
     <string name="reportes_datos_al">Datos al %1$s</string>
     <string name="reportes_datos_al_con_error">Datos al %1$s · %2$s</string>
     <string name="reportes_vacio_rango">Todavía no descargaste este rango. Conectate para verlo.</string>
+    <string name="reportes_sin_ventas">No hubo ventas en este rango.</string>
     <string name="reportes_reintentar">Reintentar</string>
 
     <string name="menu_inicio">Inicio</string>

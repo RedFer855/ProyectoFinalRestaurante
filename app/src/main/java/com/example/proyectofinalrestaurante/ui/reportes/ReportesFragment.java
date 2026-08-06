@@ -41,6 +41,7 @@ public class ReportesFragment extends Fragment {
     private TextView ticketValor;
     private View contenedorDatos;
     private View contenedorVacio;
+    private TextView textoVacio;
     private boolean marcandoChipDesdeEstado = false;
 
     @Nullable
@@ -66,6 +67,7 @@ public class ReportesFragment extends Fragment {
         ticketValor = view.findViewById(R.id.txt_ticket_valor);
         contenedorDatos = view.findViewById(R.id.contenedor_datos_reportes);
         contenedorVacio = view.findViewById(R.id.contenedor_vacio_reportes);
+        textoVacio = view.findViewById(R.id.txt_reportes_vacio);
 
         construirChipsDeRango();
         refresco.setOnRefreshListener(() -> viewModel.pullToRefresh());
@@ -110,9 +112,17 @@ public class ReportesFragment extends Fragment {
         refresco.setRefreshing(estado.isSincronizando());
 
         ReporteVentas reporte = estado.getReporte();
-        contenedorDatos.setVisibility(reporte != null ? View.VISIBLE : View.GONE);
-        contenedorVacio.setVisibility(estado.isVacio() ? View.VISIBLE : View.GONE);
+        // Tres estados excluyentes: cifras, "no hubo ventas" y "no se descargó". Los dos
+        // últimos comparten el contenedor vacío y solo cambian el texto; el de "no hubo
+        // ventas" conserva la franja "Datos al …" porque ahí el dato sí bajó y es real.
+        boolean hayCifras = reporte != null && !estado.isSinVentas();
+        contenedorDatos.setVisibility(hayCifras ? View.VISIBLE : View.GONE);
+        contenedorVacio.setVisibility(
+                estado.isVacio() || estado.isSinVentas() ? View.VISIBLE : View.GONE);
         estadoTexto.setVisibility(reporte != null ? View.VISIBLE : View.GONE);
+        textoVacio.setText(estado.isSinVentas()
+                ? getString(R.string.reportes_sin_ventas)
+                : getString(R.string.reportes_vacio_rango));
 
         if (reporte == null) {
             return;

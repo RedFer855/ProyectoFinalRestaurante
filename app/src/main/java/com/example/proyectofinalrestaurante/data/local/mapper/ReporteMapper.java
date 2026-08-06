@@ -13,7 +13,7 @@ import com.example.proyectofinalrestaurante.domain.model.DesempenoMesero;
 import com.example.proyectofinalrestaurante.domain.model.RangoReporte;
 import com.example.proyectofinalrestaurante.domain.model.ReporteVentas;
 
-import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,11 +36,32 @@ public final class ReporteMapper {
     public static ReporteVentasEntity cabeceraDesdeDto(String rango, ReporteVentasDto dto) {
         ReporteVentasEntity entidad = new ReporteVentasEntity();
         entidad.setRango(rango);
-        entidad.setGeneradoEn(Instant.parse(dto.getGeneradoEn()).toEpochMilli());
+        entidad.setGeneradoEn(aEpochMillis(dto.getGeneradoEn()));
         entidad.setTotalVentas(dto.getTotalVentas());
         entidad.setCantidadPedidos(dto.getCantidadPedidos());
         entidad.setTicketPromedio(dto.getTicketPromedio());
         return entidad;
+    }
+
+    /**
+     * {@code generado_en} → epoch millis. Se parsea con {@link OffsetDateTime}, <b>no</b> con
+     * {@code Instant.parse}: {@code jsonb_build_object} serializa un {@code timestamptz} con
+     * offset explícito ({@code 2026-08-06T00:54:53.76186+00:00}), y el {@code ISO_INSTANT} que
+     * usa {@code Instant.parse} solo acepta el sufijo {@code Z} en la java.time desazucarada de
+     * {@code desugar_jdk_libs} (derivada de OpenJDK 11; el soporte de offsets llegó recién en
+     * JDK 12). Con {@code minSdk 24} eso tiraba {@code DateTimeParseException} en el hilo del
+     * {@code Executor} del ViewModel —sin nadie que la atrapara— y el módulo entero cerraba la
+     * app al abrirse. Es el mismo criterio que {@code SincronizadorPedidos}, que ya parseaba las
+     * marcas del servidor con {@code OffsetDateTime}.
+     */
+    private static long aEpochMillis(@Nullable String marcaIso) {
+        if (marcaIso == null || marcaIso.isEmpty()) {
+            // El servidor siempre la manda; si algún día no lo hiciera, una instantánea con
+            // fecha "ahora" es preferible a tumbar la pantalla — ReglasReporte solo la usa
+            // para decidir si vale la pena volver a pedirla.
+            return System.currentTimeMillis();
+        }
+        return OffsetDateTime.parse(marcaIso).toInstant().toEpochMilli();
     }
 
     public static List<ConteoPlatilloEntity> topPlatillosDesdeDto(String rango, ReporteVentasDto dto) {

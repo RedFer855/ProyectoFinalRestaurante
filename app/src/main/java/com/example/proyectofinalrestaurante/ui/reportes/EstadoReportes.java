@@ -66,4 +66,14 @@ public final class EstadoReportes {
     public boolean isVacio() {
         return !cargando && reporte == null;
     }
+
+    /**
+     * Hay instantánea y dice que el rango no tuvo ventas. Distinto de {@link #isVacio()}: acá
+     * el dato bajó y es real, así que la franja "Datos al …" se sigue mostrando; lo que se
+     * oculta es el bloque de cifras, que si no quedaba en L 0.00 con dos listas vacías colgando
+     * de sus títulos.
+     */
+    public boolean isSinVentas() {
+        return reporte != null && reporte.sinVentas();
+    }
 }

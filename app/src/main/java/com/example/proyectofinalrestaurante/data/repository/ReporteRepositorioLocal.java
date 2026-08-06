@@ -40,6 +40,8 @@ import java.util.function.Supplier;
  */
 public final class ReporteRepositorioLocal implements ReporteRepository {
 
+    static final String ERROR_INESPERADO = "No se pudo leer el reporte. Intentá de nuevo.";
+
     private final ReporteDao reporteDao;
     private final ReporteRemoto remoto;
     private final Supplier<Long> reloj;
@@ -100,27 +102,43 @@ public final class ReporteRepositorioLocal implements ReporteRepository {
         refrescarInterno(rango, true);
     }
 
+    /**
+     * Corre en el {@code Executor} del {@code ReportesViewModel}, o sea en un hilo sin nadie
+     * arriba que atrape nada: una excepción que se escape acá llega al
+     * {@code UncaughtExceptionHandler} por defecto y <b>cierra la app</b>. Así se perdía la
+     * pantalla entera cuando el parseo de {@code generado_en} fallaba (ver
+     * {@code ReporteMapper#aEpochMillis}). Esa causa puntual está arreglada, pero el
+     * {@code catch} se queda: un reporte que no se puede leer es una franja de error en la
+     * pantalla, nunca un cierre — {@link #getEstadoSincronizacion()} ya es el canal para eso y
+     * la instantánea previa sigue intacta (B3).
+     */
     private void refrescarInterno(RangoReporte rango, boolean forzar) {
         String clave = rango.name();
-        if (!forzar) {
-            ReporteVentasEntity cabecera = reporteDao.cabeceraSincrona(clave);
-            if (cabecera != null && !ReglasReporte.esVieja(cabecera.getGeneradoEn(), reloj.get())) {
-                // B1: instantánea fresca, no se llama al remoto.
+        try {
+            if (!forzar) {
+                ReporteVentasEntity cabecera = reporteDao.cabeceraSincrona(clave);
+                if (cabecera != null
+                        && !ReglasReporte.esVieja(cabecera.getGeneradoEn(), reloj.get())) {
+                    // B1: instantánea fresca, no se llama al remoto.
+                    return;
+                }
+            }
+            estadoSincronizacion.postValue(new EstadoSincronizacion(true, null));
+            ResultadoRed<ReporteVentasDto> resultado = remoto.reporteVentas(clave);
+            if (!resultado.isExitoso()) {
+                // B3: el fallo no borra la instantánea previa, solo publica el error.
+                estadoSincronizacion.postValue(
+                        new EstadoSincronizacion(false, resultado.getMensaje()));
                 return;
             }
+            ReporteVentasDto dto = resultado.getValor();
+            reporteDao.reemplazarRango(clave,
+                    ReporteMapper.cabeceraDesdeDto(clave, dto),
+                    ReporteMapper.topPlatillosDesdeDto(clave, dto),
+                    ReporteMapper.desempenoDesdeDto(clave, dto));
+            estadoSincronizacion.postValue(new EstadoSincronizacion(false, null));
+        } catch (RuntimeException ex) {
+            estadoSincronizacion.postValue(new EstadoSincronizacion(false, ERROR_INESPERADO));
         }
-        estadoSincronizacion.postValue(new EstadoSincronizacion(true, null));
-        ResultadoRed<ReporteVentasDto> resultado = remoto.reporteVentas(clave);
-        if (!resultado.isExitoso()) {
-            // B3: el fallo no borra la instantánea previa, solo publica el error.
-            estadoSincronizacion.postValue(new EstadoSincronizacion(false, resultado.getMensaje()));
-            return;
-        }
-        ReporteVentasDto dto = resultado.getValor();
-        reporteDao.reemplazarRango(clave,
-                ReporteMapper.cabeceraDesdeDto(clave, dto),
-                ReporteMapper.topPlatillosDesdeDto(clave, dto),
-                ReporteMapper.desempenoDesdeDto(clave, dto));
-        estadoSincronizacion.postValue(new EstadoSincronizacion(false, null));
     }
 }
