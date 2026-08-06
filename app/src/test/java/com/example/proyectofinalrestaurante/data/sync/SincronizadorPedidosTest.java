@@ -27,7 +27,7 @@ import com.example.proyectofinalrestaurante.data.sync.payload.PayloadCrearPedido
 import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
-import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
+
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.example.proyectofinalrestaurante.data.repository.PedidoRemoto;
 import com.google.gson.Gson;
@@ -604,9 +604,14 @@ public class SincronizadorPedidosTest {
         assertEquals("ERROR", pedidos.porIdLocal.get(1L).getEstadoSync());
     }
 
-    /** Respuesta del RPC: el id_pedido creado. */
-    private static CrearPedidoDto crearPedido(int idPedido) {
-        return new Gson().fromJson("{\"id_pedido\":" + idPedido + "}", CrearPedidoDto.class);
+    /**
+     * Respuesta del RPC: el id_pedido creado. Se decodifica desde el JSON crudo que manda
+     * PostgREST —un entero escalar pelado, no {@code {"id_pedido": N}}— para que el fake
+     * hable exactamente la misma forma que el servidor real (ver
+     * {@code SupabasePedidoApi#crearPedido}).
+     */
+    private static Integer crearPedido(int idPedido) {
+        return new Gson().fromJson(String.valueOf(idPedido), Integer.class);
     }
 
     // ------------------------------------------------------------------ fakes
@@ -794,8 +799,8 @@ public class SincronizadorPedidosTest {
         BiFunction<String, Integer, Call<List<PedidoDto>>> respuestaListarDesde =
                 (filtro, offset) -> FakeCall.deRespuesta(Response.success(List.of()));
         Call<Void> respuestaAvanzar = FakeCall.deRespuesta(Response.success(null));
-        Call<CrearPedidoDto> respuestaCrear =
-                FakeCall.deRespuesta(Response.success(new CrearPedidoDto()));
+        Call<Integer> respuestaCrear =
+                FakeCall.deRespuesta(Response.success(0));
 
         String ultimoFiltro;
         int ultimoOffset;
@@ -817,7 +822,7 @@ public class SincronizadorPedidosTest {
         }
 
         @Override
-        public Call<CrearPedidoDto> crearPedido(String bearerToken, RequestBody cuerpo) {
+        public Call<Integer> crearPedido(String bearerToken, RequestBody cuerpo) {
             try {
                 Buffer buffer = new Buffer();
                 cuerpo.writeTo(buffer);

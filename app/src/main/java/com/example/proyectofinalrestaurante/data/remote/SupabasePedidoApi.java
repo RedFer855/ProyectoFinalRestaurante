@@ -1,7 +1,6 @@
 package com.example.proyectofinalrestaurante.data.remote;
 
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
-import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 
 import java.util.List;
@@ -92,9 +91,18 @@ public interface SupabasePedidoApi {
      * plano} × {con vs. sin el header}: el header no cambió el resultado en ningún caso —lo
      * único que importó fue envolver el body bajo {@code p_payload}. No volver a agregarlo
      * pensando que es lo que falta.</p>
+     *
+     * <p><b>La respuesta es un entero escalar, no un objeto.</b> El RPC está declarado
+     * {@code returns integer}, y PostgREST serializa un retorno escalar como JSON crudo
+     * ({@code 4}), sin envolverlo en {@code {"id_pedido": 4}}. Tipar esto como un DTO hacía
+     * que Gson fallara con {@code Expected BEGIN_OBJECT but was NUMBER} <i>después</i> de que
+     * el pedido ya se había insertado en el servidor: la excepción sube como {@code IOException}
+     * y el outbox lo reintentaba como si fuera un fallo de red —el pedido entraba, pero la
+     * cabecera local nunca recibía su {@code id_servidor}. Mismo criterio que
+     * {@link SupabaseClienteApi#buscarOCrearCliente}, el otro RPC que devuelve un int.</p>
      */
     @POST("rest/v1/rpc/crear_pedido")
-    Call<CrearPedidoDto> crearPedido(
+    Call<Integer> crearPedido(
             @Header("Authorization") String bearerToken,
             @Body RequestBody cuerpo);
 }

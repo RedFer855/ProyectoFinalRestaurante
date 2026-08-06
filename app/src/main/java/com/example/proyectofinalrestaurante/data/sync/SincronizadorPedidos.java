@@ -19,7 +19,6 @@ import com.example.proyectofinalrestaurante.data.outbox.Outbox;
 import com.example.proyectofinalrestaurante.data.sync.payload.PayloadCrearPedido;
 import com.example.proyectofinalrestaurante.data.sync.payload.PayloadOperacion;
 import com.example.proyectofinalrestaurante.data.outbox.TipoOperacion;
-import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.example.proyectofinalrestaurante.data.repository.PedidoRemoto;
 import com.example.proyectofinalrestaurante.data.repository.ResultadoRed;
@@ -243,7 +242,7 @@ public final class SincronizadorPedidos implements Sincronizador {
         }
 
         String cuerpoJson = construirJsonRpc(payload, idMesa, clientes.idServidor());
-        ResultadoRed<CrearPedidoDto> resultado = remoto.crearPedido(cuerpoJson);
+        ResultadoRed<Integer> resultado = remoto.crearPedido(cuerpoJson);
         if (!resultado.isExitoso()) {
             PedidoEntity fila = pedidoDao.porIdLocal(operacion.getIdLocal());
             return manejarFallo(operacion, resultado, fila);
@@ -253,7 +252,7 @@ public final class SincronizadorPedidos implements Sincronizador {
         // (B2): re-aplicarlo es idempotente (upsert + LWW).
         PedidoEntity cabecera = pedidoDao.porIdLocal(operacion.getIdLocal());
         if (cabecera != null) {
-            cabecera.setIdServidor(resultado.getValor().getIdPedido());
+            cabecera.setIdServidor(resultado.getValor());
             cabecera.setEstadoSync(EstadoSync.SINCRONIZADO.name());
             pedidoDao.actualizar(cabecera);
         }

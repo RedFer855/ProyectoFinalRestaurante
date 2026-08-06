@@ -5,7 +5,6 @@ import androidx.annotation.Nullable;
 import com.example.proyectofinalrestaurante.data.outbox.ClasificadorDeError;
 import com.example.proyectofinalrestaurante.data.remote.SupabasePedidoApi;
 import com.example.proyectofinalrestaurante.data.remote.dto.AvanzarEstadoPedidoDto;
-import com.example.proyectofinalrestaurante.data.remote.dto.CrearPedidoDto;
 import com.example.proyectofinalrestaurante.data.remote.dto.PedidoDto;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -96,7 +95,7 @@ public final class PedidoRemoto {
      * líneas, platillo inexistente o inactivo) llega como <b>400</b> → permanente en el
      * {@code ClasificadorDeError}: el outbox lo descarta en vez de reintentar tres veces.
      */
-    public ResultadoRed<CrearPedidoDto> crearPedido(String payloadJson) {
+    public ResultadoRed<Integer> crearPedido(String payloadJson) {
         String bearer = bearer();
         if (bearer == null) {
             return ResultadoRed.fallo(401, SIN_SESION);
@@ -107,7 +106,7 @@ public final class PedidoRemoto {
             JsonObject cuerpoRpc = new JsonObject();
             cuerpoRpc.add("p_payload", JsonParser.parseString(payloadJson));
             RequestBody cuerpo = RequestBody.create(TIPO_JSON, cuerpoRpc.toString());
-            Response<CrearPedidoDto> respuesta = api.crearPedido(bearer, cuerpo).execute();
+            Response<Integer> respuesta = api.crearPedido(bearer, cuerpo).execute();
             if (!respuesta.isSuccessful() || respuesta.body() == null) {
                 return ResultadoRed.fallo(respuesta.code(),
                         mensajeDeError(respuesta, "No se pudo tomar el pedido."));
